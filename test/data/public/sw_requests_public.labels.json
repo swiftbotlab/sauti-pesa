@@ -1,0 +1,12 @@
+{
+  "_note": "Expected labels for the public test set sw_requests_public.md. expected_amount = the numeric amount a correct parse must yield; named = rows that name a third-party recipient (the parse must surface that name); saved = rows whose recipient matches a saved demo contact (none in this public set, so the confirmable-to-saved metric has no cases here).",
+  "expected_amount": {
+    "p1": 2000, "p2": 3000, "p3": 1500, "p4": 3500, "p5": 1200,
+    "p6": 200, "p7": 50, "p8": 30, "p9": 20, "p10": 4000,
+    "p11": 20000, "p12": 40, "p13": 10000
+  },
+  "named": {
+    "p1": "Zawadi", "p4": "Otieno", "p5": "Akinyi", "p8": "Brian", "p10": "Neema"
+  },
+  "saved": {}
+}

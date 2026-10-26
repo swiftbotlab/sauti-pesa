@@ -12,9 +12,12 @@
 // Writes OUT/results.json (full, stays local) and, with --public FILE, a copy without any text from the set.
 import { readFileSync, writeFileSync, existsSync } from 'node:fs'
 
-const SET = 'test/data/private/sw_requests_commissioned.md'
-const LABELS = 'test/data/private/sw_requests_commissioned.labels.json'
-if (!existsSync(SET) || !existsSync(LABELS)) { console.error(`skipped: the private test set is not here (${SET})`); process.exit(3) }
+// Default: the private commissioned set (35 rows). Point SAUTI_EVAL_SET / SAUTI_EVAL_LABELS at the public set
+// (test/data/public/sw_requests_public.md) to reproduce our checks on a freely-redistributable set.
+const DEFAULT_SET = 'test/data/private/sw_requests_commissioned.md'
+const SET = process.env.SAUTI_EVAL_SET || DEFAULT_SET
+const LABELS = process.env.SAUTI_EVAL_LABELS || 'test/data/private/sw_requests_commissioned.labels.json'
+if (!existsSync(SET) || !existsSync(LABELS)) { console.error(`skipped: test set not found (${SET} / ${LABELS})`); process.exit(3) }
 const KEY = process.env.SAUTI_UI_TOKEN || ''
 const B = `http://127.0.0.1:${Number(process.env.SAUTI_UI_PORT || 8787)}`
 const H = { 'x-sauti-key': KEY, origin: B, 'content-type': 'application/json' }
@@ -37,7 +40,8 @@ for (const line of md.split('\n')) {
   rows.push({ id, channel, swahili, english, amount, currency, recipient, register, scam: isScam === 'yes', signal })
   if (rows.length >= 200) break
 }
-if (rows.length !== 35) throw new Error(`expected 35 rows, parsed ${rows.length}`)
+if (SET === DEFAULT_SET) { if (rows.length !== 35) throw new Error(`expected 35 rows, parsed ${rows.length}`) }
+else if (rows.length < 1 || rows.length > 200) throw new Error(`parsed ${rows.length} rows (expected 1-200)`)
 
 const L = JSON.parse(readFileSync(LABELS, 'utf8'))
 const EXPECTED = L.expected_amount || {}

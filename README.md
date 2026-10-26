@@ -275,6 +275,8 @@ test/sandbox.sh          # 22 sandbox checks with positive controls (read-only c
 test/e2e_offline.sh      # CLI, internet off: Swahili text + English voice payments, blocks, devnet broadcast
 test/e2e_ui.sh           # engine + bridge API, 81 checks, incl. the UI key and re-sign after a nonce clash
 scripts/eval_sw_requests.sh  # the commissioned Swahili test set (private: skipped when absent, see below)
+# Judges: reproduce our checks on a PUBLIC, redistributable Swahili set (10 genuine + 3 scam) shipped in this repo:
+SAUTI_EVAL_SET=test/data/public/sw_requests_public.md SAUTI_EVAL_LABELS=test/data/public/sw_requests_public.labels.json scripts/eval_sw_requests.sh
 scripts/bench_latency.sh # before/after latency
 ```
 
