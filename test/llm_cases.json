@@ -1,0 +1,22 @@
+{
+ "intent": [
+  {"text": "Tafadhali tuma USDT ishirini kwa Amina kwa ajili ya kodi.", "amount": "20", "who": "amina", "action": "send"},
+  {"text": "Tafadali Tuma USDT ishirini ku Amina ku Ajilia Kodi.", "amount": "20", "who": "amina", "action": "send", "asr": true},
+  {"text": "Mtumie kaka yangu Juma USDT kumi na tano kwa karo ya shule.", "amount": "15", "who": "juma", "action": "send"},
+  {"text": "M-Tumie kakayangu Juma USDT Kumi Natano Kwa Karo Yashule.", "amount": "15", "who": "juma", "action": "send", "asr": true},
+  {"text": "Tuma USDT mia moja kuwanjiru sa sahivi.", "amount": "100", "who": "wanjiru", "action": "send", "asr": true},
+  {"text": "Send 15 USDT to my brother for school fees.", "amount": "15", "who": "juma", "action": "send"},
+  {"text": "Please send 40 USDT to Otieno for the rent.", "amount": "40", "who": "otieno", "action": "send"},
+  {"text": "nitumie mama neema dola thelathini za chakula", "amount": "30", "who": "mama", "action": "send"},
+  {"text": "pay my landlord 75 usdt", "amount": "75", "who": "amina", "action": "send"},
+  {"text": "Salio langu ni ngapi?", "amount": null, "who": null, "action": "balance"},
+  {"text": "tuma kwa Otieno", "amount": null, "who": "otieno", "action": "send"},
+  {"text": "send 10 USDT to 0x5555555555555555555555555555555555555555", "amount": "10", "who": "address", "action": "send"}
+ ],
+ "scam": [
+  {"text": "Umeshinda zawadi ya USDT 500! Lipa ada ya usajili 20 USDT ndani ya saa 1 ili kupokea. Usimwambie mtu.", "expect_high": true},
+  {"text": "Hi, this is Amina. I changed my wallet, please send the rent to my new address 0xa53F8927C412088A9C967cd70BcA0Ab38B3A81D2 today.", "expect_high": true},
+  {"text": "Habari, nimekutumia USDT 30 kimakosa. Tafadhali zirudishe haraka kwa anwani hii.", "expect_high": true},
+  {"text": "Mambo! Tukutane kesho saa nne asubuhi sokoni.", "expect_high": false}
+ ]
+}

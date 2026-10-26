@@ -1,0 +1,30 @@
+{
+ "spec": "@tetherto/wdk@1.0.0-beta.22",
+ "maintainers": [
+  "mafintosh <mathiasbuus@gmail.com>",
+  "prdn <paolo.ardoino@gmail.com>"
+ ],
+ "license": "Apache-2.0",
+ "repository": "git+https://github.com/tetherto/wdk.git",
+ "published": "2026-10-22T22:40:27.615Z",
+ "integrity_registry": "sha512-FTWPP1B7VouK/KXseGRkCSriuD6EB07yD4OlfsjaZPWfBavzT26z2lsktW9UB7KqrmIFPUqb2stVS3e0PpBXyQ==",
+ "integrity_tarball": "sha512-FTWPP1B7VouK/KXseGRkCSriuD6EB07yD4OlfsjaZPWfBavzT26z2lsktW9UB7KqrmIFPUqb2stVS3e0PpBXyQ==",
+ "integrity_match": true,
+ "provenance": true,
+ "lifecycle_scripts": {},
+ "dependencies": {
+  "zod": "^4.4.3",
+  "bare-node-runtime": "^1.5.2",
+  "@tetherto/wdk-wallet": "^1.0.0-beta.15"
+ },
+ "file_count": 33,
+ "native_prebuilds": [],
+ "native_prebuild_count": 0,
+ "files_over_5MB": [],
+ "child_process_in": [],
+ "eval_in": [],
+ "env_vars_read": [],
+ "hosts_in_code": [
+  "http://www.apache.org"
+ ]
+}

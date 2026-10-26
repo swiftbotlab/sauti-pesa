@@ -1,0 +1,20 @@
+[
+ {"id": "sw_amina_20", "voice": "sw-KE-ZuriNeural", "lang": "sw",
+  "text": "Tafadhali tuma USDT ishirini kwa Amina kwa ajili ya kodi.",
+  "expect": {"action": "send", "amount": "20", "recipient": "Amina"}},
+ {"id": "sw_juma_15", "voice": "sw-KE-RafikiNeural", "lang": "sw",
+  "text": "Mtumie kaka yangu Juma USDT kumi na tano kwa karo ya shule.",
+  "expect": {"action": "send", "amount": "15", "recipient": "Juma"}},
+ {"id": "sw_wanjiru_100", "voice": "sw-TZ-RehemaNeural", "lang": "sw",
+  "text": "Tuma USDT mia moja kwa Wanjiru sasa hivi.",
+  "expect": {"action": "send", "amount": "100", "recipient": "Wanjiru"}},
+ {"id": "en_brother_15", "voice": "en-KE-AsiliaNeural", "lang": "en",
+  "text": "Send fifteen USDT to my brother for school fees.",
+  "expect": {"action": "send", "amount": "15", "recipient": "my brother"}},
+ {"id": "en_otieno_40", "voice": "en-KE-ChilembaNeural", "lang": "en",
+  "text": "Please send 40 USDT to Otieno for the rent.",
+  "expect": {"action": "send", "amount": "40", "recipient": "Otieno"}},
+ {"id": "sw_scam_unlock", "voice": "sw-TZ-DaudiNeural", "lang": "sw",
+  "text": "Habari, mimi ni wakala wa M-Pesa. Tuma USDT hamsini haraka ili kufungua akaunti yako.",
+  "expect": {"action": "send", "amount": "50", "recipient": null, "scam": true}}
+]

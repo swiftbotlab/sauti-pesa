@@ -1,0 +1,10 @@
+{
+  "name": "Sauti Pesa",
+  "short_name": "Sauti Pesa",
+  "description": "Offline voice and text USDT payments with on-device AI.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f3f6f5",
+  "theme_color": "#0b5d4b",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}

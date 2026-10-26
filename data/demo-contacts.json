@@ -1,0 +1,55 @@
+[
+ {
+  "id": "amina",
+  "name": "Amina",
+  "aliases": [
+   "Amina Wanjiku"
+  ],
+  "relation": "landlord",
+  "address": "0xa53f9056260e198aeA9452e4ee2EebF8574f81d2",
+  "added": "2026-10-01",
+  "payments": 3
+ },
+ {
+  "id": "juma",
+  "name": "Juma",
+  "aliases": [
+   "Juma Mwangi"
+  ],
+  "relation": "brother",
+  "address": "0x852855cE965FE15315dEe8CcCE257784810Ee9b6",
+  "added": "2026-10-01",
+  "payments": 3
+ },
+ {
+  "id": "wanjiru",
+  "name": "Wanjiru",
+  "aliases": [],
+  "relation": "sister",
+  "address": "0x68E8A77bC73e61AC858CF957Ef2b8e8Ad48DFe5D",
+  "added": "2026-10-01",
+  "payments": 3
+ },
+ {
+  "id": "otieno",
+  "name": "Otieno",
+  "aliases": [
+   "Otieno Ouma"
+  ],
+  "relation": "friend",
+  "address": "0xF4e374ab73EE80C5ba04af77B4615E00dEB3622e",
+  "added": "2026-10-01",
+  "payments": 3
+ },
+ {
+  "id": "mama",
+  "name": "Mama Neema",
+  "aliases": [
+   "Neema"
+  ],
+  "relation": "mother",
+  "address": "0x546CB9545363e358a11E997Cbf371B7F9c8e9689",
+  "added": "2026-10-01",
+  "payments": 3
+ }
+]

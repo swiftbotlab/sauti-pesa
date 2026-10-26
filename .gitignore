@@ -1,0 +1,14 @@
+node_modules/
+models/
+private/
+tmp/
+home/
+queue/
+*.bak-*
+.env
+*.seed
+__pycache__/
+media/
+ops/local.env
+*.new
+test/data/private/

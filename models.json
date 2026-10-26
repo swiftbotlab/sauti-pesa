@@ -1,0 +1,83 @@
+{
+ "QWEN3_1_7B_INST_Q4": {
+  "file": "Qwen3-1.7B-Q4_0.gguf",
+  "url": "https://huggingface.co/unsloth/Qwen3-1.7B-GGUF/resolve/d7f544eead698dbd1f15126ef60b45a1e1933222/Qwen3-1.7B-Q4_0.gguf",
+  "sha256": "c876f159707a4e4f70e045106c69db15bfc935a4981706fd4f65c6e7ea1e81c5",
+  "bytes": 1056782912,
+  "engine": "llamacpp-completion",
+  "license": "Apache-2.0 (Qwen/Qwen3-1.7B)",
+  "qvac_constant": "QWEN3_1_7B_INST_Q4",
+  "role": "llm"
+ },
+ "QWEN3_5_2B_MULTIMODAL_Q4_K_M": {
+  "file": "Qwen3.5-2B-Q4_K_M.gguf",
+  "url": "https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/f6d5376be1edb4d416d56da11e5397a961aca8ae/Qwen3.5-2B-Q4_K_M.gguf",
+  "sha256": "aaf42c8b7c3cab2bf3d69c355048d4a0ee9973d48f16c731c0520ee914699223",
+  "bytes": 1280835840,
+  "engine": "llamacpp-completion",
+  "license": "Apache-2.0 (Qwen/Qwen3.5-2B)",
+  "qvac_constant": "QWEN3_5_2B_MULTIMODAL_Q4_K_M",
+  "role": "llm"
+ },
+ "LLAMA_3_2_1B_INST_Q4_0": {
+  "file": "Llama-3.2-1B-Instruct-Q4_0.gguf",
+  "url": "https://huggingface.co/unsloth/Llama-3.2-1B-Instruct-GGUF/resolve/b69aef112e9f895e6f98d7ae0949f72ff09aa401/Llama-3.2-1B-Instruct-Q4_0.gguf",
+  "sha256": "66bfbb2d48bdb77cd56bd03ef820deff3c4a74b1a09de3b917ae13e72c1a70c2",
+  "bytes": 773025824,
+  "engine": "llamacpp-completion",
+  "license": "Llama 3.2 Community License",
+  "qvac_constant": "LLAMA_3_2_1B_INST_Q4_0",
+  "role": "llm"
+ },
+ "WHISPER_SMALL_Q8_0": {
+  "file": "ggml-small-q8_0.bin",
+  "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-small-q8_0.bin",
+  "sha256": "49c8fb02b65e6049d5fa6c04f81f53b867b5ec9540406812c643f177317f779f",
+  "bytes": 264464607,
+  "engine": "whispercpp-transcription",
+  "license": "MIT (OpenAI Whisper, ggml conversion by whisper.cpp)",
+  "qvac_constant": "WHISPER_SMALL_Q8_0",
+  "role": "asr"
+ },
+ "WHISPER_BASE_Q8_0": {
+  "file": "ggml-base-q8_0.bin",
+  "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-base-q8_0.bin",
+  "sha256": "c577b9a86e7e048a0b7eada054f4dd79a56bbfa911fbdacf900ac5b567cbb7d9",
+  "bytes": 81768585,
+  "engine": "whispercpp-transcription",
+  "license": "MIT (OpenAI Whisper, ggml conversion by whisper.cpp)",
+  "qvac_constant": "WHISPER_BASE_Q8_0",
+  "role": "asr"
+ },
+ "WHISPER_LARGE_V3_TURBO": {
+  "file": "ggml-large-v3-turbo.bin",
+  "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-large-v3-turbo.bin",
+  "sha256": "1fc70f774d38eb169993ac391eea357ef47c88757ef72ee5943879b7e8e2bc69",
+  "bytes": 1624555275,
+  "engine": "whispercpp-transcription",
+  "license": "MIT (OpenAI Whisper, ggml conversion by whisper.cpp)",
+  "qvac_constant": "WHISPER_LARGE_V3_TURBO",
+  "role": "asr"
+ },
+ "VAD_SILERO_5_1_2": {
+  "file": "ggml-silero-v5.1.2.bin",
+  "url": "https://huggingface.co/ggml-org/whisper-vad/resolve/9ffd54a1e1ee413ddf265af9913beaf518d1639b/ggml-silero-v5.1.2.bin",
+  "sha256": "29940d98d42b91fbd05ce489f3ecf7c72f0a42f027e4875919a28fb4c04ea2cf",
+  "bytes": 885098,
+  "engine": "whispercpp-transcription",
+  "license": "MIT (Silero VAD, ggml conversion by whisper.cpp)",
+  "qvac_constant": "VAD_SILERO_5_1_2",
+  "role": "vad"
+ },
+ "WHISPER_LARGE_V3_TURBO_Q5_0": {
+  "file": "ggml-large-v3-turbo-q5_0.bin",
+  "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-large-v3-turbo-q5_0.bin",
+  "sha256": "394221709cd5ad1f40c46e6031ca61bce88931e6e088c188294c6d5a55ffa7e2",
+  "bytes": 574041195,
+  "engine": "whispercpp-transcription",
+  "license": "MIT (OpenAI Whisper, ggml conversion by whisper.cpp)",
+  "qvac_constant": null,
+  "note": "Not a QVAC registry constant: q5_0 quantization of QVAC WHISPER_LARGE_V3_TURBO from the same repo and commit; sha256 = Hugging Face LFS oid.",
+  "role": "asr"
+ }
+}

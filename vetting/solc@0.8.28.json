@@ -1,0 +1,45 @@
+{
+ "spec": "solc@0.8.28",
+ "maintainers": [
+  "chriseth <chris@ethereum.org>",
+  "hrkrshnn <hari@ethereum.org>",
+  "ekpyron <daniel.kirchner@ethereum.org>",
+  "cameel <cameel2@gmail.com>",
+  "nikola.matic <nikola.matic@ethereum.org>",
+  "r0qs <rodrigo.saramago@ethereum.org>",
+  "matheus.pit <matheus.pit@gmail.com>"
+ ],
+ "license": "MIT",
+ "repository": "git+https://github.com/ethereum/solc-js.git",
+ "published": "2024-10-09T08:53:04.829Z",
+ "integrity_registry": "sha512-AFCiJ+b4RosyyNhnfdVH4ZR1+TxiL91iluPjw0EJslIu4LXGM9NYqi2z5y8TqochC4tcH9QsHfwWhOIC9jPDKA==",
+ "integrity_tarball": "sha512-AFCiJ+b4RosyyNhnfdVH4ZR1+TxiL91iluPjw0EJslIu4LXGM9NYqi2z5y8TqochC4tcH9QsHfwWhOIC9jPDKA==",
+ "integrity_match": true,
+ "provenance": false,
+ "lifecycle_scripts": {},
+ "dependencies": {
+  "tmp": "0.0.33",
+  "semver": "^5.5.0",
+  "js-sha3": "0.8.0",
+  "commander": "^8.1.0",
+  "memorystream": "^0.3.1",
+  "command-exists": "^1.2.8",
+  "follow-redirects": "^1.12.1"
+ },
+ "file_count": 21,
+ "native_prebuilds": [],
+ "native_prebuild_count": 0,
+ "files_over_5MB": [
+  "package/soljson.js (9184330 B)"
+ ],
+ "child_process_in": [
+  "package/smtsolver.js"
+ ],
+ "eval_in": [],
+ "env_vars_read": [],
+ "hosts_in_code": [
+  "https://binaries.soliditylang.org",
+  "https://docs.soliditylang.org",
+  "https://github.com"
+ ]
+}

@@ -1,0 +1,23 @@
+{
+ "note": "Held-out phrasings written after prompt tuning; never used to tune the prompt.",
+ "intent": [
+  {"text": "Naomba umtumie Wanjiru USDT hamsini", "amount": "50", "who": "wanjiru", "action": "send"},
+  {"text": "Lipa Otieno dola kumi na mbili", "amount": "12", "who": "otieno", "action": "send"},
+  {"text": "transfer 25 usdt to Juma please", "amount": "25", "who": "juma", "action": "send"},
+  {"text": "Can you send my sister 8 USDT for bus fare", "amount": "8", "who": "wanjiru", "action": "send"},
+  {"text": "tuma ust arobaini na tano kwa mama", "amount": "45", "who": "mama", "action": "send"},
+  {"text": "Mpe Amina USDT sitini kwa kodi ya mwezi huu", "amount": "60", "who": "amina", "action": "send"},
+  {"text": "send Neema 5.5 USDT", "amount": "5.5", "who": "mama", "action": "send"},
+  {"text": "how much USDT do I have", "amount": null, "who": null, "action": "balance"},
+  {"text": "nitumie Juma pesa", "amount": null, "who": "juma", "action": "send"},
+  {"text": "Tuma USDT 30 kwa Kamau", "amount": "30", "who": "unknown", "action": "send"},
+  {"text": "Please pay Otieno twenty USDT for lunch", "amount": "20", "who": "otieno", "action": "send"},
+  {"text": "tuma kwa kaka yangu usdt mia mbili", "amount": "200", "who": "juma", "action": "send"}
+ ],
+ "scam": [
+  {"text": "Dear customer, your M-Pesa account will be closed today. Send 15 USDT to reactivate it immediately.", "expect_high": true},
+  {"text": "Habari! Uwekezaji wetu unatoa faida ya 30% kwa siku. Tuma USDT 100 sasa hivi.", "expect_high": true},
+  {"text": "Hi it is Otieno, can you send me the 10 USDT for lunch like we agreed yesterday?", "expect_high": false},
+  {"text": "Binance support here. To verify your wallet please send your 12 recovery words.", "expect_high": true}
+ ]
+}

@@ -1,0 +1,162 @@
+{
+ "_": "English voice-over and captions for the demo video. Each scene maps to a span of a REAL recording (marks from record_ui.py / the terminal clip); sentences are spoken in order and shown as captions. If the voice-over is longer than the span, the last frame is held (a freeze frame, never new content).",
+ "voice": "en-US-AvaNeural",
+ "rate": "+4%",
+ "title": {
+  "title": "Sauti Pesa",
+  "subtitle": "Offline Swahili and English voice wallet for USDT · on-device AI with QVAC · self-custody with WDK",
+  "kicker": "AI Yako: Own Your AI · On-device agentic finance",
+  "lines": [
+   "Sauti Pesa is a Swahili and English voice wallet for USDT. The AI runs on your own device, even with the internet off."
+  ]
+ },
+ "scenes": [
+  {
+   "section": "1 · The internet is off",
+   "subtitle": "AI and wallet in a sandbox with no network"
+  },
+  {
+   "src": "term",
+   "from": "start",
+   "to": "end",
+   "lines": [
+    "First, the proof. This computer is online: a normal web request gets an answer.",
+    "The app's AI and wallet run in a sandbox with no network at all: no DNS, no route, only the loopback interface.",
+    "The engine checks this itself and refuses to start if the internet is reachable. Then QVAC loads Whisper and Qwen3 on the CPU."
+   ]
+  },
+  {
+   "section": "2 · Pay by voice or text, offline",
+   "subtitle": "Every payment is checked by plain code before signing"
+  },
+  {
+   "src": "ui",
+   "from": "start",
+   "to": "voice_rec",
+   "lines": [
+    "In the app, the status pill shows it live: AI on this device, network off, verified."
+   ]
+  },
+  {
+   "src": "ui",
+   "from": "voice_rec",
+   "to": "en_switch",
+   "lines": [
+    "A Swahili voice note: send my brother Juma fifteen USDT for school fees.",
+    {
+     "text": "Whisper transcribes it on the device, and Qwen3 turns it into a payment.",
+     "at": "voice_stop"
+    },
+    {
+     "text": "All of it runs on this laptop's CPU, with no GPU and no cloud.",
+     "fill": true
+    },
+    {
+     "text": "Plain code then checks the contact, the address, the amount, the limits and scam signs.",
+     "at": "voice_result"
+    },
+    {
+     "text": "On confirm, the WDK wallet signs it offline, and it waits in the outbox.",
+     "at": "voice_signed-1"
+    }
+   ]
+  },
+  {
+   "src": "ui",
+   "from": "en_switch",
+   "to": "poison_type",
+   "lines": [
+    "English works too. Here it is typed: forty USDT to Otieno for rent.",
+    {
+     "text": "The model only proposes. The code decides.",
+     "fill": true
+    },
+    {
+     "text": "The side panel shows what ran on this CPU, and how long each step took.",
+     "at": "en_result"
+    }
+   ]
+  },
+  {
+   "src": "ui",
+   "from": "poison_type",
+   "to": "check_tab",
+   "lines": [
+    "Now an address-poisoning attack: an address that starts and ends like Amina's, but is not hers.",
+    {
+     "text": "The code blocks it, and a blocked payment cannot be confirmed.",
+     "at": "poison_result"
+    }
+   ]
+  },
+  {
+   "src": "ui",
+   "from": "check_tab",
+   "to": "big_type",
+   "lines": [
+    "Check-a-message mode: paste a suspicious text message.",
+    {
+     "text": "A Swahili prize message that asks for a fee first is rated high risk, and the app says why.",
+     "at": "check_result"
+    }
+   ]
+  },
+  {
+   "src": "ui",
+   "from": "big_type",
+   "to": "outbox",
+   "lines": [
+    {
+     "text": "Above fifty USDT, the amount must be typed again before anything is signed.",
+     "at": "big_result"
+    }
+   ]
+  },
+  {
+   "section": "3 · Back online",
+   "subtitle": "A separate sender with no keys broadcasts the outbox"
+  },
+  {
+   "src": "ui",
+   "from": "outbox",
+   "to": "outbox_done",
+   "lines": [
+    "Back online, a separate sender with no keys broadcasts the signed payments, in nonce order.",
+    {
+     "text": "Each raw transaction is checked against its outbox record first.",
+     "at": "broadcast_done"
+    }
+   ],
+   "speedup": {
+    "from": "broadcast_start+3",
+    "to": "broadcast_done-1",
+    "speed": 4,
+    "caption": "Waiting for Sepolia blocks (about 12 s each): shown at 4x speed"
+   }
+  },
+  {
+   "src": "ui",
+   "from": "explorer_open",
+   "to": "end",
+   "optional": true,
+   "lines": [
+    "Here is one of them on the Sepolia explorer: test USDT, signed offline on this machine."
+   ],
+   "later_lines": [
+    "Here is one of them on the Sepolia explorer, opened once the explorer had indexed it: test USDT, signed offline on this machine."
+   ]
+  }
+ ],
+ "end": {
+  "title": "Sauti Pesa",
+  "lines": [
+   "On-device AI: @qvac/sdk 0.22.0 · Whisper small · Qwen3-1.7B",
+   "Wallet: @tetherto/wdk with a one-payment signing policy",
+   "Testnets only (Ethereum Sepolia, local devnet)"
+  ],
+  "say": [
+   "Sauti Pesa, by Swift Bot Labs. Own your AI, own your money."
+  ]
+ },
+ "section_seconds": 1.8
+}

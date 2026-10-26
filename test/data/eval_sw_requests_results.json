@@ -1,0 +1,1017 @@
+{
+ "summary": {
+  "dataset": "sw_requests_commissioned (private; 30 everyday requests + 5 scams, text)",
+  "model": "Qwen3-1.7B Q4_0 via @qvac/sdk 0.22.0 + code checks",
+  "at": "2026-10-26T08:02:24.927Z",
+  "usdt_rows": {
+   "n": 7,
+   "action_send": 7,
+   "amount_ok": 7,
+   "token_usdt": 7,
+   "recipient_ok": 7,
+   "all_fields_ok": 7
+  },
+  "all_30": {
+   "amount_ok": 28,
+   "amount_ok_by_register": {
+    "standard": {
+     "n": 16,
+     "amount_ok": 16
+    },
+    "sheng": {
+     "n": 6,
+     "amount_ok": 4
+    },
+    "code-switched": {
+     "n": 8,
+     "amount_ok": 8
+    }
+   },
+   "named_recipient_ok": "11/11",
+   "confirmable": 1,
+   "confirmable_wrong": 0,
+   "kes_rows_confirmable_as_usdt": "0/16",
+   "usd_rows_read_as_usdt": "7/7",
+   "llm_median_ms": 1364
+  },
+  "check_mode": {
+   "scams_high": "5/5",
+   "scams_flagged_medium_or_high": "5/5",
+   "genuine_high": "0/30",
+   "genuine_medium": "1/30",
+   "genuine_low_or_none": "29/30",
+   "llm_median_ms": 1603
+  }
+ },
+ "intents": [
+  {
+   "id": "1",
+   "register": "standard",
+   "currency": "KES",
+   "action": "send",
+   "amount_ok": true,
+   "token": "USDT",
+   "name_ok": true,
+   "decision": "blocked",
+   "codes": [
+    "unknown_recipient",
+    "unsupported_token",
+    "over_tx_limit",
+    "over_daily_limit",
+    "insufficient_balance"
+   ],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 1533
+  },
+  {
+   "id": "2",
+   "register": "standard",
+   "currency": "KES",
+   "action": "send",
+   "amount_ok": true,
+   "token": "SHIL",
+   "name_ok": true,
+   "decision": "blocked",
+   "codes": [
+    "unknown_recipient",
+    "unsupported_token",
+    "over_tx_limit",
+    "over_daily_limit",
+    "insufficient_balance"
+   ],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 1590
+  },
+  {
+   "id": "3",
+   "register": "sheng",
+   "currency": "KES",
+   "action": "send",
+   "amount_ok": true,
+   "token": "USDT",
+   "name_ok": true,
+   "decision": "blocked",
+   "codes": [
+    "unknown_recipient",
+    "amount_not_heard",
+    "over_tx_limit",
+    "over_daily_limit",
+    "insufficient_balance",
+    "scam_signals"
+   ],
+   "amount_question": "ask",
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 4336
+  },
+  {
+   "id": "4",
+   "register": "standard",
+   "currency": "KES",
+   "action": "send",
+   "amount_ok": true,
+   "token": "USDT",
+   "name_ok": true,
+   "decision": "blocked",
+   "codes": [
+    "unknown_recipient",
+    "over_tx_limit",
+    "over_daily_limit"
+   ],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 1472
+  },
+  {
+   "id": "5",
+   "register": "standard",
+   "currency": "KES",
+   "action": "send",
+   "amount_ok": true,
+   "token": "SWH",
+   "name_ok": true,
+   "decision": "blocked",
+   "codes": [
+    "unknown_recipient",
+    "unsupported_token",
+    "over_tx_limit",
+    "over_daily_limit",
+    "insufficient_balance"
+   ],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 1346
+  },
+  {
+   "id": "6",
+   "register": "sheng",
+   "currency": "KES",
+   "action": "send",
+   "amount_ok": false,
+   "token": "USDT",
+   "name_ok": true,
+   "decision": "blocked",
+   "codes": [
+    "unknown_recipient",
+    "amount_not_heard"
+   ],
+   "amount_question": "ask",
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 2023
+  },
+  {
+   "id": "7",
+   "register": "standard",
+   "currency": "KES",
+   "action": "send",
+   "amount_ok": true,
+   "token": "USDT",
+   "name_ok": true,
+   "decision": "blocked",
+   "codes": [
+    "unknown_recipient",
+    "over_tx_limit",
+    "over_daily_limit",
+    "insufficient_balance"
+   ],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 1444
+  },
+  {
+   "id": "8",
+   "register": "code-switched",
+   "currency": "KES",
+   "action": "send",
+   "amount_ok": true,
+   "token": "USDT",
+   "name_ok": true,
+   "decision": "blocked",
+   "codes": [
+    "unknown_recipient",
+    "over_tx_limit",
+    "over_daily_limit",
+    "insufficient_balance"
+   ],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 2040
+  },
+  {
+   "id": "9",
+   "register": "sheng",
+   "currency": "KES",
+   "action": "send",
+   "amount_ok": false,
+   "token": "USDT",
+   "name_ok": true,
+   "decision": "blocked",
+   "codes": [
+    "unknown_recipient"
+   ],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 1524
+  },
+  {
+   "id": "10",
+   "register": "standard",
+   "currency": "KES",
+   "action": "send",
+   "amount_ok": true,
+   "token": "USDT",
+   "name_ok": false,
+   "decision": "blocked",
+   "codes": [
+    "recipient_not_in_request",
+    "unsupported_token",
+    "over_tx_limit",
+    "over_daily_limit",
+    "insufficient_balance"
+   ],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 1351
+  },
+  {
+   "id": "11",
+   "register": "standard",
+   "currency": "KES",
+   "action": "send",
+   "amount_ok": true,
+   "token": "USDT",
+   "name_ok": true,
+   "decision": "blocked",
+   "codes": [
+    "unknown_recipient",
+    "over_tx_limit",
+    "over_daily_limit",
+    "insufficient_balance"
+   ],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 1763
+  },
+  {
+   "id": "12",
+   "register": "code-switched",
+   "currency": "KES",
+   "action": "send",
+   "amount_ok": true,
+   "token": "USDT",
+   "name_ok": true,
+   "decision": "blocked",
+   "codes": [
+    "unknown_recipient",
+    "amount_not_heard",
+    "over_tx_limit",
+    "over_daily_limit",
+    "insufficient_balance"
+   ],
+   "amount_question": "ask",
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 1767
+  },
+  {
+   "id": "13",
+   "register": "standard",
+   "currency": "KES",
+   "action": "send",
+   "amount_ok": true,
+   "token": "SHIL",
+   "name_ok": true,
+   "decision": "blocked",
+   "codes": [
+    "did_you_mean",
+    "unsupported_token",
+    "over_tx_limit",
+    "over_daily_limit",
+    "insufficient_balance"
+   ],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 1344
+  },
+  {
+   "id": "14",
+   "register": "sheng",
+   "currency": "KES",
+   "action": "send",
+   "amount_ok": true,
+   "token": "USDT",
+   "name_ok": true,
+   "decision": "blocked",
+   "codes": [
+    "unknown_recipient",
+    "amount_not_heard",
+    "over_tx_limit",
+    "over_daily_limit",
+    "insufficient_balance"
+   ],
+   "amount_question": "ask",
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 1346
+  },
+  {
+   "id": "15",
+   "register": "standard",
+   "currency": "KES",
+   "action": "balance",
+   "amount_ok": true,
+   "token": "USDT",
+   "name_ok": true,
+   "decision": "blocked",
+   "codes": [],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 1013
+  },
+  {
+   "id": "16",
+   "register": "standard",
+   "currency": "KES",
+   "action": "send",
+   "amount_ok": true,
+   "token": "USDT",
+   "name_ok": true,
+   "decision": "blocked",
+   "codes": [
+    "unknown_recipient",
+    "unsupported_token",
+    "over_tx_limit",
+    "over_daily_limit"
+   ],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 1492
+  },
+  {
+   "id": "17",
+   "register": "code-switched",
+   "currency": "USD",
+   "action": "send",
+   "amount_ok": true,
+   "token": "USDT",
+   "name_ok": true,
+   "decision": "blocked",
+   "codes": [
+    "unknown_recipient"
+   ],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 965
+  },
+  {
+   "id": "18",
+   "register": "code-switched",
+   "currency": "USD",
+   "action": "send",
+   "amount_ok": true,
+   "token": "USDT",
+   "name_ok": true,
+   "decision": "blocked",
+   "codes": [
+    "unknown_recipient",
+    "over_tx_limit"
+   ],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 1045
+  },
+  {
+   "id": "19",
+   "register": "standard",
+   "currency": "USD",
+   "action": "send",
+   "amount_ok": true,
+   "token": "USDT",
+   "name_ok": true,
+   "decision": "blocked",
+   "codes": [
+    "unknown_recipient",
+    "over_tx_limit"
+   ],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 1523
+  },
+  {
+   "id": "20",
+   "register": "code-switched",
+   "currency": "USD",
+   "action": "balance",
+   "amount_ok": true,
+   "token": "USDT",
+   "name_ok": true,
+   "decision": "blocked",
+   "codes": [],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 1025
+  },
+  {
+   "id": "21",
+   "register": "code-switched",
+   "currency": "USD",
+   "action": "send",
+   "amount_ok": true,
+   "token": "USDT",
+   "name_ok": true,
+   "decision": "blocked",
+   "codes": [
+    "unknown_recipient"
+   ],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 1153
+  },
+  {
+   "id": "22",
+   "register": "standard",
+   "currency": "USD",
+   "action": "send",
+   "amount_ok": true,
+   "token": "USDT",
+   "name_ok": true,
+   "decision": "blocked",
+   "codes": [
+    "unknown_recipient"
+   ],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 1144
+  },
+  {
+   "id": "23",
+   "register": "sheng",
+   "currency": "USD",
+   "action": "send",
+   "amount_ok": true,
+   "token": "USDT",
+   "name_ok": true,
+   "decision": "blocked",
+   "codes": [
+    "unknown_recipient",
+    "over_tx_limit"
+   ],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 1167
+  },
+  {
+   "id": "24",
+   "register": "code-switched",
+   "currency": "USDT",
+   "action": "send",
+   "amount_ok": true,
+   "token": "USDT",
+   "name_ok": true,
+   "decision": "blocked",
+   "codes": [
+    "missing_recipient"
+   ],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 1179
+  },
+  {
+   "id": "25",
+   "register": "standard",
+   "currency": "USDT",
+   "action": "send",
+   "amount_ok": true,
+   "token": "USDT",
+   "name_ok": true,
+   "decision": "confirm",
+   "codes": [],
+   "amount_question": null,
+   "confirmable": true,
+   "confirmable_correct": true,
+   "llm_ms": 1095
+  },
+  {
+   "id": "26",
+   "register": "sheng",
+   "currency": "USDT",
+   "action": "send",
+   "amount_ok": true,
+   "token": "USDT",
+   "name_ok": true,
+   "decision": "blocked",
+   "codes": [
+    "unknown_recipient"
+   ],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 1364
+  },
+  {
+   "id": "27",
+   "register": "standard",
+   "currency": "USDT",
+   "action": "send",
+   "amount_ok": true,
+   "token": "USDT",
+   "name_ok": true,
+   "decision": "blocked",
+   "codes": [
+    "unknown_recipient",
+    "over_tx_limit",
+    "over_daily_limit"
+   ],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 1653
+  },
+  {
+   "id": "28",
+   "register": "standard",
+   "currency": "USDT",
+   "action": "send",
+   "amount_ok": true,
+   "token": "USDT",
+   "name_ok": true,
+   "decision": "blocked",
+   "codes": [
+    "unknown_recipient"
+   ],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 1065
+  },
+  {
+   "id": "29",
+   "register": "code-switched",
+   "currency": "USDT",
+   "action": "send",
+   "amount_ok": true,
+   "token": "USDT",
+   "name_ok": true,
+   "decision": "blocked",
+   "codes": [
+    "unknown_recipient"
+   ],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 1316
+  },
+  {
+   "id": "30",
+   "register": "standard",
+   "currency": "USDT",
+   "action": "send",
+   "amount_ok": true,
+   "token": "USDT",
+   "name_ok": true,
+   "decision": "blocked",
+   "codes": [
+    "unknown_recipient"
+   ],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 1670
+  }
+ ],
+ "checks": [
+  {
+   "id": "1",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "impersonation"
+   ],
+   "llm_ms": 1184
+  },
+  {
+   "id": "2",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "impersonation",
+    "urgency",
+    "prize"
+   ],
+   "llm_ms": 1444
+  },
+  {
+   "id": "3",
+   "scam": false,
+   "risk": "medium",
+   "rule_flags": [
+    "urgency"
+   ],
+   "ai_flags": [
+    "impersonation"
+   ],
+   "llm_ms": 1356
+  },
+  {
+   "id": "4",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "impersonation",
+    "urgency",
+    "prize"
+   ],
+   "llm_ms": 1827
+  },
+  {
+   "id": "5",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "impersonation",
+    "urgency",
+    "wrong_send"
+   ],
+   "llm_ms": 1763
+  },
+  {
+   "id": "6",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "impersonation",
+    "urgency"
+   ],
+   "llm_ms": 1306
+  },
+  {
+   "id": "7",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "impersonation",
+    "urgency",
+    "wrong_send"
+   ],
+   "llm_ms": 1431
+  },
+  {
+   "id": "8",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "impersonation",
+    "urgency",
+    "prize"
+   ],
+   "llm_ms": 1480
+  },
+  {
+   "id": "9",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "impersonation",
+    "urgency"
+   ],
+   "llm_ms": 1311
+  },
+  {
+   "id": "10",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "impersonation",
+    "urgency",
+    "wrong_send"
+   ],
+   "llm_ms": 2433
+  },
+  {
+   "id": "11",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "impersonation",
+    "urgency"
+   ],
+   "llm_ms": 1852
+  },
+  {
+   "id": "12",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "urgency",
+    "prize"
+   ],
+   "llm_ms": 1723
+  },
+  {
+   "id": "13",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "impersonation",
+    "urgency",
+    "prize"
+   ],
+   "llm_ms": 2164
+  },
+  {
+   "id": "14",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "urgency",
+    "prize"
+   ],
+   "llm_ms": 2234
+  },
+  {
+   "id": "15",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "impersonation",
+    "urgency"
+   ],
+   "llm_ms": 1486
+  },
+  {
+   "id": "16",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "urgency",
+    "prize"
+   ],
+   "llm_ms": 1475
+  },
+  {
+   "id": "17",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "impersonation",
+    "urgency"
+   ],
+   "llm_ms": 1365
+  },
+  {
+   "id": "18",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "impersonation",
+    "urgency",
+    "wrong_send"
+   ],
+   "llm_ms": 1905
+  },
+  {
+   "id": "19",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "impersonation",
+    "urgency"
+   ],
+   "llm_ms": 1363
+  },
+  {
+   "id": "20",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "impersonation",
+    "urgency"
+   ],
+   "llm_ms": 1177
+  },
+  {
+   "id": "21",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "impersonation",
+    "prize",
+    "urgency"
+   ],
+   "llm_ms": 1640
+  },
+  {
+   "id": "22",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "impersonation",
+    "urgency"
+   ],
+   "llm_ms": 1402
+  },
+  {
+   "id": "23",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "impersonation",
+    "urgency",
+    "wrong_send"
+   ],
+   "llm_ms": 1650
+  },
+  {
+   "id": "24",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "impersonation",
+    "prize"
+   ],
+   "llm_ms": 2425
+  },
+  {
+   "id": "25",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "impersonation",
+    "urgency"
+   ],
+   "llm_ms": 2616
+  },
+  {
+   "id": "26",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "impersonation",
+    "urgency"
+   ],
+   "llm_ms": 1603
+  },
+  {
+   "id": "27",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "impersonation",
+    "wrong_send"
+   ],
+   "llm_ms": 3214
+  },
+  {
+   "id": "28",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "impersonation",
+    "wrong_send",
+    "secrecy"
+   ],
+   "llm_ms": 1531
+  },
+  {
+   "id": "29",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "impersonation",
+    "wrong_send",
+    "urgency"
+   ],
+   "llm_ms": 1372
+  },
+  {
+   "id": "30",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "impersonation",
+    "urgency"
+   ],
+   "llm_ms": 1172
+  },
+  {
+   "id": "S1",
+   "scam": true,
+   "risk": "high",
+   "rule_flags": [
+    "impersonation",
+    "urgency"
+   ],
+   "ai_flags": [
+    "wrong_send"
+   ],
+   "llm_ms": 1461
+  },
+  {
+   "id": "S2",
+   "scam": true,
+   "risk": "high",
+   "rule_flags": [
+    "unlock_fee"
+   ],
+   "ai_flags": [
+    "impersonation",
+    "urgency",
+    "prize"
+   ],
+   "llm_ms": 1765
+  },
+  {
+   "id": "S3",
+   "scam": true,
+   "risk": "high",
+   "rule_flags": [
+    "unlock_fee",
+    "prize"
+   ],
+   "ai_flags": [
+    "impersonation",
+    "urgency"
+   ],
+   "llm_ms": 1619
+  },
+  {
+   "id": "S4",
+   "scam": true,
+   "risk": "high",
+   "rule_flags": [
+    "wrong_send",
+    "urgency"
+   ],
+   "ai_flags": [
+    "impersonation"
+   ],
+   "llm_ms": 1629
+  },
+  {
+   "id": "S5",
+   "scam": true,
+   "risk": "high",
+   "rule_flags": [
+    "impersonation",
+    "secrecy"
+   ],
+   "ai_flags": [
+    "urgency",
+    "wrong_send"
+   ],
+   "llm_ms": 1616
+  }
+ ]
+}

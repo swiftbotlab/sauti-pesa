@@ -1,0 +1,78 @@
+[
+ {
+  "comment": "This computer is online (positive control):",
+  "hold": 0.6
+ },
+ {
+  "cmd": "curl -sS --head -m 10 -o /dev/null -w '%{http_code}\\n' https://huggingface.co",
+  "argv": [
+   "curl",
+   "-sS",
+   "--head",
+   "-m",
+   "10",
+   "-o",
+   "/dev/null",
+   "-w",
+   "%{http_code}\n",
+   "https://huggingface.co"
+  ],
+  "hold": 1.2
+ },
+ {
+  "comment": "The sandbox that runs the AI and the wallet has no network at all:",
+  "hold": 0.6
+ },
+ {
+  "cmd": "ops/sandbox.sh offline curl -sS -m 5 https://huggingface.co",
+  "argv": [
+   "ops/sandbox.sh",
+   "offline",
+   "curl",
+   "-sS",
+   "-m",
+   "5",
+   "https://huggingface.co"
+  ],
+  "hold": 1.0
+ },
+ {
+  "cmd": "ops/sandbox.sh offline curl -sS -m 5 https://1.1.1.1",
+  "argv": [
+   "ops/sandbox.sh",
+   "offline",
+   "curl",
+   "-sS",
+   "-m",
+   "5",
+   "https://1.1.1.1"
+  ],
+  "hold": 1.0
+ },
+ {
+  "cmd": "ops/sandbox.sh offline ip -brief link",
+  "argv": [
+   "ops/sandbox.sh",
+   "offline",
+   "ip",
+   "-brief",
+   "link"
+  ],
+  "hold": 1.6
+ },
+ {
+  "comment": "Start the app: engine inside the offline sandbox, page on 127.0.0.1 only:",
+  "hold": 0.6
+ },
+ {
+  "cmd": "ops/ui.sh",
+  "argv": [
+   "ops/ui.sh"
+  ],
+  "bg": "tmp/demo/ui.log",
+  "until": "ready:",
+  "pidfile": "tmp/demo/ui.pid",
+  "timeout": 180,
+  "hold": 2.5
+ }
+]
