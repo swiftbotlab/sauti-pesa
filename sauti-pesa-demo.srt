@@ -1,80 +1,83 @@
 1
-00:00:00,600 --> 00:00:08,424
-Sauti Pesa is a Swahili and English voice wallet for USDT. The AI runs on your own device, even with the internet off.
+00:00:00,300 --> 00:00:04,800
+Offline proof: the AI (speech + intent) and the wallet signing run in a kernel-isolated process with no network at all. The host stays online only to show the contrast.
 
 2
-00:00:11,133 --> 00:00:17,181
-First, the proof. This computer is online: a normal web request gets an answer.
+00:00:05,600 --> 00:00:13,424
+Sauti Pesa is a Swahili and English voice wallet for USDT. The AI runs on your own device, even with the internet off.
 
 3
-00:00:17,531 --> 00:00:25,715
-The app's AI and wallet run in a sandbox with no network at all: no DNS, no route, only the loopback interface.
+00:00:16,133 --> 00:00:22,181
+First, the proof. This computer is online: a normal web request gets an answer.
 
 4
-00:00:26,065 --> 00:00:34,225
-The engine checks this itself and refuses to start if the internet is reachable. Then QVAC loads Whisper and Qwen3 on the CPU.
+00:00:22,531 --> 00:00:30,715
+The app's AI and wallet run in a sandbox with no network at all: no DNS, no route, only the loopback interface.
 
 5
-00:00:36,933 --> 00:00:43,221
-In the app, the status pill shows it live: AI on this device, network off, verified.
+00:00:31,065 --> 00:00:39,225
+The engine checks this itself and refuses to start if the internet is reachable. Then QVAC loads Whisper and Qwen3 on the CPU.
 
 6
-00:00:46,133 --> 00:00:51,293
-A Swahili voice note: send my brother Juma fifteen USDT for school fees.
+00:00:41,933 --> 00:00:48,221
+In the app, the status pill shows it live: AI on this device, network off, verified.
 
 7
-00:00:52,373 --> 00:00:56,861
-Whisper transcribes it on the device, and Qwen3 turns it into a payment.
+00:00:51,133 --> 00:00:56,293
+A Swahili voice note: send my brother Juma fifteen USDT for school fees.
 
 8
-00:00:58,713 --> 00:01:04,641
-Plain code then checks the contact, the address, the amount, the limits and scam signs.
+00:00:57,373 --> 00:01:01,861
+Whisper transcribes it on the device, and Qwen3 turns it into a payment.
 
 9
-00:01:04,991 --> 00:01:10,511
-On confirm, the WDK wallet signs it offline, and it waits in the outbox.
+00:01:03,713 --> 00:01:09,641
+Plain code then checks the contact, the address, the amount, the limits and scam signs.
 
 10
-00:01:11,400 --> 00:01:16,632
-English works too. Here it is typed: forty USDT to Otieno for rent.
+00:01:09,991 --> 00:01:15,511
+On confirm, the WDK wallet signs it offline, and it waits in the outbox.
 
 11
-00:01:18,320 --> 00:01:22,928
-The side panel shows what ran on this CPU, and how long each step took.
+00:01:16,400 --> 00:01:21,632
+English works too. Here it is typed: forty USDT to Otieno for rent.
 
 12
-00:01:26,767 --> 00:01:33,271
-Now an address-poisoning attack: an address that starts and ends like Amina's, but is not hers.
+00:01:23,320 --> 00:01:27,928
+The side panel shows what ran on this CPU, and how long each step took.
 
 13
-00:01:39,260 --> 00:01:43,100
-The code blocks it, and a blocked payment cannot be confirmed.
+00:01:31,767 --> 00:01:38,271
+Now an address-poisoning attack: an address that starts and ends like Amina's, but is not hers.
 
 14
-00:01:47,033 --> 00:01:50,873
-Check-a-message mode: paste a suspicious text message.
+00:01:44,260 --> 00:01:48,100
+The code blocks it, and a blocked payment cannot be confirmed.
 
 15
-00:01:55,030 --> 00:02:01,390
-A Swahili prize message that asks for a fee first is rated high risk, and the app says why.
+00:01:52,033 --> 00:01:55,873
+Check-a-message mode: paste a suspicious text message.
 
 16
-00:02:08,210 --> 00:02:13,562
-Above fifty USDT, the amount must be typed again before anything is signed.
+00:02:00,030 --> 00:02:06,390
+A Swahili prize message that asks for a fee first is rated high risk, and the app says why.
 
 17
-00:02:18,567 --> 00:02:24,303
-Back online, a separate sender with no keys broadcasts the signed payments, in nonce order.
+00:02:13,210 --> 00:02:18,562
+Above fifty USDT, the amount must be typed again before anything is signed.
 
 18
-00:02:34,865 --> 00:02:38,945
-Each raw transaction is checked against its outbox record first.
+00:02:23,567 --> 00:02:29,303
+Back online, a separate sender with no keys broadcasts the signed payments, in nonce order.
 
 19
-00:02:40,700 --> 00:02:48,764
-Here is one of them on the Sepolia explorer, opened once the explorer had indexed it: test USDT, signed offline on this machine.
+00:02:39,865 --> 00:02:43,945
+Each raw transaction is checked against its outbox record first.
 
 20
-00:02:50,767 --> 00:02:55,615
-Sauti Pesa, by Swift Bot Labs. Own your AI, own your money.
+00:02:45,700 --> 00:02:53,764
+Here is one of them on the Sepolia explorer, opened once the explorer had indexed it: test USDT, signed offline on this machine.
 
+21
+00:02:55,767 --> 00:03:00,615
+Sauti Pesa, by Swift Bot Labs. Own your AI, own your money.
