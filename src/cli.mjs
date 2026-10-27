@@ -141,8 +141,9 @@ async function cmdSay (o) {
     names: contacts.map((c) => c.name)
   })
   const r = await asr.transcribe(realpathSync(file), o.lang || 'sw')
-  const timing = { asr_load_ms: Object.values(asr.loadMs)[0], asr_ms: r.ms, audio_s: r.seconds }
+  const timing = { asr_load_ms: Object.values(asr.loadMs)[0], asr_ms: r.ms, audio_s: r.seconds, input_gain_db: r.gain?.gain_db ?? 0 }
   await asr.unload() // free the speech model before loading the language model (RAM)
+  if (r.gain?.applied) say(o, `Quiet recording (${r.gain.rms_dbfs} dBFS RMS, peak ${r.gain.peak_dbfs} dBFS): input raised by ${r.gain.gain_db} dB before speech to text.`)
   say(o, `Transcript (${r.lang}, ${r.ms} ms for ${r.seconds} s of audio): "${r.text}"`)
   return cmdAsk(o, r.text, { timing })
 }

@@ -1,12 +1,14 @@
 // Speech to text on REAL human Swahili voices: Google FLEURS, Swahili (Kenya) test split, read speech by native
 // speakers (CC-BY 4.0). Run by scripts/eval_fleurs_asr.sh, inside the offline sandbox:
-//   ops/sandbox.sh offline node scripts/eval_fleurs_asr.mjs tmp/fleurs small|turbo
+//   ops/sandbox.sh offline node scripts/eval_fleurs_asr.mjs tmp/fleurs small|turbo [nogain]
 // It uses the app's own speech code, src/asr.js LocalASR, with the app's settings: config.json models, VAD, threads,
-// language 'sw', greedy, temperature 0, and the demo contacts' names in the initial prompt (as the engine does).
+// language 'sw', greedy, temperature 0, and the demo contacts' names in the initial prompt (as the engine does),
+// including the app's input level normalization (src/gain.js) before VAD/ASR. `nogain` turns only that step off,
+// to measure the app as it was before it had one.
 //   small = what the app ships and the resident engine uses (config.models.asr)
 //   turbo = the CLI's optional `say --accurate` model (config.models.asr_accurate + asr_accurate_audio_ctx)
 // Scores the RAW transcript (before the app turns number words into digits) against the FLEURS `transcription`
-// column with the small normalizer in scripts/asr_score.mjs. Writes DIR/results_<model>.json.
+// column with the small normalizer in scripts/asr_score.mjs. Writes DIR/results_<model>[-nogain].json.
 // The clip list (DIR/selected.json, made by scripts/fleurs_prepare.py) is data: every field is checked here again.
 import { readFileSync, writeFileSync, renameSync, realpathSync, lstatSync, statSync } from 'node:fs'
 import { join, resolve, basename } from 'node:path'
@@ -19,8 +21,10 @@ import { score, normalize, median, percentile } from './asr_score.mjs'
 const ROOT = realpathSync(new URL('..', import.meta.url).pathname)
 const DIR = resolve(ROOT, process.argv[2] || 'tmp/fleurs')
 const WHICH = process.argv[3] || 'small'
+const GAIN_ON = process.argv[4] !== 'nogain'
 if (!DIR.startsWith(join(ROOT, 'tmp') + '/')) throw new Error('DIR must be under tmp/')
 if (!['small', 'turbo'].includes(WHICH)) throw new Error('model must be small or turbo')
+if (![undefined, 'nogain'].includes(process.argv[4])) throw new Error('third argument: nogain or nothing')
 
 const CFG = JSON.parse(readFileSync(join(ROOT, 'config.json'), 'utf8'))
 const MODELS = JSON.parse(readFileSync(join(ROOT, 'models.json'), 'utf8'))
@@ -50,7 +54,9 @@ const asr = new LocalASR({
   threads: CFG.asr_threads || 4,
   audioCtx,
   names,
-  single: WHICH === 'small' // the resident engine keeps one instance; the CLI path is the same for one language
+  single: WHICH === 'small', // the resident engine keeps one instance; the CLI path is the same for one language
+  tmpDir: DIR, // a level-raised copy of a quiet clip is written here for the call, then removed
+  inputGain: GAIN_ON
 })
 
 const t0 = Date.now()
@@ -81,6 +87,7 @@ for (const c of clips) {
   const leaked = normalize(hyp).split(' ').filter((t) => t && nameToks.has(t) && !refToks.has(t))
   const row = {
     id: c.id, file: c.file, gender: c.gender, rms_dbfs: rmsDbfs(c.path),
+    input_gain_db: r ? r.gain.gain_db : null, input_gain: r ? r.gain.reason : null, rms_dbfs_to_model: r ? (r.gain.rms_dbfs_after ?? rmsDbfs(c.path)) : null,
     audio_s: r ? r.seconds : null, asr_ms: r ? r.ms : null, rtf: r ? +(r.ms / 1000 / r.seconds).toFixed(3) : null,
     wer: +s.wer.toFixed(4), cer: +s.cer.toFixed(4),
     ref_words: s.ref_words, sub: s.sub, del: s.del, ins: s.ins, ref_chars: s.ref_chars, char_errors: s.char_errors,
@@ -88,7 +95,7 @@ for (const c of clips) {
     ref: c.ref, hyp, ...(error ? { error } : {})
   }
   out.push(row)
-  console.error(`${row.id} ${row.audio_s}s ${row.asr_ms}ms WER ${row.wer} CER ${row.cer}${error ? ' ERROR ' + error : ''}`)
+  console.error(`${row.id} ${row.audio_s}s ${row.rms_dbfs} dBFS gain ${row.input_gain_db} dB ${row.asr_ms}ms WER ${row.wer} CER ${row.cer}${error ? ' ERROR ' + error : ''}`)
 }
 await asr.unload()
 const rss = peakRssMb()
@@ -115,7 +122,13 @@ const summary = {
   median_rtf: r3(median(ok.map((r) => r.rtf))),
   model_load_ms: loadMs,
   warmup_ms: warmupMs,
-  peak_rss_mb: rss
+  peak_rss_mb: rss,
+  input_gain: {
+    on: GAIN_ON,
+    clips_raised: ok.filter((r) => r.input_gain_db > 0).length,
+    median_gain_db_of_raised: median(ok.filter((r) => r.input_gain_db > 0).map((r) => r.input_gain_db)),
+    max_gain_db: Math.max(0, ...ok.map((r) => r.input_gain_db))
+  }
 }
 // Secondary views of the SAME run (the headline is the full set above), so a reader can see where errors come from.
 const corpus = (rows) => {
@@ -127,15 +140,16 @@ const QUIET_DBFS = -60
 summary.subsets = {
   up_to_15_4_s: { note: 'clips up to 15.36 s (= audio_ctx 768, the --accurate setting; voice notes are usually shorter)', ...corpus(out.filter((r) => r.audio_s !== null && r.audio_s <= 15.36)) },
   over_15_4_s: corpus(out.filter((r) => r.audio_s !== null && r.audio_s > 15.36)),
-  without_very_quiet_recordings: { note: `drops clips quieter than ${QUIET_DBFS} dBFS RMS (the app applies no gain)`, dropped_ids: out.filter((r) => r.rms_dbfs < QUIET_DBFS).map((r) => r.id), ...corpus(out.filter((r) => !(r.rms_dbfs < QUIET_DBFS))) },
+  without_very_quiet_recordings: { note: `drops clips quieter than ${QUIET_DBFS} dBFS RMS as recorded (before any input gain)`, dropped_ids: out.filter((r) => r.rms_dbfs < QUIET_DBFS).map((r) => r.id), ...corpus(out.filter((r) => !(r.rms_dbfs < QUIET_DBFS))) },
   empty_transcripts: out.filter((r) => !r.hyp).map((r) => ({ id: r.id, rms_dbfs: r.rms_dbfs }))
 }
 const worst = [...out].sort((a, b) => b.wer - a.wer || b.cer - a.cer).slice(0, 3).map(({ id, file, audio_s, wer, cer, ref, hyp }) => ({ id, file, audio_s, wer, cer, ref, hyp }))
 
 const result = {
-  run: { model: WHICH, at: new Date().toISOString() },
+  run: { model: WHICH, input_gain: GAIN_ON, at: new Date().toISOString() },
   asr: {
     path: 'src/asr.js LocalASR.transcribe (the app\'s own speech-to-text code), offline sandbox',
+    input_gain: GAIN_ON ? 'on (src/gain.js, as the app runs it): one linear gain for a quiet clip, peak to -1 dBFS or RMS to -20 dBFS, whichever comes first, at most +40 dB; clips needing under +6 dB, and silence under -80 dBFS RMS, unchanged' : 'off (nogain): the app before it had input level normalization',
     model_file: rel,
     model_key: entry[0],
     model_sha256: entry[1].sha256,
@@ -152,8 +166,8 @@ const result = {
   worst_3_by_wer: worst,
   clips: out
 }
-const dst = join(DIR, `results_${WHICH}.json`)
+const dst = join(DIR, `results_${WHICH}${GAIN_ON ? '' : '-nogain'}.json`)
 writeFileSync(dst + '.tmp', JSON.stringify(result, null, 1) + '\n')
 renameSync(dst + '.tmp', dst)
-console.log(JSON.stringify({ model: WHICH, ...summary }))
+console.log(JSON.stringify({ model: WHICH, input_gain: GAIN_ON, ...summary }))
 if (summary.errors) { console.error(`${summary.errors} clip(s) failed: the run is not valid`); process.exitCode = 1 }

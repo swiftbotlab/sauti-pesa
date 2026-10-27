@@ -157,7 +157,8 @@ async function onVoice (buf, q) {
   } finally {
     rmSync(f, { force: true })
   }
-  const step = { id: 'asr', model: 'whisper small q8_0 + Silero VAD (QVAC)', ms: r.ms, audio_s: r.seconds, lang: r.lang }
+  const step = { id: 'asr', model: 'whisper small q8_0 + Silero VAD (QVAC)', ms: r.ms, audio_s: r.seconds, lang: r.lang, input_gain_db: r.gain?.gain_db ?? 0 }
+  if (r.gain?.applied) log(`voice note: quiet input (${r.gain.rms_dbfs} dBFS RMS, peak ${r.gain.peak_dbfs} dBFS) raised by ${r.gain.gain_db} dB`)
   if (!r.text || r.text.length < 2) return { ok: false, transcript: '', errors: ['no speech heard'], steps: [step] }
   // Speech -> text only. The page shows the words at once and then sends them to /v1/ask like typed text,
   // so the person sees real progress (and can see exactly what the device heard).
@@ -423,7 +424,7 @@ async function start () {
   const names = existsSync(CONTACTS) ? loadContacts(CONTACTS).map((c) => c.name) : []
   engine.stage = 'loading speech model'
   let t = Date.now()
-  asr = new LocalASR({ modelPath: modelPath(CFG.models.asr), vadPath: modelPath(CFG.models.vad), threads: CFG.asr_threads || 4, names, single: true })
+  asr = new LocalASR({ modelPath: modelPath(CFG.models.asr), vadPath: modelPath(CFG.models.vad), threads: CFG.asr_threads || 4, names, single: true, tmpDir: UPLOADS }) // a level-raised copy of a quiet clip lives in uploads/ for the call
   await asr.prepare('sw')
   engine.loadMs.asr = Date.now() - t
   // Warm the speech path once (the first transcription pays one-off setup), so the person's first voice note is

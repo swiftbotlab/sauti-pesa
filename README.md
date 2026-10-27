@@ -76,7 +76,7 @@ school in USDT, and wants a second pair of eyes that works offline and never sen
 ```mermaid
 flowchart LR
   subgraph OFF["Offline sandbox (no network interface at all)"]
-    MIC["Voice note (WAV) or text"] --> ASR["QVAC Whisper small + Silero VAD"]
+    MIC["Voice note (WAV) or text"] --> LVL["Input level: quiet clips raised (code)"] --> ASR["QVAC Whisper small + Silero VAD"]
     ASR --> NUM["Number words to digits (code)"]
     NUM --> LLM["QVAC Qwen3-1.7B: JSON intent (grammar-constrained)"]
     LLM --> VAL["Validator + safety checks (code)"]
@@ -335,8 +335,9 @@ loads OCR for each screenshot and unloads it afterwards, and frees the speech mo
 **Accuracy:**
 - Voice to decision, 6 synthetic clips (sw-KE, sw-TZ, en-KE neural voices): **6/6** (5 payments with the right
   amount and payee; the scam clip blocked).
-- Speech to text alone on 40 **real** native-speaker recordings (FLEURS, read speech): Whisper small **26.2%** character
-  error rate, **76.6%** word error rate. See [Real voices](#real-voices-fleurs-swahili-native-speakers).
+- Speech to text alone on 40 **real** native-speaker recordings (FLEURS, read speech): Whisper small **20.4%** character
+  error rate, **78.3%** word error rate, no empty transcripts (before the input gain: 26.2%, 76.6%, 3 empty). See
+  [Real voices](#real-voices-fleurs-swahili-native-speakers).
 - Intent: tuned set 12/12; held-out set **11/12**. In every miss, the code blocked the payment instead of sending a
   wrong amount.
 - Screenshots (`test/e2e_ocr.sh`): 4 labelled screenshots in `test/data/public/screens/` (our own wording, rendered
@@ -380,8 +381,8 @@ broadcast by the keyless sender on Ethereum Sepolia (all status 1). Wallet
 
 ### Real voices (FLEURS Swahili, native speakers)
 Our payment voice clips are synthetic. To measure the speech-to-text step on real people, we ran the app's own speech
-code (`src/asr.js`: the same Whisper model, Silero VAD, settings and contact-name prompt, language `sw`, internet off)
-on 40 recordings from [Google FLEURS](https://huggingface.co/datasets/google/fleurs), Swahili (Kenya) test split:
+code (`src/asr.js`: the same input gain, Whisper model, Silero VAD, settings and contact-name prompt, language `sw`,
+internet off) on 40 recordings from [Google FLEURS](https://huggingface.co/datasets/google/fleurs), Swahili (Kenya) test split:
 native speakers reading short news and travel-guide sentences aloud (FLoRes text from Wikinews, Wikijunior and
 Wikivoyage). The selection is fixed: the first 40 sentence ids, one recording each (25 recordings by male and 15 by
 female speakers, 6.8-24.1 s, 9.6 min in all). We score the raw transcript against the FLEURS
@@ -391,36 +392,55 @@ no number or spelling rules).
 ```bash
 scripts/eval_fleurs_asr.sh        # 333 MB at a pinned commit, sha256-checked; keeps 40 clips, runs offline, deletes the audio
 scripts/eval_fleurs_asr.sh both   # + Whisper large-v3-turbo (the CLI's say --accurate option), for comparison
+scripts/eval_fleurs_asr.sh both nogain   # the same with the input gain OFF: the "before gain" rows below
 ```
 
-| Whisper model, as the app runs it | WER | CER | Median per clip, WER / CER | Time per clip: median (p90, max) |
-|---|---|---|---|---|
-| small q8_0 (what the app ships) | **76.6%** | **26.2%** | 75.0% / 19.7% | **1.3 s** (1.5 s, 4.2 s) |
-| large-v3-turbo q5_0 (`say --accurate`, CLI only) | 53.4% | 30.1% | 42.3% / 11.5% | 5.8 s (10.8 s, 13.4 s) |
+| Whisper model, as the app runs it | Input gain | WER | CER | Median per clip, WER / CER | Empty | Time per clip: median (p90, max) |
+|---|---|---|---|---|---|---|
+| small q8_0 (what the app ships) | **on (now)** | **78.3%** | **20.4%** | 76.4% / 18.6% | **0/40** | **1.3 s** (1.5 s, 1.9 s) |
+| small q8_0 | before gain | 76.6% | 26.2% | 75.0% / 19.7% | 3/40 | 1.3 s (1.5 s, 4.3 s) |
+| large-v3-turbo q5_0 (`say --accurate`, CLI only) | on (now) | 53.5% | 27.2% | 36.2% / 9.6% | 0/40 | 5.7 s (8.4 s, 12.4 s) |
+| large-v3-turbo q5_0 | before gain | 53.4% | 30.1% | 42.3% / 11.5% | 3/40 | 5.7 s (10.8 s, 13.7 s) |
 
 Same CPU-only ARM64 box as above; time is speech to text only, with the model already loaded (as in the engine).
+"Before gain" is the same run with only the input gain switched off. It reproduces our first measurement (small: the
+same 40 transcripts; turbo: the same error rates).
 
+- **Input gain** (`src/gain.js`, added after the first measurement). Before voice detection and speech to text, the
+  app measures the clip. A quiet clip gets **one linear gain**, so that its peak reaches -1 dBFS or its RMS -20 dBFS,
+  whichever comes first, and never more than +40 dB. Clips that would need less than +6 dB, and silence (under
+  -80 dBFS RMS), are passed on bit for bit, as are all 6 of our own test voice notes. No compression, filtering or
+  clipping. Here 38 of the 40 recordings were raised (median +15 dB; the 4 quietest by the full +40 dB).
+- **It fixed the empty transcripts. It did not make normal-level speech more accurate.** The 3 recordings that came
+  back empty (-66 to -68 dBFS RMS; the median clip is -37 dBFS) now give text with both models. On the 4 recordings
+  under -60 dBFS, Whisper small's character error rate fell from 94.8% to 29.5% (turbo: 90.2% to 65.1%; on one of
+  them it gets the sentence roughly right, then repeats the last phrase 11 times). Over all 40, small's CER fell from
+  26.2% to 20.4% but its WER rose from 76.6% to 78.3%: the quiet clips now give near-miss words instead of none
+  (deletions 113 to 38), and on the other 36 clips small did slightly worse
+  (WER 74.3% to 76.8%, CER 19.2% to 19.5%; 10 clips better, 15 worse, 11 the same). For turbo the other 36 were
+  about the same (WER 49.1% to 48.4%, CER 24.0% to 23.3%).
 - **Whisper small gets about three words in four wrong on this read speech.** Many of the errors are near misses:
   a word split in two or a letter off ("kiwango cha kukatwa" became "kiwangu chaku katua"), so about one character
-  in four is wrong. The app does not act on a transcript alone: the person sees what was heard, the amount and the
+  in five is wrong. The app does not act on a transcript alone: the person sees what was heard, the amount and the
   recipient must appear in the words, and the person confirms the payment.
-- **3 of the 40 recordings came back empty.** They are very quiet (-66 to -68 dBFS RMS; the median clip is -37 dBFS)
-  and the app applies no input gain. When we raised their level by hand, Whisper small did produce text for all three,
-  so automatic gain is the missing step (not added yet). Without the 4 recordings under -60 dBFS: WER 74.3%, CER 19.2%.
-- In 4 clips, a contact name from the prompt replaced a similar word ("kama" → "Mama", "majuma" → "Juma").
+- In 4 clips (small), a contact name from the prompt replaced a similar word ("kama" → "Mama", "majuma" → "Juma").
 - large-v3-turbo gets more words right but is about 4x slower. With the CLI's `audio_ctx` 768 (about 15 s of audio,
   chosen for short voice notes) it repeats itself on some of the 14 clips longer than 15.4 s, which makes its
-  character error rate worse overall. On the 26 clips up to 15.4 s: turbo WER 42.1%, CER 20.7%; small 73.8%, 26.0%.
+  character error rate worse overall. On the 26 clips up to 15.4 s, with the gain: turbo WER 36.1%, CER 11.8%; small
+  74.9%, 19.7% (before gain: turbo 42.1%, 20.7%; small 73.8%, 26.0%).
 - What this does **not** show: phone-quality or noisy street audio, payment requests, Sheng or code-switching. It
   measures the speech-to-text step only (the raw transcript, before number words become digits), not intent or
   payment parsing. 40 clips is a small sample.
 - FLEURS audio is 32-bit float WAV; we convert it to the 16-bit PCM WAV the app accepts with the app recorder's own
-  formula (`ui/app.js` `encodeWav`), with no other processing.
+  formula (`ui/app.js` `encodeWav`), with no other processing. The input gain is then applied by the app itself, in
+  `src/asr.js`, as for any voice note.
 
-Every reference, transcript, timing and level is in
-[`test/data/public/fleurs_results.json`](test/data/public/fleurs_results.json) (no audio). FLEURS: Google, Conneau et
-al. 2022 ([arXiv:2205.12446](https://arxiv.org/abs/2205.12446)), licence
-[CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/); the reference texts in that file come from it.
+Every reference, transcript, timing, level and applied gain is in
+[`test/data/public/fleurs_results.json`](test/data/public/fleurs_results.json) (with a `before_gain` summary) and,
+for the gain-off run,
+[`test/data/public/fleurs_results_before_gain.json`](test/data/public/fleurs_results_before_gain.json) (no audio).
+FLEURS: Google, Conneau et al. 2022 ([arXiv:2205.12446](https://arxiv.org/abs/2205.12446)), licence
+[CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/); the reference texts in those files come from it.
 
 ### Runs in 3 GB
 Measured under a hard 3 GB memory cap on this ARM64 Linux box (cgroup v2 through a systemd user
@@ -462,8 +482,8 @@ the test client.
 ## Limitations
 - **Payment voice clips are synthetic.** The voice-to-payment tests use neural TTS voices. Real speakers are measured
   for speech to text only, on read speech ([Real voices](#real-voices-fleurs-swahili-native-speakers)): Whisper small
-  gets about three words in four wrong there (26% of characters), and very quiet recordings come back empty because
-  there is no input gain yet. Noisy street audio, phone microphones and heavy code-switching are not tested yet. The
+  gets about three words in four wrong there (about one character in five). Very quiet recordings used to come back
+  empty; an input gain now raises them, but it does not make normal-level speech more accurate. Noisy street audio, phone microphones and heavy code-switching are not tested yet. The
   code catches many speech mistakes (amount and recipient must match the words) but it can ask more often than it
   should.
 - **Small-model Swahili numbers.** Sheng amounts like *thao* (thousand) and *soo* (hundred) are not normalized yet.
