@@ -1,9 +1,13 @@
 # Sauti Pesa
 
-**An offline voice and text wallet for USDT, in Swahili and English.** You say or type *"Tuma USDT ishirini kwa
-Amina"*. The AI runs **on your own device** with [QVAC](https://docs.qvac.tether.io): Whisper for speech and Qwen3-1.7B
-for intent. Plain code then checks the payment, and [WDK](https://docs.wdk.tether.io) signs it **offline**.
-Signed payments wait in an outbox until there is a network.
+**USDT next to M-Pesa, in Swahili, offline, with a second pair of eyes for the fake "send it back" messages.**
+Many people in East Africa keep savings and receive money in USDT next to M-Pesa, and the scams arrive in Swahili:
+a fake M-Pesa "confirmation", then *"nimekutumia pesa kimakosa, nirudishie"* ("I sent you money by mistake, send it
+back"). With Sauti Pesa you say or type *"Tuma USDT ishirini kwa Amina"*, or pick a screenshot of a message you are
+not sure about. The AI runs **on your own device** with [QVAC](https://docs.qvac.tether.io): Whisper for speech,
+Qwen3-1.7B for intent, OCR for screenshots. Plain code then checks the payment or the message, and
+[WDK](https://docs.wdk.tether.io) signs **offline**. Signed payments wait in an outbox until there is a network.
+The whole app passes its end-to-end tests under a hard [3 GB memory cap](#runs-in-3-gb) (measured on an ARM64 Linux box, not a phone).
 
 Track: **Agentic finance with WDK** · AI Yako: Own Your AI (Tether QVAC) · built by Swift Bot Labs
 
@@ -33,7 +37,7 @@ the page needs that link; the payment flows in the video behave the same.
 ## Contents
 - [Why](#why) · [What it does](#what-it-does) · [How it works](#how-it-works) · [Offline vs network](#offline-vs-network)
 - [QVAC integration](#qvac-integration) · [WDK integration](#wdk-integration) · [Safety checks](#safety-checks) · [Security model](#security-model)
-- [Run it](#run-it) · [Measurements](#measurements) · [Limitations](#limitations) · [Built during the event](#built-during-the-event-and-third-party-work)
+- [Run it](#run-it) · [Measurements](#measurements) · [Runs in 3 GB](#runs-in-3-gb) · [Limitations](#limitations) · [Built during the event](#built-during-the-event-and-third-party-work)
 
 ## Why
 Many people in East Africa now keep savings and receive remittances in USDT, next to M-Pesa. Three problems come up
@@ -79,13 +83,15 @@ flowchart LR
     VAL --> CARD{"Person confirms?"}
     CARD -- yes --> SIGN["WDK signs offline (one-shot policy)"]
     SIGN --> OUT[("Outbox: signed txs")]
+    SHOT["Screenshot of a message"] --> OCR["QVAC OCR: CRAFT + latin_g2"]
+    OCR --> MSG["Message checks (code): scam rules, look-alike addresses"]
   end
   UI["Local web UI on 127.0.0.1"] <--> BR["Bridge (127.0.0.1 only)"] <--> |Unix socket| VAL
   OUT --> NET["Separate keyless sender (network on)"] --> CHAIN["Ethereum Sepolia / local devnet"]
 ```
 
-The **engine** (`src/engine.js`) keeps both models loaded inside the offline sandbox and answers a small JSON API on a
-Unix socket. It refuses to start if the internet is reachable. A small **bridge** (`bin/bridge.mjs`, Node built-ins
+The **engine** (`src/engine.js`) keeps the speech and language models loaded inside the offline sandbox (OCR is loaded
+for each screenshot) and answers a small JSON API on a Unix socket. It refuses to start if the internet is reachable. A small **bridge** (`bin/bridge.mjs`, Node built-ins
 only) serves the UI on `127.0.0.1` and forwards a fixed list of routes to the socket. The **sender**
 (`bin/netsync.mjs`) is the only code with network access. It holds no keys. It syncs nonce, fees and balances, and
 broadcasts the outbox in nonce order after decoding each raw transaction and comparing it with its record.
@@ -113,21 +119,29 @@ testnet default), and nonces are assigned locally.
 
 ## QVAC integration
 
+Four QVAC capabilities, all on the device and offline: speech to text, voice activity detection, a language model
+and OCR.
+
 | Item | Value |
 |---|---|
 | SDK | `@qvac/sdk` **0.22.0** (exact pin, lockfile committed) |
 | Speech to text | Whisper small, q8_0 (`WHISPER_SMALL_Q8_0`, 264 MB), engine `whispercpp-transcription`, greedy, temperature 0, contact names as the initial prompt |
 | Voice activity | Silero VAD 5.1.2 (`VAD_SILERO_5_1_2`, 0.9 MB), passed as `vadModelSrc` |
 | Language model | Qwen3-1.7B Q4_0 (`QWEN3_1_7B_INST_Q4`, 1.06 GB), engine `llamacpp-completion` |
+| OCR (screenshots) | EasyOCR pipeline on GGUF: `OCR_CRAFT` text detector (83 MB) + `OCR_LATIN` recognizer (15 MB), engine `ggml-ocr`: `loadModel({ modelType: 'ggml-ocr', modelConfig: { detectorModelSrc, langList: ['en'], magRatio: 1.0, canvasSize: 1024 } })`, then `ocr({ modelId, image })`. The text goes into the same message checks as pasted text |
 | Structured output | `completion({ responseFormat: { type: 'json_schema', … } })` (QVAC turns it into a llama.cpp grammar), then every field is re-validated in code (`src/intent.js`) |
 | Speed | QVAC `kvCache` keys (`sauti-intent-v1`, `sauti-scam-v1`) keep the fixed system + few-shot prefix: about 680 of 700 prompt tokens come from the cache |
 | One Whisper instance | `loadModel({ modelId, modelConfig })` reload-config switches sw/en without a second copy in RAM |
-| Model files | `models.json`: Hugging Face origin at the exact commit QVAC's registry pins, with QVAC's sha256. `scripts/fetch_models.sh` downloads with curl and checks size + sha256 |
-| Licences | Qwen3-1.7B Apache-2.0 · Whisper MIT · Silero VAD MIT |
+| Model files | `models.json`: Hugging Face origin at the exact commit QVAC's registry pins, with QVAC's sha256. `scripts/fetch_models.sh` downloads with curl and checks size + sha256. The OCR weights exist only in QVAC's own peer-to-peer registry: `scripts/fetch_registry_model.sh` gets them with QVAC's registry client inside a network fence (see [`SECURITY.md`](SECURITY.md)), then checks size + sha256 |
+| Device check | `getSystemResources()` and the advisory `assessModelFit()` for our models: `scripts/system_fit.mjs` (results under [Runs in 3 GB](#runs-in-3-gb)) |
+| Licences | Qwen3-1.7B Apache-2.0 · Whisper MIT · Silero VAD MIT · EasyOCR latin_g2 Apache-2.0 · CRAFT MIT |
 
 Files that call QVAC: [`src/asr.js`](src/asr.js) (`loadModel`, `transcribe`, `unloadModel`),
 [`src/llm.js`](src/llm.js) (`loadModel`, `completion`, `deleteCache`, `unloadModel`),
-[`src/engine.js`](src/engine.js) (resident models, warm-up, `close`), [`bin/sauti.mjs`](bin/sauti.mjs) (CLI).
+[`src/ocr.js`](src/ocr.js) (`loadModel`, `ocr`, `unloadModel`),
+[`src/engine.js`](src/engine.js) (resident models, warm-up, OCR per screenshot, `close`), [`bin/sauti.mjs`](bin/sauti.mjs) (CLI),
+[`scripts/system_fit.mjs`](scripts/system_fit.mjs) (`getSystemResources`, `assessModelFit`) and
+[`scripts/registry_fetch.cjs`](scripts/registry_fetch.cjs) (QVAC registry client, OCR weight download only).
 
 Rejected after measuring: Whisper base (fast, but it mangles Swahili names) and Qwen3.5-2B (about 5.2 s per request,
 2.9 GB, and 11/12 instead of 12/12 on our tuned intent set). Whisper large-v3-turbo q5_0 is available in the CLI as
@@ -168,6 +182,9 @@ All in plain code, in [`src/safety.js`](src/safety.js), [`src/contacts.js`](src/
   "Dola"/"dollar" is read as USDT on purpose and shown as such.
 - **Limits:** per payment, per day and for a first payment to a new address. The cached balance is checked, and the
   amount must be re-typed above 50 USDT.
+- **Screenshots** are read by QVAC OCR and then treated exactly like pasted text; the person sees the text and can
+  correct it. The only repair is inside a token shaped exactly like an address (O becomes 0, l becomes 1); the
+  checksum and look-alike checks still apply to the result.
 - **Scam rules** (Swahili + English): pay-to-unlock, prizes with a fee, "sent by mistake", claimed relative/boss/agent,
   secrecy, urgency, seed or PIN requests, remote-access apps, investment promises. The model's opinion can only
   **add** a low-level hint, never lower a risk. High risk needs a rule or address evidence.
@@ -314,42 +331,6 @@ OCR (CRAFT detector + latin_g2, detection magnification 1.0, canvas capped at 10
 loads OCR for each screenshot and unloads it afterwards, and frees the speech model while it reads (engine RSS
 3.18 GB before, 2.58 GB after a screenshot in `test/e2e_ui.sh`).
 
-**Runs in 3 GB.** Measured under a hard 3 GB memory cap on this ARM64 Linux box (cgroup v2 through a systemd user
-scope, swap off for the scope). This is not a phone: a phone build is not done. It shows that the whole offline app
-fits the memory of a mid-range phone.
-
-```bash
-scripts/mem_cap_run.sh --check 3G               # positive control: 2 GB runs, 3.5 GB is killed, so the cap is enforced
-scripts/mem_cap_run.sh 3G test/e2e_offline.sh   # = systemd-run --user --scope -p MemoryMax=3G -p MemorySwapMax=0 ...
-scripts/mem_cap_run.sh 3G test/e2e_ocr.sh
-scripts/mem_cap_run.sh 3G test/e2e_ui.sh
-```
-
-The script first evicts the model files from the page cache (so the weights count against the cap when they are
-read), prints the cgroup's `memory.max`, and at the end its `memory.peak`, the highest anonymous and file-backed
-memory seen, and its OOM events. Everything runs inside the cap: models, engine, bridge, the local test chain and
-the test client.
-
-| Run under the cap | Result | cgroup peak | Max anonymous | OOM kills |
-|---|---|---|---|---|
-| 3 GB: `test/e2e_offline.sh` (CLI: Swahili text and English voice payments, blocks, scam check, devnet broadcast) | PASS | 3,072 MB (at the cap: the kernel reclaims page cache of the weights) | 1,665 MB | 0 |
-| 3 GB: `test/e2e_ocr.sh` (4 screenshots: OCR, then the check with the LLM) | PASS, 4/4 | 2,840 MB | 1,674 MB | 0 |
-| 3 GB: `test/e2e_ui.sh` (resident engine, 90 API checks: voice, text, screenshots, re-sign, broadcast) | PASS, 90/90 (2 of 2 runs) | 3,072 MB | 2,942 and 2,948 MB | 0 |
-| 2 GB: `test/e2e_offline.sh` | PASS, but LLM 7.0-8.6 s per request (weights are re-read from disk) | 2,048 MB | 1,664 MB | 0 |
-
-- At 3 GB the CLI latencies stayed within run-to-run noise of the uncapped run (LLM 3.6-5.9 s per request vs
-  3.6-5.3 s, model loads included; OCR in the engine 2.7 s).
-- The resident engine first FAILED this test: with speech, LLM and OCR loaded at once, the QVAC worker was
-  OOM-killed at the screenshot step (2.96 GB anonymous). Since then the engine unloads the speech model while it
-  reads a screenshot (it reloads on the next voice note, about 1 s; `test/e2e_ui.sh` checks that voice still works).
-  The margin is small: anonymous memory reached 2.94-2.95 GB of the 3 GB in the passing runs.
-- QVAC's own view, `ops/sandbox.sh offline node scripts/system_fit.mjs`: `getSystemResources()` reports 6 cores,
-  7.73 GiB and no GPU (it reads system memory, not the cgroup cap). The advisory `assessModelFit()` answers
-  "unknown" offline, with computed floors only (Qwen3-1.7B at least 1.1 GiB with 2,048 tokens of context, Whisper
-  small at least 0.25 GiB, OCR_LATIN at least 0.01 GiB, "the cost above it is unmeasured"). With registry access
-  (`scripts/fetch_registry_model.sh --fit`, in the download fence) Whisper small becomes "likely-fits" (native fit);
-  the other two stay "unknown". So the evidence for 3 GB is the measured run above, not the advisory check.
-
 **Accuracy:**
 - Voice to decision, 6 synthetic clips (sw-KE, sw-TZ, en-KE neural voices): **6/6** (5 payments with the right
   amount and payee; the scam clip blocked).
@@ -394,6 +375,43 @@ broadcast by the keyless sender on Ethereum Sepolia (all status 1). Wallet
 | 8 | 40 test USDT to Otieno | demo video | 11996339 | [`0x56b1aa5d…b3cf25`](https://eth-sepolia.blockscout.com/tx/0x56b1aa5d35e6deee57bbd91f44e9d45d88db9f88f108bda42b24c7c0c4b3cf25) |
 | 9 | 60 test USDT to Wanjiru | demo video | 11996340 | [`0xeb007c47…9bc91e`](https://eth-sepolia.blockscout.com/tx/0xeb007c4773e942ce454e8d9b30a5c2805fd10716ea0369db3e229437739bc91e) |
 
+### Runs in 3 GB
+Measured under a hard 3 GB memory cap on this ARM64 Linux box (cgroup v2 through a systemd user
+scope, swap off for the scope). This is not a phone, and a phone build is not done: it measures how much memory the
+whole offline app needs.
+
+```bash
+scripts/mem_cap_run.sh --check 3G               # positive control: 2 GB runs, 3.5 GB is killed, so the cap is enforced
+scripts/mem_cap_run.sh 3G test/e2e_offline.sh   # = systemd-run --user --scope -p MemoryMax=3G -p MemorySwapMax=0 ...
+scripts/mem_cap_run.sh 3G test/e2e_ocr.sh
+scripts/mem_cap_run.sh 3G test/e2e_ui.sh
+```
+
+The script first evicts the model files from the page cache (so the weights count against the cap when they are
+read), prints the cgroup's `memory.max`, and at the end its `memory.peak`, the highest anonymous and file-backed
+memory seen, and its OOM events. Everything runs inside the cap: models, engine, bridge, the local test chain and
+the test client.
+
+| Run under the cap | Result | cgroup peak | Max anonymous | OOM kills |
+|---|---|---|---|---|
+| 3 GB: `test/e2e_offline.sh` (CLI: Swahili text and English voice payments, blocks, scam check, devnet broadcast) | PASS | 3,072 MB (at the cap: the kernel reclaims page cache of the weights) | 1,665 MB | 0 |
+| 3 GB: `test/e2e_ocr.sh` (4 screenshots: OCR, then the check with the LLM) | PASS, 4/4 | 2,840 MB | 1,674 MB | 0 |
+| 3 GB: `test/e2e_ui.sh` (resident engine, 90 API checks: voice, text, screenshots, re-sign, broadcast) | PASS, 90/90 (2 of 2 runs) | 3,072 MB | 2,942 and 2,948 MB | 0 |
+| 2 GB: `test/e2e_offline.sh` | PASS, but LLM 7.0-8.6 s per request (weights are re-read from disk) | 2,048 MB | 1,664 MB | 0 |
+
+- At 3 GB the CLI latencies stayed within run-to-run noise of the uncapped run (LLM 3.6-5.9 s per request vs
+  3.6-5.3 s, model loads included; OCR in the engine 2.7 s).
+- The resident engine first FAILED this test: with speech, LLM and OCR loaded at once, the QVAC worker was
+  OOM-killed at the screenshot step (2.96 GB anonymous). Since then the engine unloads the speech model while it
+  reads a screenshot (it reloads on the next voice note, about 1 s; `test/e2e_ui.sh` checks that voice still works).
+  The margin is small: anonymous memory reached 2.94-2.95 GB of the 3 GB in the passing runs.
+- QVAC's own view, `ops/sandbox.sh offline node scripts/system_fit.mjs`: `getSystemResources()` reports 6 cores,
+  7.73 GiB and no GPU (it reads system memory, not the cgroup cap). The advisory `assessModelFit()` answers
+  "unknown" offline, with computed floors only (Qwen3-1.7B at least 1.1 GiB with 2,048 tokens of context, Whisper
+  small at least 0.25 GiB, OCR_LATIN at least 0.01 GiB, "the cost above it is unmeasured"). With registry access
+  (`scripts/fetch_registry_model.sh --fit`, in the download fence) Whisper small becomes "likely-fits" (native fit);
+  the other two stay "unknown". So the evidence for 3 GB is the measured run above, not the advisory check.
+
 ## Limitations
 - **Audio is synthetic.** The voice clips are neural TTS voices; real speakers, background noise and heavy
   code-switching are not tested yet. Whisper small makes Swahili mistakes; the code catches many of them (amount and
@@ -406,6 +424,7 @@ broadcast by the keyless sender on Ethereum Sepolia (all status 1). Wallet
   yet. The person sees the text that was read and can correct it before the check.
 - The web UI runs on a laptop or desktop (Linux). A phone build (Bare/Pear runtime) is not done; the UI is mobile-first
   so it can be wrapped later.
+  The whole app passes its end-to-end tests under a 3 GB memory cap, but it has not been run on a phone.
 - The `online` sender shares the host's network namespace (it runs only our own sender code; see
   [`SECURITY.md`](SECURITY.md)).
 - Testnets only. Not audited.
