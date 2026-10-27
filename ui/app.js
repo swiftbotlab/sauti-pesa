@@ -386,7 +386,7 @@ function busyView () {
 function headlineRest (headline, label) {
   const s = String(headline || '')
   if (!label || !s.toLowerCase().startsWith(label.toLowerCase())) return s
-  const rest = s.slice(label.length).replace(/^\s*[:.\-–]\s*/, '')
+  const rest = s.slice(label.length).replace(/^\s*[:.,\-–]\s*/, '')
   return rest ? rest[0].toUpperCase() + rest.slice(1) : s
 }
 
