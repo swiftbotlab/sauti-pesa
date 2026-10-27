@@ -188,6 +188,9 @@ ok((await call('/api/read-image', { method: 'POST', body: Buffer.alloc(5 * 1024 
 const bomb = Buffer.from(SHOT('sw_kawaida.png')); bomb.writeUInt32BE(50000, 16); bomb.writeUInt32BE(50000, 20)
 r = await call('/api/read-image', { method: 'POST', body: bomb, type: 'image/png' })
 ok(r.status === 400 && /too big/.test(r.j?.error || ''), 'PNG announcing 50000x50000 px refused before decoding', `${r.status} ${r.j?.error}`)
+// the engine frees the speech model while it reads a screenshot: the next voice note must load it again and work
+const v2 = await call('/api/voice?network=devnet&lang=sw', { method: 'POST', body: readFileSync(`${ROOT}test/audio/sw_juma_15.wav`), type: 'audio/wav' })
+ok(v2.status === 200 && /juma/i.test(v2.j.transcript), 'voice works again after a screenshot (speech model reloaded)', `${v2.status} ${v2.j?.transcript} ${v2.j?.steps?.[0]?.ms} ms`)
 
 console.log('outbox -> broadcast on the local devnet (separate keyless process)')
 let ob = await call('/api/outbox?network=devnet')

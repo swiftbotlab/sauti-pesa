@@ -167,6 +167,8 @@ async function onVoice (buf, q) {
 // "Check a message" from a screenshot: QVAC OCR turns the image into text, nothing more. Like voice, the page shows
 // the text at once and then sends it to /v1/check exactly like pasted text, so the same checks decide.
 // The OCR model is loaded for each screenshot and unloaded right after: the resident engine's memory does not grow.
+// While it reads, the speech model is unloaded too (it reloads on the next voice note, about 1 s), so speech and OCR
+// are never in memory together: measured, that keeps the whole app under a 3 GB cap (README, "Runs in 3 GB").
 async function onReadImage (buf) {
   let info
   try { info = inspectImage(buf) } catch (e) { throw httpError(400, String(e.message).slice(0, 160)) } // by CONTENT: PNG/JPEG, size caps
@@ -174,6 +176,7 @@ async function onReadImage (buf) {
   if (!CFG.models.ocr || !files.every((f) => existsSync(f))) throw httpError(503, 'OCR model missing: run scripts/fetch_models.sh OCR_LATIN OCR_CRAFT once (online)')
   const reader = new LocalOCR({ modelPath: realpathSync(files[0]), detectorPath: realpathSync(files[1]), threads: CFG.ocr_threads || 4 })
   let r; let loadMs
+  await asr.unload() // LocalASR (single mode) loads itself again on the next transcription
   try {
     loadMs = await reader.load()
     try { r = await reader.read(buf) } catch (e) { log('ocr read failed:', String(e.message).slice(0, 120)); throw httpError(400, 'could not read text from this image') }

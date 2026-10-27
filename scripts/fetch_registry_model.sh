@@ -3,6 +3,7 @@
 # registry source "s3", no Hugging Face origin), once, then verify size + sha256 like scripts/fetch_models.sh.
 #   scripts/fetch_registry_model.sh OCR_LATIN OCR_CRAFT        (scripts/fetch_models.sh calls this for them)
 #   scripts/fetch_registry_model.sh --probe PORT               isolation check: host vs fence, PORT = a local service
+#   scripts/fetch_registry_model.sh --fit                      QVAC's assessModelFit with registry access (in the fence)
 #
 # This is the only place where package code (QVAC's @qvac/registry-client, pinned in package-lock.json) runs
 # with a network. It is fenced in two layers:
@@ -62,6 +63,12 @@ fenced () {
     ' fence "$stage" "$RESOLV_TARGET" "$PROD" "$@"
 }
 
+if [ "$1" = --fit ]; then
+  # the advisory fit check fetches small, weightless model descriptions from QVAC's registry: same fence
+  STAGE=$(mktemp -d "$PROD/tmp/registry-fetch.XXXXXX"); chmod 700 "$STAGE"
+  set +e; fenced "$STAGE" node scripts/system_fit.mjs; RC=$?; set -e
+  rm -rf -- "$STAGE"; exit $RC
+fi
 if [ "$1" = --probe ]; then
   PORT="${2:-}"; [[ "$PORT" =~ ^[0-9]{1,5}$ ]] || { echo "usage: $0 --probe PORT" >&2; exit 2; }
   GW_HOST=$(ip -4 route show default | awk '{print $3; exit}')

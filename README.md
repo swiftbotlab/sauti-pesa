@@ -281,7 +281,8 @@ ops/sandbox.sh offline node --test test/*.test.js   # 64 unit tests, no model (3
 test/sandbox.sh          # 22 sandbox checks with positive controls (read-only code, masks, lock, local.env)
 test/e2e_offline.sh      # CLI, internet off: Swahili text + English voice payments, blocks, devnet broadcast
 test/e2e_ocr.sh          # CLI, internet off: 4 labelled screenshots -> QVAC OCR -> the same message checks
-test/e2e_ui.sh           # engine + bridge API, 89 checks, incl. the UI key, screenshots, re-sign after a nonce clash
+test/e2e_ui.sh           # engine + bridge API, 90 checks, incl. the UI key, screenshots, re-sign after a nonce clash
+scripts/mem_cap_run.sh 3G test/e2e_ui.sh       # any of these under a hard 3 GB memory cap (see "Runs in 3 GB")
 scripts/fetch_registry_model.sh --probe PORT   # OCR download fence vs host: a local service on PORT, gateway, internet
 scripts/eval_sw_requests.sh  # the commissioned Swahili test set (private: skipped when absent, see below)
 # Judges: reproduce our checks on a PUBLIC, redistributable Swahili set (10 genuine + 3 scam) shipped in this repo:
@@ -301,7 +302,7 @@ video shows real, unedited timings from such a shared machine.
 | Voice (3.6-4.3 s clip) to checked payment | 9.2-10.5 s | **2.6 s** median (3.8 s max); ASR 1.35 s median |
 | Text to checked payment | 6.2-6.5 s | **1.0 s** median (2.3 s max); LLM 1.0 s median |
 | Engine start (once) | none | 15-25 s to ready (both models load, one warm-up transcription, prompt cache) |
-| Screenshot to message verdict (QVAC OCR, then the same check) | CLI: 8.4-9.0 s, incl. loading OCR (0.8-0.9 s) and the LLM | UI: OCR 3.4 s + 0.4 s load (loaded per screenshot), then the text check; OCR alone 2.4-2.9 s per 720x700 screenshot, 3.0-3.1 s at 1080x2400 |
+| Screenshot to message verdict (QVAC OCR, then the same check) | CLI: 8.4-9.0 s, incl. loading OCR (0.8-0.9 s) and the LLM | UI: OCR 2.7-3.4 s + 0.3-0.4 s load (loaded per screenshot), then the text check; OCR alone 2.4-2.9 s per 720x700 screenshot, 3.0-3.1 s at 1080x2400 |
 
 About 680 of the ~700 prompt tokens are served from QVAC's KV cache (median; `scripts/bench_engine.mjs`).
 
@@ -310,7 +311,44 @@ About 680 of the ~700 prompt tokens are served from QVAC's KV cache (median; `sc
 OCR (CRAFT detector + latin_g2, detection magnification 1.0, canvas capped at 1024 px): peak 1.39-1.48 GB for
 720x700 and 1080x2400 screenshots. QVAC's default magnification 1.5 read our test address in one piece but took
 5.5 s and 2.55 GB, so we use 1.0 and join an address that the detector splits into two touching boxes. The engine
-loads OCR for each screenshot and unloads it afterwards (engine RSS 3.24 GB before, 3.13 GB after, in `test/e2e_ui.sh`).
+loads OCR for each screenshot and unloads it afterwards, and frees the speech model while it reads (engine RSS
+3.18 GB before, 2.58 GB after a screenshot in `test/e2e_ui.sh`).
+
+**Runs in 3 GB.** Measured under a hard 3 GB memory cap on this ARM64 Linux box (cgroup v2 through a systemd user
+scope, swap off for the scope). This is not a phone: a phone build is not done. It shows that the whole offline app
+fits the memory of a mid-range phone.
+
+```bash
+scripts/mem_cap_run.sh --check 3G               # positive control: 2 GB runs, 3.5 GB is killed, so the cap is enforced
+scripts/mem_cap_run.sh 3G test/e2e_offline.sh   # = systemd-run --user --scope -p MemoryMax=3G -p MemorySwapMax=0 ...
+scripts/mem_cap_run.sh 3G test/e2e_ocr.sh
+scripts/mem_cap_run.sh 3G test/e2e_ui.sh
+```
+
+The script first evicts the model files from the page cache (so the weights count against the cap when they are
+read), prints the cgroup's `memory.max`, and at the end its `memory.peak`, the highest anonymous and file-backed
+memory seen, and its OOM events. Everything runs inside the cap: models, engine, bridge, the local test chain and
+the test client.
+
+| Run under the cap | Result | cgroup peak | Max anonymous | OOM kills |
+|---|---|---|---|---|
+| 3 GB: `test/e2e_offline.sh` (CLI: Swahili text and English voice payments, blocks, scam check, devnet broadcast) | PASS | 3,072 MB (at the cap: the kernel reclaims page cache of the weights) | 1,665 MB | 0 |
+| 3 GB: `test/e2e_ocr.sh` (4 screenshots: OCR, then the check with the LLM) | PASS, 4/4 | 2,840 MB | 1,674 MB | 0 |
+| 3 GB: `test/e2e_ui.sh` (resident engine, 90 API checks: voice, text, screenshots, re-sign, broadcast) | PASS, 90/90 (2 of 2 runs) | 3,072 MB | 2,942 and 2,948 MB | 0 |
+| 2 GB: `test/e2e_offline.sh` | PASS, but LLM 7.0-8.6 s per request (weights are re-read from disk) | 2,048 MB | 1,664 MB | 0 |
+
+- At 3 GB the CLI latencies stayed within run-to-run noise of the uncapped run (LLM 3.6-5.9 s per request vs
+  3.6-5.3 s, model loads included; OCR in the engine 2.7 s).
+- The resident engine first FAILED this test: with speech, LLM and OCR loaded at once, the QVAC worker was
+  OOM-killed at the screenshot step (2.96 GB anonymous). Since then the engine unloads the speech model while it
+  reads a screenshot (it reloads on the next voice note, about 1 s; `test/e2e_ui.sh` checks that voice still works).
+  The margin is small: anonymous memory reached 2.94-2.95 GB of the 3 GB in the passing runs.
+- QVAC's own view, `ops/sandbox.sh offline node scripts/system_fit.mjs`: `getSystemResources()` reports 6 cores,
+  7.73 GiB and no GPU (it reads system memory, not the cgroup cap). The advisory `assessModelFit()` answers
+  "unknown" offline, with computed floors only (Qwen3-1.7B at least 1.1 GiB with 2,048 tokens of context, Whisper
+  small at least 0.25 GiB, OCR_LATIN at least 0.01 GiB, "the cost above it is unmeasured"). With registry access
+  (`scripts/fetch_registry_model.sh --fit`, in the download fence) Whisper small becomes "likely-fits" (native fit);
+  the other two stay "unknown". So the evidence for 3 GB is the measured run above, not the advisory check.
 
 **Accuracy:**
 - Voice to decision, 6 synthetic clips (sw-KE, sw-TZ, en-KE neural voices): **6/6** (5 payments with the right
