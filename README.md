@@ -31,6 +31,8 @@ Track: **Agentic finance with WDK** · AI Yako: Own Your AI (Tether QVAC) · bui
 Recorded before the final hardening pass. Since then `ops/ui.sh` prints a link that carries a per-launch key, and
 the page needs that link; the payment flows in the video behave the same.
 
+**Supplementary 1-min clip: [check a scam screenshot offline](https://github.com/swiftbotlab/sauti-pesa/releases/download/v1.1/sauti-pesa-screenshot-check.mp4)** · QVAC OCR on the device, three Swahili test screenshots (two scams, one with a look-alike address, and one genuine message), English captions, 1:08.
+
 > [!IMPORTANT]
 > Testnets only. There is no mainnet configuration in the code (`src/networks.js`). Use a fresh test wallet.
 
