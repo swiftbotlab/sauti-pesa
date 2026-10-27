@@ -39,4 +39,8 @@ No earlier code was reused.
 - `test/data/public/screens/*.png` are screenshots we rendered in code (`scripts/make_test_screens.py`, DejaVu Sans)
   from our own wording; no real people, phone numbers or brand artwork. `ocr_blocks.json` next to them is recorded
   QVAC OCR output for them (`scripts/record_ocr_blocks.mjs`).
+- **FLEURS** (Google; Conneau et al. 2022, arXiv:2205.12446), Swahili (Kenya) test split, licence CC-BY 4.0,
+  https://huggingface.co/datasets/google/fleurs: `scripts/eval_fleurs_asr.sh` downloads it at a pinned commit to
+  measure speech to text on 40 real recordings. No audio is committed; `test/data/public/fleurs_results.json` contains
+  the FLEURS reference transcriptions of those 40 sentences next to our model's output.
 - Demo contacts and addresses are random test addresses.

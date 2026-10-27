@@ -112,6 +112,11 @@ later run on the host (`bin/`, `ops/`, `scripts/`, `src/`, `ui/`, `.git`). Each 
   it, size and sha256 are checked again on the host. `scripts/fetch_registry_model.sh --probe PORT` shows the fence:
   on our box the host reached a local service on 127.0.0.1 and via the gateway; the fenced process reached neither,
   nor 10.0.0.1, could not add a route or write project files, and did reach the internet over HTTPS with DNS.
+- `scripts/eval_fleurs_asr.sh` (optional evaluation, public speech data) downloads with host curl (https only, a
+  pinned dataset commit, size and sha256 checked) into the git-ignored `tmp/fleurs/`. The TSV and the archive are
+  parsed as data by `scripts/fleurs_prepare.py` (strict per-field checks; from the archive only regular files with
+  whitelisted names, written by basename, size-capped, checked as WAV; tested with traversal, absolute-path, symlink
+  and non-WAV members). Speech to text then runs in `offline` mode; the archive and audio are deleted afterwards.
 - `ops/local.env` (optional machine-local settings) is parsed, never executed: only `SAUTI_NAME=plain-value` lines
   are read, and the file must be owned by you and not group/world-writable. No sandbox can write to `ops/`.
 - Host-side demo helpers keep their browser profile outside the project and check `/proc/<pid>/cmdline` before

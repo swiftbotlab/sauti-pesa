@@ -37,7 +37,7 @@ the page needs that link; the payment flows in the video behave the same.
 ## Contents
 - [Why](#why) · [What it does](#what-it-does) · [How it works](#how-it-works) · [Offline vs network](#offline-vs-network)
 - [QVAC integration](#qvac-integration) · [WDK integration](#wdk-integration) · [Safety checks](#safety-checks) · [Security model](#security-model)
-- [Run it](#run-it) · [Measurements](#measurements) · [Runs in 3 GB](#runs-in-3-gb) · [Limitations](#limitations) · [Built during the event](#built-during-the-event-and-third-party-work)
+- [Run it](#run-it) · [Measurements](#measurements) · [Real voices](#real-voices-fleurs-swahili-native-speakers) · [Runs in 3 GB](#runs-in-3-gb) · [Limitations](#limitations) · [Built during the event](#built-during-the-event-and-third-party-work)
 
 ## Why
 Many people in East Africa now keep savings and receive remittances in USDT, next to M-Pesa. Three problems come up
@@ -294,7 +294,7 @@ can also unplug the whole machine:
 **Tests:**
 
 ```bash
-ops/sandbox.sh offline node --test test/*.test.js   # 64 unit tests, no model (3 need the private test set, else skipped)
+ops/sandbox.sh offline node --test test/*.test.js   # 68 unit tests, no model (3 need the private test set, else skipped)
 test/sandbox.sh          # 22 sandbox checks with positive controls (read-only code, masks, lock, local.env)
 test/e2e_offline.sh      # CLI, internet off: Swahili text + English voice payments, blocks, devnet broadcast
 test/e2e_ocr.sh          # CLI, internet off: 4 labelled screenshots -> QVAC OCR -> the same message checks
@@ -305,6 +305,7 @@ scripts/eval_sw_requests.sh  # the commissioned Swahili test set (private: skipp
 # Judges: reproduce our checks on a PUBLIC, redistributable Swahili set (10 genuine + 3 scam) shipped in this repo:
 SAUTI_EVAL_SET=test/data/public/sw_requests_public.md SAUTI_EVAL_LABELS=test/data/public/sw_requests_public.labels.json scripts/eval_sw_requests.sh
 scripts/bench_latency.sh # before/after latency
+scripts/eval_fleurs_asr.sh   # speech to text on 40 real Swahili voices (Google FLEURS; downloads 333 MB once, see below)
 ```
 
 ## Measurements
@@ -334,6 +335,8 @@ loads OCR for each screenshot and unloads it afterwards, and frees the speech mo
 **Accuracy:**
 - Voice to decision, 6 synthetic clips (sw-KE, sw-TZ, en-KE neural voices): **6/6** (5 payments with the right
   amount and payee; the scam clip blocked).
+- Speech to text alone on 40 **real** native-speaker recordings (FLEURS, read speech): Whisper small **26.2%** character
+  error rate, **76.6%** word error rate. See [Real voices](#real-voices-fleurs-swahili-native-speakers).
 - Intent: tuned set 12/12; held-out set **11/12**. In every miss, the code blocked the payment instead of sending a
   wrong amount.
 - Screenshots (`test/e2e_ocr.sh`): 4 labelled screenshots in `test/data/public/screens/` (our own wording, rendered
@@ -375,6 +378,50 @@ broadcast by the keyless sender on Ethereum Sepolia (all status 1). Wallet
 | 8 | 40 test USDT to Otieno | demo video | 11996339 | [`0x56b1aa5d…b3cf25`](https://eth-sepolia.blockscout.com/tx/0x56b1aa5d35e6deee57bbd91f44e9d45d88db9f88f108bda42b24c7c0c4b3cf25) |
 | 9 | 60 test USDT to Wanjiru | demo video | 11996340 | [`0xeb007c47…9bc91e`](https://eth-sepolia.blockscout.com/tx/0xeb007c4773e942ce454e8d9b30a5c2805fd10716ea0369db3e229437739bc91e) |
 
+### Real voices (FLEURS Swahili, native speakers)
+Our payment voice clips are synthetic. To measure the speech-to-text step on real people, we ran the app's own speech
+code (`src/asr.js`: the same Whisper model, Silero VAD, settings and contact-name prompt, language `sw`, internet off)
+on 40 recordings from [Google FLEURS](https://huggingface.co/datasets/google/fleurs), Swahili (Kenya) test split:
+native speakers reading short news and travel-guide sentences aloud (FLoRes text from Wikinews, Wikijunior and
+Wikivoyage). The selection is fixed: the first 40 sentence ids, one recording each (25 recordings by male and 15 by
+female speakers, 6.8-24.1 s, 9.6 min in all). We score the raw transcript against the FLEURS
+`transcription` column after a small normalizer (lower case, punctuation and apostrophes removed, spaces collapsed;
+no number or spelling rules).
+
+```bash
+scripts/eval_fleurs_asr.sh        # 333 MB at a pinned commit, sha256-checked; keeps 40 clips, runs offline, deletes the audio
+scripts/eval_fleurs_asr.sh both   # + Whisper large-v3-turbo (the CLI's say --accurate option), for comparison
+```
+
+| Whisper model, as the app runs it | WER | CER | Median per clip, WER / CER | Time per clip: median (p90, max) |
+|---|---|---|---|---|
+| small q8_0 (what the app ships) | **76.6%** | **26.2%** | 75.0% / 19.7% | **1.3 s** (1.5 s, 4.2 s) |
+| large-v3-turbo q5_0 (`say --accurate`, CLI only) | 53.4% | 30.1% | 42.3% / 11.5% | 5.8 s (10.8 s, 13.4 s) |
+
+Same CPU-only ARM64 box as above; time is speech to text only, with the model already loaded (as in the engine).
+
+- **Whisper small gets about three words in four wrong on this read speech.** Many of the errors are near misses:
+  a word split in two or a letter off ("kiwango cha kukatwa" became "kiwangu chaku katua"), so about one character
+  in four is wrong. The app does not act on a transcript alone: the person sees what was heard, the amount and the
+  recipient must appear in the words, and the person confirms the payment.
+- **3 of the 40 recordings came back empty.** They are very quiet (-66 to -68 dBFS RMS; the median clip is -37 dBFS)
+  and the app applies no input gain. When we raised their level by hand, Whisper small did produce text for all three,
+  so automatic gain is the missing step (not added yet). Without the 4 recordings under -60 dBFS: WER 74.3%, CER 19.2%.
+- In 4 clips, a contact name from the prompt replaced a similar word ("kama" → "Mama", "majuma" → "Juma").
+- large-v3-turbo gets more words right but is about 4x slower. With the CLI's `audio_ctx` 768 (about 15 s of audio,
+  chosen for short voice notes) it repeats itself on some of the 14 clips longer than 15.4 s, which makes its
+  character error rate worse overall. On the 26 clips up to 15.4 s: turbo WER 42.1%, CER 20.7%; small 73.8%, 26.0%.
+- What this does **not** show: phone-quality or noisy street audio, payment requests, Sheng or code-switching. It
+  measures the speech-to-text step only (the raw transcript, before number words become digits), not intent or
+  payment parsing. 40 clips is a small sample.
+- FLEURS audio is 32-bit float WAV; we convert it to the 16-bit PCM WAV the app accepts with the app recorder's own
+  formula (`ui/app.js` `encodeWav`), with no other processing.
+
+Every reference, transcript, timing and level is in
+[`test/data/public/fleurs_results.json`](test/data/public/fleurs_results.json) (no audio). FLEURS: Google, Conneau et
+al. 2022 ([arXiv:2205.12446](https://arxiv.org/abs/2205.12446)), licence
+[CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/); the reference texts in that file come from it.
+
 ### Runs in 3 GB
 Measured under a hard 3 GB memory cap on this ARM64 Linux box (cgroup v2 through a systemd user
 scope, swap off for the scope). This is not a phone, and a phone build is not done: it measures how much memory the
@@ -413,9 +460,12 @@ the test client.
   the other two stay "unknown". So the evidence for 3 GB is the measured run above, not the advisory check.
 
 ## Limitations
-- **Audio is synthetic.** The voice clips are neural TTS voices; real speakers, background noise and heavy
-  code-switching are not tested yet. Whisper small makes Swahili mistakes; the code catches many of them (amount and
-  recipient must match the words) but it can ask more often than it should.
+- **Payment voice clips are synthetic.** The voice-to-payment tests use neural TTS voices. Real speakers are measured
+  for speech to text only, on read speech ([Real voices](#real-voices-fleurs-swahili-native-speakers)): Whisper small
+  gets about three words in four wrong there (26% of characters), and very quiet recordings come back empty because
+  there is no input gain yet. Noisy street audio, phone microphones and heavy code-switching are not tested yet. The
+  code catches many speech mistakes (amount and recipient must match the words) but it can ask more often than it
+  should.
 - **Small-model Swahili numbers.** Sheng amounts like *thao* (thousand) and *soo* (hundred) are not normalized yet.
 - The 1.7B model's own scam opinion is noisy. That is why it can only add a low-level hint.
 - Message-check language detection is a keyword heuristic.
