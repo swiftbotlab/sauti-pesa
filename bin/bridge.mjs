@@ -11,7 +11,8 @@
 // - forwards a fixed list of API routes to the offline engine's Unix socket, with bounded bodies,
 //   timeouts and ONE request at a time;
 // - never reads private/ and never sees the seed (signing happens inside the offline engine); requests and
-//   responses carry only text, audio, public addresses and signed-transaction hashes;
+//   responses carry only text, audio, screenshots (PNG/JPEG, 4 MB cap, checked by content), public addresses and
+//   signed-transaction hashes;
 // - the only network action: POST /api/net/{sync,broadcast} runs the separate, keyless broadcaster
 //   (ops/devnet.sh for the local chain, ops/sandbox.sh online node bin/netsync.mjs for Sepolia) with
 //   fixed arguments.
@@ -30,6 +31,8 @@ const DATA = dataRoot()
 const SOCK = join(DATA === ROOT ? join(ROOT, 'tmp') : DATA, 'run', 'engine.sock')
 const MAX_JSON = 16 * 1024
 const MAX_AUDIO = 5 * 1024 * 1024
+const MAX_IMAGE = 4 * 1024 * 1024
+const IMAGE_TYPES = ['image/png', 'image/jpeg']
 const UPLOAD_TIMEOUT_MS = Math.min(60000, Math.max(100, Number(process.env.SAUTI_UPLOAD_TIMEOUT_MS) || 30000)) // tests use a short one
 const NETWORKS = ['devnet', 'sepolia']
 const ALLOWED_HOSTS = new Set([`127.0.0.1:${PORT}`, `localhost:${PORT}`])
@@ -84,7 +87,8 @@ const API = {
   'POST /api/amend': { to: '/v1/amend', query: [], timeout: 20000, max: MAX_JSON, type: 'json' },
   'POST /api/confirm': { to: '/v1/confirm', query: [], timeout: 30000, max: MAX_JSON, type: 'json' },
   'POST /api/resign': { to: '/v1/resign', query: [], timeout: 30000, max: MAX_JSON, type: 'json' },
-  'POST /api/check': { to: '/v1/check', query: [], timeout: 90000, max: MAX_JSON, type: 'json' }
+  'POST /api/check': { to: '/v1/check', query: [], timeout: 90000, max: MAX_JSON, type: 'json' },
+  'POST /api/read-image': { to: '/v1/read-image', query: [], timeout: 60000, max: MAX_IMAGE, type: 'image' }
 }
 
 const SECURITY_HEADERS = {
@@ -229,13 +233,19 @@ const server = http.createServer(async (req, res) => {
   const ct = String(req.headers['content-type'] || '').split(';')[0].trim()
   if (route.type === 'json' && ct !== 'application/json') { req.resume(); return send(res, 415, { ok: false, error: 'json only' }) }
   if (route.type === 'wav' && !['audio/wav', 'audio/x-wav', 'audio/wave'].includes(ct)) { req.resume(); return send(res, 415, { ok: false, error: 'audio/wav only' }) }
+  if (route.type === 'image' && !IMAGE_TYPES.includes(ct)) { req.resume(); return send(res, 415, { ok: false, error: 'image/png or image/jpeg only' }) }
   if (busy || job.running) { req.resume(); return send(res, 429, { ok: false, error: 'busy' }) }
   busy = true
   const t0 = Date.now()
   try {
     const body = await readBody(req, route.max)
     if (route.type === 'wav' && (body.length < 44 || body.toString('ascii', 0, 4) !== 'RIFF' || body.toString('ascii', 8, 12) !== 'WAVE')) return send(res, 415, { ok: false, error: 'audio must be a WAV file' })
-    const r = await toEngine('POST', path, body, route.type === 'wav' ? 'audio/wav' : 'application/json', route.timeout)
+    // by content, whatever the header said: PNG signature or JPEG SOI (the engine also checks the pixel size)
+    const isPng = body.length > 33 && body.readUInt32BE(0) === 0x89504e47 && body.readUInt32BE(4) === 0x0d0a1a0a
+    const isJpeg = body.length > 33 && body[0] === 0xff && body[1] === 0xd8 && body[2] === 0xff
+    if (route.type === 'image' && !isPng && !isJpeg) return send(res, 415, { ok: false, error: 'image must be a PNG or JPEG file' })
+    const sendType = route.type === 'wav' ? 'audio/wav' : route.type === 'image' ? (isPng ? 'image/png' : 'image/jpeg') : 'application/json'
+    const r = await toEngine('POST', path, body, sendType, route.timeout)
     log(key, r.status, `${Date.now() - t0}ms`)
     return send(res, r.status, r.body)
   } catch (e) {

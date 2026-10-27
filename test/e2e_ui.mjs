@@ -169,6 +169,26 @@ ok(r.j?.view?.risk === 'high' && r.j.view.addresses[0]?.looksLike?.[0]?.name ===
 r = await call('/api/check', { method: 'POST', json: { text: 'Mambo! Tukutane kesho saa nne asubuhi sokoni.' } })
 ok(r.j?.view?.risk !== 'high', 'harmless greeting not high risk', r.j?.view?.risk)
 
+console.log('message check from a screenshot (QVAC OCR on the device, then the same check)')
+const SHOT = (f) => readFileSync(`${ROOT}test/data/public/screens/${f}`)
+const rssBefore = (await call('/api/status?network=devnet')).j?.engine?.rssMb
+r = await call('/api/read-image', { method: 'POST', body: SHOT('sw_anwani_mpya.png'), type: 'image/png' })
+ok(r.status === 200 && r.j.ok && r.j.text.includes(POISON), 'screenshot read on the device: the look-alike address comes back exactly', `${r.status} ${JSON.stringify(r.j?.text || r.j)?.slice(0, 160)}`)
+ok(r.j?.steps?.[0]?.id === 'ocr' && r.j.steps[0].ms > 0, 'OCR step reported with its time', JSON.stringify(r.j?.steps))
+const rssAfter = (await call('/api/status?network=devnet')).j?.engine?.rssMb
+console.log(`  info OCR ${r.j?.steps?.[0]?.ms} ms (+${r.j?.steps?.[0]?.load_ms} ms load); engine RSS ${rssBefore} MB before, ${rssAfter} MB after (OCR unloaded)`)
+r = await call('/api/check', { method: 'POST', json: { text: r.j?.text || '' } })
+ok(r.j?.view?.risk === 'high' && r.j.view.addresses[0]?.looksLike?.[0]?.name === 'Amina', 'screenshot text -> same check -> high risk, look-alike of Amina', r.j?.view?.risk)
+r = await call('/api/read-image', { method: 'POST', body: SHOT('sw_kawaida.png'), type: 'image/png' })
+const genuine = await call('/api/check', { method: 'POST', json: { text: r.j?.text || '' } })
+ok(r.status === 200 && ['none', 'low'].includes(genuine.j?.view?.risk), 'genuine screenshot not rated medium or high', `${r.status} ${genuine.j?.view?.risk}`)
+ok((await call('/api/read-image', { method: 'POST', body: readFileSync(`${ROOT}test/audio/sw_juma_15.wav`), type: 'image/png' })).status === 415, 'WAV bytes sent as image/png refused by content')
+ok((await call('/api/read-image', { method: 'POST', body: SHOT('sw_kawaida.png'), type: 'text/plain' })).status === 415, 'screenshot with a non-image content type refused')
+ok((await call('/api/read-image', { method: 'POST', body: Buffer.alloc(5 * 1024 * 1024), type: 'image/png' })).status === 413, 'image over 4 MB -> 413')
+const bomb = Buffer.from(SHOT('sw_kawaida.png')); bomb.writeUInt32BE(50000, 16); bomb.writeUInt32BE(50000, 20)
+r = await call('/api/read-image', { method: 'POST', body: bomb, type: 'image/png' })
+ok(r.status === 400 && /too big/.test(r.j?.error || ''), 'PNG announcing 50000x50000 px refused before decoding', `${r.status} ${r.j?.error}`)
+
 console.log('outbox -> broadcast on the local devnet (separate keyless process)')
 let ob = await call('/api/outbox?network=devnet')
 ok(ob.j.entries.filter((e) => e.status === 'queued').length === 5, '5 payments queued', String(ob.j.entries.length))

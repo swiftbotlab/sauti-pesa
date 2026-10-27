@@ -73,6 +73,7 @@ const ICONS = {
   refresh: '<path d="M21 12a9 9 0 1 1-2.6-6.4L21 8"/><path d="M21 3v5h-5"/>',
   upload: '<path d="M12 16V4"/><path d="M7 9l5-5 5 5"/><path d="M4 20h16"/>',
   chev: '<path d="M6 9l6 6 6-6"/>',
+  image: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/>',
   lock: '<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
   cloudoff: '<path d="M3 3l18 18"/><path d="M6 6.6A6.5 6.5 0 0 0 7 19h10"/><path d="M21.3 15.6A4.5 4.5 0 0 0 17.5 9h-1A6.5 6.5 0 0 0 9.3 4.6"/>',
   loader: '<path d="M21 12a9 9 0 1 1-6.2-8.6"/>',
@@ -217,6 +218,7 @@ function setTab (id) {
 const STEP_META = {
   asr: { icon: 'wave', key: 'stepAsr' },
   llm: { icon: 'spark', key: 'stepLlm' },
+  ocr: { icon: 'image', key: 'stepOcr' },
   checks: { icon: 'shield', key: 'stepChecks' },
   sign: { icon: 'key', key: 'stepSign' }
 }
@@ -224,6 +226,7 @@ function stepDetail (s) {
   if (s.id === 'asr') return `whisper small q8_0 · ${t('audioSec', s.audio_s ?? '?')}`
   if (s.id === 'llm') return `Qwen3-1.7B Q4_0 · ${s.cached_tokens !== null && s.cached_tokens !== undefined ? t('tokensCached', s.cached_tokens, s.prompt_tokens ?? '?') : 'QVAC'}`
   if (s.id === 'checks') return t('checksCount', s.count || 6)
+  if (s.id === 'ocr') return `QVAC OCR · ${s.image || ''}`
   if (s.id === 'sign') return t('policy')
   return ''
 }
@@ -232,7 +235,7 @@ function renderSide () {
   if (!window.matchMedia('(min-width: 980px)').matches) { side.replaceChildren(); return }
   const steps = S.last?.steps || []
   const byId = Object.fromEntries(steps.map((s) => [s.id, s]))
-  const order = ['asr', 'llm', 'checks', 'sign']
+  const order = ['asr', 'ocr', 'llm', 'checks', 'sign'].filter((id) => id !== 'ocr' || byId.ocr) // the OCR row only after a screenshot
   const total = steps.reduce((a, s) => a + (s.ms || 0), 0)
   const st = S.status
   const n = st?.net
@@ -730,12 +733,16 @@ async function onVoiceFile (e) {
 // ---- check tab
 function checkView () {
   const ta = h('textarea', { maxlength: '2000', placeholder: t('checkPlaceholder'), 'aria-label': t('checkPlaceholder'), oninput: (e) => { S.C.text = e.target.value } })
+  const shotBtn = h('button', { class: 'linkbtn', type: 'button', disabled: S.C.busy || !engineReady(), onclick: () => $('shotFile').click() }, icon('image'), t('shotBtn'))
   ta.value = S.C.text || ''
-  const ex = (k, label) => h('button', { class: 'chip', type: 'button', onclick: () => { S.C.text = EXAMPLES[k]; ta.value = S.C.text; S.C.res = null; renderView() } }, label)
+  const ex = (k, label) => h('button', { class: 'chip', type: 'button', onclick: () => { S.C.text = EXAMPLES[k]; S.C.fromShot = false; ta.value = S.C.text; S.C.res = null; renderView() } }, label)
   const out = [loadingCard(), h('div', { class: 'card' },
     h('h2', { text: t('checkTitle') }),
     h('p', { class: 'sub', style: 'margin-bottom:12px', text: t('checkSub') }),
     ta,
+    S.C.reading ? h('div', { class: 'sub', style: 'margin-top:8px;display:flex;gap:8px;align-items:center', role: 'status' }, h('span', { class: 'spinner', style: 'width:15px;height:15px;border-width:2px' }), h('span', { text: t('shotReading') })) : null,
+    S.C.fromShot && !S.C.reading ? h('div', { class: 'sub', style: 'margin-top:8px', text: t('shotNote') }) : null,
+    shotBtn,
     h('div', { class: 'section-title', style: 'margin:10px 2px 6px', text: t('examples') }),
     h('div', { class: 'chips' }, ex('prize', t('exPrize')), ex('address', t('exAddress')), ex('wrong', t('exWrong')), ex('hello', t('exHello'))),
     h('div', { class: 'actions' }, h('button', { class: 'btn primary', type: 'button', disabled: S.C.busy || !engineReady(), onclick: runCheck }, S.C.busy ? h('span', { class: 'spinner', style: 'border-color:rgba(255,255,255,.35);border-top-color:#fff' }) : icon('shield'), t('checkBtn')))
@@ -763,17 +770,41 @@ function checkView () {
   return out
 }
 
-async function runCheck () {
+async function runCheck (opts) {
   const text = (S.C.text || '').trim()
   if (!text || S.C.busy) return
   S.C.busy = true
   S.C.res = null
-  pushSteps([], true)
+  pushSteps([], opts?.keepSteps !== true) // after a screenshot the OCR step stays in the panel
   renderView()
   const r = await api('/api/check', { method: 'POST', json: { text, network: netId(), lang: S.lang } })
   S.C.busy = false
   if (!r.ok) toast(errText(r)); else { S.C.res = r; pushSteps(r.steps) }
   renderView()
+}
+
+// "Check a message" from a screenshot: the on-device OCR returns only the text; it is shown in the box (so the
+// person can see and fix it) and then checked exactly like pasted text.
+async function onShotFile (e) {
+  const f = e.target.files?.[0]
+  e.target.value = ''
+  if (!f || !engineReady() || S.C.busy) return
+  if (f.size > 4 * 1024 * 1024) { toast(t('shotTooBig')); return }
+  const buf = await f.arrayBuffer()
+  const b = new Uint8Array(buf, 0, Math.min(4, buf.byteLength))
+  const png = b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47
+  const jpg = b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff
+  if (!png && !jpg) { toast(t('shotType')); return }
+  S.C.busy = true; S.C.reading = true; S.C.res = null; S.C.fromShot = false
+  pushSteps([], true)
+  renderView()
+  const r = await api('/api/read-image', { method: 'POST', body: buf, type: png ? 'image/png' : 'image/jpeg' })
+  S.C.busy = false; S.C.reading = false
+  if (r.steps) pushSteps(r.steps)
+  if (!r.ok) { toast(r.errors?.length ? t('shotNoText') : errText(r)); renderView(); return }
+  S.C.text = r.text; S.C.fromShot = true
+  renderView()
+  return runCheck({ keepSteps: true })
 }
 
 // ---- outbox tab
@@ -904,6 +935,7 @@ function boot () {
   $('sheetBackdrop').addEventListener('click', closeSheet)
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSheet() })
   $('voiceFile').addEventListener('change', onVoiceFile)
+  $('shotFile').addEventListener('change', onShotFile)
   window.matchMedia('(min-width: 980px)').addEventListener('change', renderSide)
   renderChrome()
   renderView()

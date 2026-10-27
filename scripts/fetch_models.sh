@@ -9,6 +9,10 @@ PROD="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$PROD"
 mkdir -p models
 for KEY in "$@"; do
+  # OCR weights exist only in QVAC's own peer-to-peer registry (no Hugging Face origin): fenced fetch, same checks
+  if python3 -I -c 'import json,sys; sys.exit(0 if "registry" in json.load(open("models.json"))[sys.argv[1]] else 1)' "$KEY"; then
+    scripts/fetch_registry_model.sh "$KEY"; continue
+  fi
   read -r FILE URL SHA BYTES < <(python3 -I -c '
 import json,sys
 m=json.load(open("models.json"))[sys.argv[1]]

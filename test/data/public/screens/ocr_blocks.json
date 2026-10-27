@@ -1,0 +1,443 @@
+{
+ "note": "Raw blocks from QVAC OCR (@qvac/sdk 0.22.0, OCR_LATIN + OCR_CRAFT, magRatio 1.0, canvasSize 1024), recorded by scripts/record_ocr_blocks.mjs",
+ "screens": {
+  "en_prize_fee.png": [
+   {
+    "text": "09:21",
+    "bbox": [
+     20,
+     8,
+     88,
+     32
+    ],
+    "confidence": 0.84
+   },
+   {
+    "text": "4G",
+    "bbox": [
+     598,
+     8,
+     634,
+     32
+    ],
+    "confidence": 0.97
+   },
+   {
+    "text": "62%",
+    "bbox": [
+     642,
+     8,
+     696,
+     34
+    ],
+    "confidence": 0.9
+   },
+   {
+    "text": "REWARDS-INFO",
+    "bbox": [
+     39,
+     67,
+     325,
+     103
+    ],
+    "confidence": 1
+   },
+   {
+    "text": "Dear customer, you have won 500",
+    "bbox": [
+     51,
+     175,
+     575,
+     215
+    ],
+    "confidence": 0.69
+   },
+   {
+    "text": "USDT in our anniversary draw! To",
+    "bbox": [
+     51,
+     214,
+     559,
+     255
+    ],
+    "confidence": 0.95
+   },
+   {
+    "text": "release your funds, pay a small",
+    "bbox": [
+     49,
+     255,
+     527,
+     299
+    ],
+    "confidence": 0.72
+   },
+   {
+    "text": "processing fee of 10 USDT within",
+    "bbox": [
+     48,
+     299,
+     553,
+     341
+    ],
+    "confidence": 0.96
+   },
+   {
+    "text": "30 minutes.",
+    "bbox": [
+     51,
+     339,
+     233,
+     381
+    ],
+    "confidence": 0.99
+   },
+   {
+    "text": "Do not tell anyone until",
+    "bbox": [
+     51,
+     455,
+     411,
+     495
+    ],
+    "confidence": 0.74
+   },
+   {
+    "text": "you",
+    "bbox": [
+     410.8,
+     457.4,
+     472.9,
+     492.9
+    ],
+    "confidence": 1
+   },
+   {
+    "text": "receive the",
+    "bbox": [
+     50,
+     498,
+     224,
+     530
+    ],
+    "confidence": 0.73
+   },
+   {
+    "text": "prize.",
+    "bbox": [
+     225.9,
+     493.5,
+     311.6,
+     537.4
+    ],
+    "confidence": 0.82
+   }
+  ],
+  "sw_anwani_mpya.png": [
+   {
+    "text": "09.21",
+    "bbox": [
+     20,
+     8,
+     88,
+     34
+    ],
+    "confidence": 0.97
+   },
+   {
+    "text": "4G",
+    "bbox": [
+     598,
+     8,
+     634,
+     32
+    ],
+    "confidence": 0.97
+   },
+   {
+    "text": "62%",
+    "bbox": [
+     642,
+     8,
+     696,
+     34
+    ],
+    "confidence": 0.9
+   },
+   {
+    "text": "Amina (landlord)",
+    "bbox": [
+     38,
+     60,
+     348,
+     108
+    ],
+    "confidence": 0.9
+   },
+   {
+    "text": "Habari! Nimebadilisha wallet",
+    "bbox": [
+     51,
+     171,
+     491,
+     212
+    ],
+    "confidence": 0.93
+   },
+   {
+    "text": "yangu. Kodi ya mwezi huu tuma kwa",
+    "bbox": [
+     49,
+     217,
+     605,
+     257
+    ],
+    "confidence": 0.95
+   },
+   {
+    "text": "anwani mpya:",
+    "bbox": [
+     49,
+     259,
+     269,
+     299
+    ],
+    "confidence": 0.93
+   },
+   {
+    "text": "Oxa53F8927C412088A9C967",
+    "bbox": [
+     50,
+     370,
+     376,
+     396
+    ],
+    "confidence": 0.64
+   },
+   {
+    "text": "cd7OBcAOAb38B3A81D2",
+    "bbox": [
+     372,
+     370,
+     646,
+     396
+    ],
+    "confidence": 0.77
+   },
+   {
+    "text": "Tuma USDT 40 leo tu tafadhali.",
+    "bbox": [
+     49,
+     481,
+     521,
+     517
+    ],
+    "confidence": 0.87
+   }
+  ],
+  "sw_kawaida.png": [
+   {
+    "text": "09.21",
+    "bbox": [
+     20,
+     8,
+     88,
+     34
+    ],
+    "confidence": 0.97
+   },
+   {
+    "text": "4G",
+    "bbox": [
+     598,
+     8,
+     634,
+     34
+    ],
+    "confidence": 1
+   },
+   {
+    "text": "62%",
+    "bbox": [
+     642,
+     8,
+     696,
+     34
+    ],
+    "confidence": 0.9
+   },
+   {
+    "text": "Juma",
+    "bbox": [
+     33,
+     69,
+     133,
+     107
+    ],
+    "confidence": 1
+   },
+   {
+    "text": "Habari kaka. Karo ya shule ya",
+    "bbox": [
+     51,
+     172,
+     503,
+     215
+    ],
+    "confidence": 0.8
+   },
+   {
+    "text": "Neema ni USDT 15 mwezi huu.",
+    "bbox": [
+     52,
+     218,
+     516,
+     250
+    ],
+    "confidence": 0.57
+   },
+   {
+    "text": "Sawa, nitakutumia jioni.",
+    "bbox": [
+     304,
+     323,
+     672,
+     367
+    ],
+    "confidence": 0.66
+   },
+   {
+    "text": "Asante sana, Mungu akubariki.",
+    "bbox": [
+     51,
+     439,
+     519,
+     482
+    ],
+    "confidence": 0.95
+   }
+  ],
+  "sw_rudisha_kimakosa.png": [
+   {
+    "text": "09.21",
+    "bbox": [
+     20,
+     8,
+     88,
+     34
+    ],
+    "confidence": 0.97
+   },
+   {
+    "text": "4G",
+    "bbox": [
+     598,
+     8,
+     634,
+     32
+    ],
+    "confidence": 0.97
+   },
+   {
+    "text": "62%",
+    "bbox": [
+     642,
+     8,
+     696,
+     34
+    ],
+    "confidence": 0.9
+   },
+   {
+    "text": "+254 7XX XXX 318",
+    "bbox": [
+     39,
+     67,
+     383,
+     103
+    ],
+    "confidence": 0.83
+   },
+   {
+    "text": "QKZHZLMNAP Imethibitishwa.",
+    "bbox": [
+     51,
+     172,
+     496,
+     211
+    ],
+    "confidence": 0.84
+   },
+   {
+    "text": "Umepokea Ksh 3,450.00 kutoka JOHN",
+    "bbox": [
+     51,
+     217,
+     621,
+     255
+    ],
+    "confidence": 0.98
+   },
+   {
+    "text": "K. tarehe 27/10/26 saa 9:14",
+    "bbox": [
+     51,
+     259,
+     477,
+     295
+    ],
+    "confidence": 0.66
+   },
+   {
+    "text": "asubuhi.",
+    "bbox": [
+     50,
+     302,
+     182,
+     334
+    ],
+    "confidence": 0.76
+   },
+   {
+    "text": "Samahani ndugu, nimekutumia pesa",
+    "bbox": [
+     49,
+     411,
+     607,
+     453
+    ],
+    "confidence": 0.75
+   },
+   {
+    "text": "kimakosa. Tafadhali nirudishie",
+    "bbox": [
+     49,
+     453,
+     509,
+     491
+    ],
+    "confidence": 0.67
+   },
+   {
+    "text": "sasa hivi, ni pesa ya hospitali.",
+    "bbox": [
+     49,
+     494,
+     507,
+     538
+    ],
+    "confidence": 0.81
+   },
+   {
+    "text": "Usimwambie mtu.",
+    "bbox": [
+     51,
+     537,
+     323,
+     573
+    ],
+    "confidence": 0.98
+   }
+  ]
+ }
+}

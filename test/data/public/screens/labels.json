@@ -1,0 +1,9 @@
+{
+ "note": "Expected verdicts for the test screenshots (our own wording, rendered by scripts/make_test_screens.py). risk_max: the highest acceptable risk; rule_flags: flags the plain-code rules must find; lookalike_of: the saved demo contact whose address the message imitates.",
+ "screens": {
+  "sw_rudisha_kimakosa.png": { "lang": "sw", "risk": "high", "rule_flags": ["wrong_send", "secrecy"], "lookalike_of": null },
+  "sw_anwani_mpya.png": { "lang": "sw", "risk": "high", "rule_flags": ["new_address_claim"], "lookalike_of": "Amina" },
+  "sw_kawaida.png": { "lang": "sw", "risk_max": "low", "rule_flags": [], "lookalike_of": null },
+  "en_prize_fee.png": { "lang": "en", "risk": "high", "rule_flags": ["unlock_fee", "prize"], "lookalike_of": null }
+ }
+}

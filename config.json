@@ -4,7 +4,9 @@
   "llm": "models/Qwen3-1.7B-Q4_0.gguf",
   "asr": "models/ggml-small-q8_0.bin",
   "asr_accurate": "models/ggml-large-v3-turbo-q5_0.bin",
-  "vad": "models/ggml-silero-v5.1.2.bin"
+  "vad": "models/ggml-silero-v5.1.2.bin",
+  "ocr": "models/latin_g2.gguf",
+  "ocr_detector": "models/craft_mlt_25k.gguf"
  },
  "asr_threads": 4,
  "asr_accurate_audio_ctx": 768,
@@ -15,5 +17,6 @@
   "newRecipientMax": "20",
   "retypeAbove": "50"
  },
- "asr_warmup": "test/audio/sw_amina_20.wav"
+ "asr_warmup": "test/audio/sw_amina_20.wav",
+ "ocr_threads": 4
 }

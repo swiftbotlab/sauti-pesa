@@ -6,6 +6,7 @@
 // - holds the wallet: the seed is read from private/ only here and never leaves this process;
 // - answers a small JSON API over a Unix socket (tmp/run/engine.sock, mode 0600). It has no network at all:
 //   the host-side bridge (bin/bridge.mjs) forwards 127.0.0.1:8787 to this socket;
+// - reads screenshots for "Check a message" with QVAC OCR (loaded per screenshot, then unloaded);
 // - refuses to start when the internet is reachable.
 // One request is processed at a time; bodies, text and audio are size-capped; sessions expire.
 import http from 'node:http'
@@ -20,6 +21,7 @@ import { Store } from './queue.js'
 import { network, NETWORKS } from './networks.js'
 import { LocalLLM } from './llm.js'
 import { LocalASR, MAX_AUDIO_BYTES } from './asr.js'
+import { LocalOCR, MAX_IMAGE_BYTES, inspectImage } from './ocr.js'
 import { analyzeRequest, amendAnalysis, confirmAndQueue, analyzeMessage, resignEntry } from './pipeline.js'
 import { analysisView, outboxView, contactView } from './view.js'
 import { networkProof } from './offline.js'
@@ -162,6 +164,27 @@ async function onVoice (buf, q) {
   return { ok: true, transcript: r.text, lang: r.lang, network: netId, steps: [step] }
 }
 
+// "Check a message" from a screenshot: QVAC OCR turns the image into text, nothing more. Like voice, the page shows
+// the text at once and then sends it to /v1/check exactly like pasted text, so the same checks decide.
+// The OCR model is loaded for each screenshot and unloaded right after: the resident engine's memory does not grow.
+async function onReadImage (buf) {
+  let info
+  try { info = inspectImage(buf) } catch (e) { throw httpError(400, String(e.message).slice(0, 160)) } // by CONTENT: PNG/JPEG, size caps
+  const files = [CFG.models.ocr, CFG.models.ocr_detector].map((rel) => join(ROOT, rel || ''))
+  if (!CFG.models.ocr || !files.every((f) => existsSync(f))) throw httpError(503, 'OCR model missing: run scripts/fetch_models.sh OCR_LATIN OCR_CRAFT once (online)')
+  const reader = new LocalOCR({ modelPath: realpathSync(files[0]), detectorPath: realpathSync(files[1]), threads: CFG.ocr_threads || 4 })
+  let r; let loadMs
+  try {
+    loadMs = await reader.load()
+    try { r = await reader.read(buf) } catch (e) { log('ocr read failed:', String(e.message).slice(0, 120)); throw httpError(400, 'could not read text from this image') }
+  } finally {
+    await reader.unload().catch(() => {})
+  }
+  const step = { id: 'ocr', model: 'QVAC OCR: CRAFT detector + latin_g2 (OCR_CRAFT, OCR_LATIN)', ms: r.ms, load_ms: loadMs, blocks: r.blocks, image: `${info.width}x${info.height} ${info.type}` }
+  if (!r.text) return { ok: false, text: '', errors: ['no text found in the image'], steps: [step] }
+  return { ok: true, text: r.text, steps: [step] }
+}
+
 async function onAmend (body) {
   const s = sessions.get(String(body.sid || ''))
   if (!s || s.used || Date.now() - s.created > SESSION_TTL_MS) throw httpError(410, 'this request expired; please start again')
@@ -270,7 +293,7 @@ async function onStatus (q) {
       startedAt: engine.startedAt,
       loadMs: engine.loadMs,
       warmMs: engine.warmMs,
-      models: { asr: 'whisper small q8_0 (WHISPER_SMALL_Q8_0)', vad: 'Silero VAD 5.1.2 (VAD_SILERO_5_1_2)', llm: 'Qwen3-1.7B Q4_0 (QWEN3_1_7B_INST_Q4)', sdk: '@qvac/sdk 0.22.0' },
+      models: { asr: 'whisper small q8_0 (WHISPER_SMALL_Q8_0)', vad: 'Silero VAD 5.1.2 (VAD_SILERO_5_1_2)', llm: 'Qwen3-1.7B Q4_0 (QWEN3_1_7B_INST_Q4)', ocr: 'OCR_LATIN + OCR_CRAFT (loaded per screenshot)', sdk: '@qvac/sdk 0.22.0' },
       rssMb: Object.values(rss).reduce((x, y) => x + y, 0)
     },
     net: await proof(),
@@ -332,7 +355,8 @@ const ROUTES = {
   'POST /v1/amend': { fn: async (r) => onAmend(parseJson(await readBody(r.req, MAX_JSON))), ai: false },
   'POST /v1/confirm': { fn: async (r) => onConfirm(parseJson(await readBody(r.req, MAX_JSON))), ai: false },
   'POST /v1/resign': { fn: async (r) => onResign(parseJson(await readBody(r.req, MAX_JSON)), r.q), ai: false },
-  'POST /v1/check': { fn: async (r) => onCheck(parseJson(await readBody(r.req, MAX_JSON))), ai: true }
+  'POST /v1/check': { fn: async (r) => onCheck(parseJson(await readBody(r.req, MAX_JSON))), ai: true },
+  'POST /v1/read-image': { fn: async (r) => onReadImage(await readBody(r.req, MAX_IMAGE_BYTES)), ai: true, image: true }
 }
 
 function send (res, status, obj) {
@@ -350,6 +374,7 @@ const server = http.createServer(async (req, res) => {
   if (!route) { req.resume(); return send(res, 404, { ok: false, error: 'not found' }) }
   if (!route.light && !engine.ready) { req.resume(); return send(res, 503, { ok: false, error: `engine is ${engine.stage}` }) }
   if (route.audio && !/^audio\/(wav|x-wav|wave)$/.test(String(req.headers['content-type'] || '').split(';')[0].trim())) { req.resume(); return send(res, 415, { ok: false, error: 'audio must be sent as audio/wav' }) }
+  if (route.image && !/^image\/(png|jpeg)$/.test(String(req.headers['content-type'] || '').split(';')[0].trim())) { req.resume(); return send(res, 415, { ok: false, error: 'image must be sent as image/png or image/jpeg' }) }
   try {
     const out = route.light ? await route.fn({ req, q: u.searchParams }) : await serial(() => route.fn({ req, q: u.searchParams }))
     out.ms = Date.now() - t0

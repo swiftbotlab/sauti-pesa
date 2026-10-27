@@ -58,8 +58,10 @@ school in USDT, and wants a second pair of eyes that works offline and never sen
 - **Offline signing with one-shot permission.** A WDK transaction policy lets the wallet sign exactly the payment the
   person confirmed, once. Signed transactions go to an **outbox**: queued, then broadcast, then confirmed, with an
   explorer link.
-- **Check a message.** Paste an SMS or WhatsApp request and get a Swahili or English risk explanation, including
-  look-alike address detection against your own contacts.
+- **Check a message, typed or as a screenshot.** Paste an SMS or WhatsApp request, or pick a screenshot of it (QVAC
+  OCR reads the text on the device), and get a Swahili or English risk explanation, including look-alike address
+  detection against your own contacts. The text read from the image goes through exactly the same checks as pasted
+  text and is shown to the person, who can correct it.
 - **Status pill, always on screen:** "AI: on device · Network: OFF (verified)". It is backed by a live probe
   (interfaces, TCP, DNS), not a setting.
 - **Re-sign** a queued payment whose nonce was used elsewhere (after checking on-chain that it was not mined).
@@ -96,12 +98,14 @@ broadcasts the outbox in nonce order after decoding each raw transaction and com
 | Intent understanding (Qwen3-1.7B) | **No** | `src/llm.js` in the offline sandbox |
 | Safety checks, scam rules, look-alike addresses | **No** | `src/safety.js`, `src/scam.js`, `src/evmaddr.js`, `src/contacts.js` |
 | Message check (scam explanation) | **No** | `src/safety.js` + `src/llm.js` |
+| Message check from a screenshot (QVAC OCR) | **No** | `src/ocr.js`, `src/ocrtext.js` in the offline sandbox |
 | Signing (WDK + transaction policy) | **No** | `src/wallet.js` in the offline sandbox |
 | Outbox, re-sign after a nonce clash | **No** | `src/queue.js`, `src/pipeline.js` |
 | Web UI | **No** (127.0.0.1 only) | `ui/`, `bin/bridge.mjs` |
 | Broadcast signed payments | Yes | `bin/netsync.mjs broadcast` (no keys) |
 | Sync nonce, fee data, USDT and gas balances | Yes | `bin/netsync.mjs sync` (no keys) |
 | First-time model download | Yes, once | `scripts/fetch_models.sh` (curl + sha256 only) |
+| First-time OCR model download | Yes, once | `scripts/fetch_registry_model.sh` (QVAC's own registry, fenced network, sha256) |
 | Installing npm packages | Yes, once | `ops/sandbox.sh setup npm ci` (install scripts off) |
 
 After one sync, the app can queue many payments offline. Fees use the cached fee data with 100% headroom (or a safe
@@ -211,14 +215,16 @@ All in plain code, in [`src/safety.js`](src/safety.js), [`src/contacts.js`](src/
 ## Run it
 
 **Requirements:** Linux (tested on Ubuntu 26.04, aarch64, 6 CPU cores, 8 GB RAM, no GPU), Node.js ≥ 22.17
-(tested 22.22.1), bubblewrap (tested 0.11.1), curl, python3, about 4 GB of disk (1.3 GB models; QVAC's native
+(tested 22.22.1), bubblewrap (tested 0.11.1), curl, python3, about 4 GB of disk (1.4 GB models; QVAC's native
 packages are about 1.6 GB of the 2.6 GB `node_modules`). For the local chain: Foundry's
-[anvil](https://getfoundry.sh) (tested 1.8.5). For the UI: any current browser.
+[anvil](https://getfoundry.sh) (tested 1.8.5). For the one-time OCR model download: pasta (Debian/Ubuntu package
+`passt`, tested 2026-01-20). For the UI: any current browser.
 
 ```bash
 git clone https://github.com/swiftbotlab/sauti-pesa.git && cd sauti-pesa
 ops/sandbox.sh setup npm ci                                   # exact pins, install scripts off
 scripts/fetch_models.sh QWEN3_1_7B_INST_Q4 WHISPER_SMALL_Q8_0 VAD_SILERO_5_1_2   # ~1.3 GB, sha256-checked
+scripts/fetch_models.sh OCR_LATIN OCR_CRAFT                  # 98 MB OCR weights from QVAC's registry (needs pasta)
 
 ops/sandbox.sh offline node bin/sauti.mjs wallet init        # new TEST wallet; the seed stays in private/
 ops/sandbox.sh offline node bin/sauti.mjs contacts demo      # 5 demo contacts (Amina, Juma, Wanjiru, Otieno, Mama Neema)
@@ -232,7 +238,7 @@ every start); the page needs it, so open that exact link. The engine needs 15-25
 up. Then try:
 - tap the mic and say *"Tuma USDT ishirini kwa Amina"*, or type *"Send 40 USDT to Otieno for rent"*;
 - paste an address that looks like Amina's: `data/demo-attack.json` has one;
-- **Kagua / Check**: tap the "Prize" example;
+- **Kagua / Check**: tap the "Prize" example, or "Check a screenshot" and pick `test/data/public/screens/sw_anwani_mpya.png`;
 - **Foleni / Outbox**: "Go online and send" broadcasts on the local devnet.
 
 <details>
@@ -242,6 +248,7 @@ up. Then try:
 ops/sandbox.sh offline node bin/sauti.mjs ask "Tuma USDT ishirini kwa Amina" --require-offline
 ops/sandbox.sh offline node bin/sauti.mjs say test/audio/sw_juma_15.wav --lang sw
 ops/sandbox.sh offline node bin/sauti.mjs check "Umeshinda zawadi! Lipa ada ya usajili..."
+ops/sandbox.sh offline node bin/sauti.mjs check --image test/data/public/screens/sw_rudisha_kimakosa.png
 ops/sandbox.sh offline node bin/sauti.mjs queue
 ops/sandbox.sh offline node bin/sauti.mjs resign <outbox-id> --yes      # after a nonce clash
 ops/devnet.sh broadcast
@@ -260,7 +267,7 @@ ops/devnet.sh broadcast
 
 **Reproduce with the internet disconnected.** The sandbox already gives the AI and the wallet no network, but you
 can also unplug the whole machine:
-1. With the internet on, run only the two setup lines (`npm ci` and `fetch_models.sh`).
+1. With the internet on, run only the setup lines (`npm ci` and the `fetch_models.sh` lines).
 2. Disconnect (Wi-Fi off, cable out). Check: `curl -sS --head -m 5 https://huggingface.co` fails.
 3. Run everything else above: `wallet init`, `contacts demo`, `devnet-setup` (the local chain needs no internet),
    `ops/ui.sh`, then pay by voice and text, run the checks, and broadcast to the local devnet. The status pill and
@@ -270,10 +277,12 @@ can also unplug the whole machine:
 **Tests:**
 
 ```bash
-ops/sandbox.sh offline node --test test/*.test.js   # 58 unit tests, no model (3 need the private test set, else skipped)
+ops/sandbox.sh offline node --test test/*.test.js   # 64 unit tests, no model (3 need the private test set, else skipped)
 test/sandbox.sh          # 22 sandbox checks with positive controls (read-only code, masks, lock, local.env)
 test/e2e_offline.sh      # CLI, internet off: Swahili text + English voice payments, blocks, devnet broadcast
-test/e2e_ui.sh           # engine + bridge API, 81 checks, incl. the UI key and re-sign after a nonce clash
+test/e2e_ocr.sh          # CLI, internet off: 4 labelled screenshots -> QVAC OCR -> the same message checks
+test/e2e_ui.sh           # engine + bridge API, 89 checks, incl. the UI key, screenshots, re-sign after a nonce clash
+scripts/fetch_registry_model.sh --probe PORT   # OCR download fence vs host: a local service on PORT, gateway, internet
 scripts/eval_sw_requests.sh  # the commissioned Swahili test set (private: skipped when absent, see below)
 # Judges: reproduce our checks on a PUBLIC, redistributable Swahili set (10 genuine + 3 scam) shipped in this repo:
 SAUTI_EVAL_SET=test/data/public/sw_requests_public.md SAUTI_EVAL_LABELS=test/data/public/sw_requests_public.labels.json scripts/eval_sw_requests.sh
@@ -292,17 +301,26 @@ video shows real, unedited timings from such a shared machine.
 | Voice (3.6-4.3 s clip) to checked payment | 9.2-10.5 s | **2.6 s** median (3.8 s max); ASR 1.35 s median |
 | Text to checked payment | 6.2-6.5 s | **1.0 s** median (2.3 s max); LLM 1.0 s median |
 | Engine start (once) | none | 15-25 s to ready (both models load, one warm-up transcription, prompt cache) |
+| Screenshot to message verdict (QVAC OCR, then the same check) | CLI: 8.4-9.0 s, incl. loading OCR (0.8-0.9 s) and the LLM | UI: OCR 3.4 s + 0.4 s load (loaded per screenshot), then the text check; OCR alone 2.4-2.9 s per 720x700 screenshot, 3.0-3.1 s at 1080x2400 |
 
 About 680 of the ~700 prompt tokens are served from QVAC's KV cache (median; `scripts/bench_engine.mjs`).
 
 **Memory:** resident engine about 2.2-2.8 GB RSS (both models loaded, including memory-mapped weights). The CLI loads one model at a time: peak
 ~2.6 GB. Whisper alone ~1.2 GB with two language instances; one instance with reload-config in the engine.
+OCR (CRAFT detector + latin_g2, detection magnification 1.0, canvas capped at 1024 px): peak 1.39-1.48 GB for
+720x700 and 1080x2400 screenshots. QVAC's default magnification 1.5 read our test address in one piece but took
+5.5 s and 2.55 GB, so we use 1.0 and join an address that the detector splits into two touching boxes. The engine
+loads OCR for each screenshot and unloads it afterwards (engine RSS 3.24 GB before, 3.13 GB after, in `test/e2e_ui.sh`).
 
 **Accuracy:**
 - Voice to decision, 6 synthetic clips (sw-KE, sw-TZ, en-KE neural voices): **6/6** (5 payments with the right
   amount and payee; the scam clip blocked).
 - Intent: tuned set 12/12; held-out set **11/12**. In every miss, the code blocked the payment instead of sending a
   wrong amount.
+- Screenshots (`test/e2e_ocr.sh`): 4 labelled screenshots in `test/data/public/screens/` (our own wording, rendered
+  in code: a fake mobile-money "sent by mistake, send it back", a "new wallet address" message with a look-alike of
+  a saved contact's address, an ordinary family message, an English prize-with-fee SMS): **4/4** expected verdicts;
+  the look-alike address is read back character for character. These are clean, rendered images, not photos.
 - **Commissioned Swahili test set**: 30 everyday requests (16 standard Swahili, 6 Sheng, 8 code-switched with
   English) + 5 scams, text only, written for us by an independent Swahili speaker. The set itself is private (we
   do not have the rights to redistribute it) and is not in this repository; `scripts/eval_sw_requests.sh` runs when
@@ -345,6 +363,9 @@ broadcast by the keyless sender on Ethereum Sepolia (all status 1). Wallet
 - **Small-model Swahili numbers.** Sheng amounts like *thao* (thousand) and *soo* (hundred) are not normalized yet.
 - The 1.7B model's own scam opinion is noisy. That is why it can only add a low-level hint.
 - Message-check language detection is a keyword heuristic.
+- Screenshot OCR is tested only on our own clean, rendered screenshots (one font, light theme). Real phone
+  screenshots (other fonts, dark mode, emoji, compressed forwards) and camera photos of a screen are not measured
+  yet. The person sees the text that was read and can correct it before the check.
 - The web UI runs on a laptop or desktop (Linux). A phone build (Bare/Pear runtime) is not done; the UI is mobile-first
   so it can be wrapped later.
 - The `online` sender shares the host's network namespace (it runs only our own sender code; see

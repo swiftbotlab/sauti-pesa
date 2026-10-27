@@ -79,5 +79,41 @@
   "qvac_constant": null,
   "note": "Not a QVAC registry constant: q5_0 quantization of QVAC WHISPER_LARGE_V3_TURBO from the same repo and commit; sha256 = Hugging Face LFS oid.",
   "role": "asr"
+ },
+ "OCR_LATIN": {
+  "file": "latin_g2.gguf",
+  "sha256": "dd1c7a436e9175904e63683e939635892f45c8c6377d5e14e87cf8b175e10768",
+  "bytes": 15396512,
+  "engine": "ggml-ocr",
+  "license": "Apache-2.0 (EasyOCR latin_g2 recognizer by JaidedAI; GGUF conversion by QVAC)",
+  "qvac_constant": "OCR_LATIN",
+  "role": "ocr",
+  "registry": {
+   "registrySource": "s3",
+   "registryPath": "qvac_models_compiled/ocr/gguf/easyocr/2026-05-14/latin_g2.gguf",
+   "blobCoreKey": "d90c0263033385abdb2290a69936d5cef030d5c63c87baa33c3a4a2d01b84ca8",
+   "blobBlockOffset": 2109431,
+   "blobBlockLength": 235,
+   "blobByteOffset": 138237213166
+  },
+  "note": "QVAC publishes this file only in its own peer-to-peer model registry (no Hugging Face origin): scripts/fetch_registry_model.sh"
+ },
+ "OCR_CRAFT": {
+  "file": "craft_mlt_25k.gguf",
+  "sha256": "74501993caf4581ce09b280f49a1b3d249c0f5a78496e047718b398457a875aa",
+  "bytes": 83133856,
+  "engine": "ggml-ocr",
+  "license": "MIT (CRAFT text detector by NAVER Clova AI, as used by EasyOCR; GGUF conversion by QVAC)",
+  "qvac_constant": "OCR_CRAFT",
+  "role": "ocr_detector",
+  "registry": {
+   "registrySource": "s3",
+   "registryPath": "qvac_models_compiled/ocr/gguf/easyocr/2026-05-14/craft_mlt_25k.gguf",
+   "blobCoreKey": "d90c0263033385abdb2290a69936d5cef030d5c63c87baa33c3a4a2d01b84ca8",
+   "blobBlockOffset": 2108162,
+   "blobBlockLength": 1269,
+   "blobByteOffset": 138154079310
+  },
+  "note": "QVAC publishes this file only in its own peer-to-peer model registry (no Hugging Face origin): scripts/fetch_registry_model.sh"
  }
 }

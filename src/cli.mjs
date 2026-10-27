@@ -5,7 +5,7 @@
 //   contacts demo | contacts list | contacts add --name N --address 0x.. [--relation brother]
 //   ask "<request>"            [--network devnet|sepolia] [--yes] [--retype N] [--json]
 //   say <file.wav>             [--lang sw|en|auto] [--accurate] (+ the ask options)
-//   check "<message>" | check --file msg.txt [--json] [--no-ai]
+//   check "<message>" | check --file msg.txt | check --image screenshot.png  [--json] [--no-ai]
 //   queue                      [--network ...]
 //   resign <outbox-id>         [--network ...] [--yes]   re-sign a payment whose nonce was used elsewhere
 import { readFileSync, existsSync, realpathSync } from 'node:fs'
@@ -19,6 +19,7 @@ import { Store } from './queue.js'
 import { network, NETWORKS } from './networks.js'
 import { LocalLLM } from './llm.js'
 import { LocalASR } from './asr.js'
+import { LocalOCR, readImageFile } from './ocr.js'
 import { analyzeRequest, confirmAndQueue, analyzeMessage, resignEntry } from './pipeline.js'
 import { networkState } from './offline.js'
 import { reasonText } from './i18n.js'
@@ -146,8 +147,26 @@ async function cmdSay (o) {
   return cmdAsk(o, r.text, { timing })
 }
 
+// "Check this message" from a screenshot: QVAC OCR reads the text on the device, then the SAME checks as pasted text.
+// The OCR model is unloaded before the language model loads (one model in RAM at a time).
+async function readScreenshot (o) {
+  const { buf, info } = readImageFile(realpathSync(o.image))
+  const reader = new LocalOCR({ modelPath: modelPath(CFG.models.ocr), detectorPath: modelPath(CFG.models.ocr_detector), threads: CFG.ocr_threads || 4 })
+  try {
+    const loadMs = await reader.load()
+    const r = await reader.read(buf)
+    say(o, `Read from the screenshot on this device (QVAC OCR, ${info.width}x${info.height} ${info.type}, ${r.ms} ms):`)
+    for (const line of r.text.split('\n')) say(o, `  | ${line}`)
+    return { text: r.text, timing: { ocr_load_ms: loadMs, ocr_ms: r.ms, ocr_blocks: r.blocks, ocr_peak_rss_mb: peakRssMb() } }
+  } finally {
+    await reader.unload()
+  }
+}
+
 async function cmdCheck (o) {
-  const text = o.file ? readFileSync(o.file, 'utf8') : o._.slice(1).join(' ')
+  const shot = o.image ? await readScreenshot(o) : null
+  const text = shot ? shot.text : o.file ? readFileSync(o.file, 'utf8') : o._.slice(1).join(' ')
+  if (shot && !text) throw new Error('no text found in the screenshot')
   const contacts = loadContacts(CONTACTS)
   let llm = null
   let loadMs = 0
@@ -164,7 +183,7 @@ async function cmdCheck (o) {
     if (a.issue) say(o, `  - ${shortAddr(a.address)}: ${reasonText({ code: a.issue }, L)}`)
   }
   if (r.aiNote) say(o, `  AI note: ${r.aiNote}`)
-  if (o.json) console.log(JSON.stringify({ ...r, timing: { llm_load_ms: loadMs, llm_ms: r.llmMs } }))
+  if (o.json) console.log(JSON.stringify({ ...r, ...(shot ? { ocrText: text } : {}), timing: { ...shot?.timing, llm_load_ms: loadMs, llm_ms: r.llmMs, peak_rss_mb: peakRssMb() } }))
   await llm?.unload()
 }
 
