@@ -32,6 +32,10 @@ Track: **Agentic finance with WDK** · AI Yako: Own Your AI (Tether QVAC) · bui
 </p>
 </details>
 
+![Sauti Pesa: a typed request becomes a payment on the device, plain code checks it, and it is signed offline (test USDT on Sepolia)](https://github.com/swiftbotlab/sauti-pesa/releases/download/v1.3/sauti-pesa-readme.gif)
+
+**Trailer (0:56): [sauti-pesa-trailer.mp4](https://github.com/swiftbotlab/sauti-pesa/releases/download/v1.3/sauti-pesa-trailer.mp4)** · a Swahili "send it back" scam caught offline, a spoken Swahili payment checked and signed on the device, and only the broadcast online. Cut from the same real recordings at real speed; test USDT on Sepolia.
+
 **Demo video (internet off): [sauti-pesa-demo-v1.2.mp4](https://github.com/swiftbotlab/sauti-pesa/releases/download/v1.2/sauti-pesa-demo-v1.2.mp4)** · captions ([.srt](https://github.com/swiftbotlab/sauti-pesa/releases/download/v1.2/sauti-pesa-demo-v1.2.srt)) + English voice-over, 3:05.
 The same recording as the [original cut](https://github.com/swiftbotlab/sauti-pesa/releases/download/v1.0/sauti-pesa-demo.mp4) (2:57 + a 5 s offline-proof card), with a
 test-token label on screen the whole time and a 3 s opening card that says what is tested.
