@@ -300,7 +300,7 @@ can also unplug the whole machine:
 **Tests:**
 
 ```bash
-ops/sandbox.sh offline node --test test/*.test.js   # 68 unit tests, no model (3 need the private test set, else skipped)
+ops/sandbox.sh offline node --test test/*.test.js   # 78 unit tests, no model (3 need the private test set, else skipped)
 test/sandbox.sh          # 22 sandbox checks with positive controls (read-only code, masks, lock, local.env)
 test/e2e_offline.sh      # CLI, internet off: Swahili text + English voice payments, blocks, devnet broadcast
 test/e2e_ocr.sh          # CLI, internet off: 4 labelled screenshots -> QVAC OCR -> the same message checks
@@ -332,7 +332,8 @@ video shows real, unedited timings from such a shared machine.
 
 About 680 of the ~700 prompt tokens are served from QVAC's KV cache (median; `scripts/bench_engine.mjs`).
 
-**Memory:** resident engine about 2.2-2.8 GB RSS (both models loaded, including memory-mapped weights). The CLI loads one model at a time: peak
+**Memory:** resident engine about 2.2-2.8 GB RSS in a `/proc` reading (both models loaded, including memory-mapped weights); the
+QVAC SDK's own gauge in the profiler run samples up to 3.1 GB, and 3.8 GB while a screenshot is read ([evidence](evidence/README.md#memory)). The CLI loads one model at a time: peak
 ~2.6 GB. Whisper alone ~1.2 GB with two language instances; one instance with reload-config in the engine.
 OCR (CRAFT detector + latin_g2, detection magnification 1.0, canvas capped at 1024 px): peak 1.39-1.48 GB for
 720x700 and 1080x2400 screenshots. QVAC's default magnification 1.5 read our test address in one piece but took
