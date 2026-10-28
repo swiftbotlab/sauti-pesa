@@ -1,5 +1,8 @@
 # Sauti Pesa
 
+> **Judges: [JUDGES.md](JUDGES.md)** is one page with the offline run (5 commands, expected output), where QVAC and
+> WDK are called, what needs the internet and how "off" is enforced, known limits, and where each form answer is.
+
 **USDT next to M-Pesa, in Swahili, offline, with a second pair of eyes for the fake "send it back" messages.**
 Many people in East Africa keep savings and receive money in USDT next to M-Pesa, and the scams arrive in Swahili:
 a fake M-Pesa "confirmation", then *"nimekutumia pesa kimakosa, nirudishie"* ("I sent you money by mistake, send it
@@ -50,6 +53,7 @@ the page needs that link; the payment flows in the video behave the same.
 > Testnets only. There is no mainnet configuration in the code (`src/networks.js`). Use a fresh test wallet.
 
 ## Contents
+- **[JUDGES.md](JUDGES.md): run it offline in 5 commands**
 - [Why](#why) · [What it does](#what-it-does) · [How it works](#how-it-works) · [Offline vs network](#offline-vs-network)
 - [QVAC integration](#qvac-integration) · [WDK integration](#wdk-integration) · [Safety checks](#safety-checks) · [Security model](#security-model)
 - [Run it](#run-it) · [Measurements](#measurements) · [Real voices](#real-voices-fleurs-swahili-native-speakers) · [Runs in 3 GB](#runs-in-3-gb) · [Limitations](#limitations) · [Built during the event](#built-during-the-event-and-third-party-work)
