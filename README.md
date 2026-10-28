@@ -33,6 +33,8 @@ the page needs that link; the payment flows in the video behave the same.
 
 **Supplementary 1-min clip: [check a scam screenshot offline](https://github.com/swiftbotlab/sauti-pesa/releases/download/v1.1/sauti-pesa-screenshot-check.mp4)** · QVAC OCR on the device, three Swahili test screenshots (two scams, one with a look-alike address, and one genuine message), English captions, 1:08.
 
+**Evidence:** [QVAC profiler run](evidence/README.md) (one offline run: load and unload, time to first token, tokens/s and memory for Whisper + VAD, Qwen3-1.7B and OCR; [`qvac-profile.json`](evidence/qvac-profile.json)) · [Remote APIs](REMOTE_APIS.md) (every endpoint the code can contact; the AI path contacts none).
+
 > [!IMPORTANT]
 > Testnets only. There is no mainnet configuration in the code (`src/networks.js`). Use a fresh test wallet.
 
@@ -116,7 +118,7 @@ broadcasts the outbox in nonce order after decoding each raw transaction and com
 | First-time OCR model download | Yes, once | `scripts/fetch_registry_model.sh` (QVAC's own registry, fenced network, sha256) |
 | Installing npm packages | Yes, once | `ops/sandbox.sh setup npm ci` (install scripts off) |
 
-After one sync, the app can queue many payments offline. Fees use the cached fee data with 100% headroom (or a safe
+Every endpoint, with file and phase: [`REMOTE_APIS.md`](REMOTE_APIS.md). After one sync, the app can queue many payments offline. Fees use the cached fee data with 100% headroom (or a safe
 testnet default), and nonces are assigned locally.
 
 ## QVAC integration
@@ -136,6 +138,7 @@ and OCR.
 | One Whisper instance | `loadModel({ modelId, modelConfig })` reload-config switches sw/en without a second copy in RAM |
 | Model files | `models.json`: Hugging Face origin at the exact commit QVAC's registry pins, with QVAC's sha256. `scripts/fetch_models.sh` downloads with curl and checks size + sha256. The OCR weights exist only in QVAC's own peer-to-peer registry: `scripts/fetch_registry_model.sh` gets them with QVAC's registry client inside a network fence (see [`SECURITY.md`](SECURITY.md)), then checks size + sha256 |
 | Device check | `getSystemResources()` and the advisory `assessModelFit()` for our models: `scripts/system_fit.mjs` (results under [Runs in 3 GB](#runs-in-3-gb)) |
+| Profiler | `profiler.enable({ mode: 'verbose', includeServerBreakdown: true, includeResourceGauges: true })` + `onRecord` + `exportJSON()` over one offline run of all four capabilities: `scripts/profile_qvac.sh` writes [`evidence/qvac-profile.json`](evidence/qvac-profile.json), read it with [`evidence/README.md`](evidence/README.md) |
 | Licences | Qwen3-1.7B Apache-2.0 · Whisper MIT · Silero VAD MIT · EasyOCR latin_g2 Apache-2.0 · CRAFT MIT |
 
 Files that call QVAC: [`src/asr.js`](src/asr.js) (`loadModel`, `transcribe`, `unloadModel`),
@@ -143,7 +146,8 @@ Files that call QVAC: [`src/asr.js`](src/asr.js) (`loadModel`, `transcribe`, `un
 [`src/ocr.js`](src/ocr.js) (`loadModel`, `ocr`, `unloadModel`),
 [`src/engine.js`](src/engine.js) (resident models, warm-up, OCR per screenshot, `close`), [`bin/sauti.mjs`](bin/sauti.mjs) (CLI),
 [`scripts/system_fit.mjs`](scripts/system_fit.mjs) (`getSystemResources`, `assessModelFit`) and
-[`scripts/registry_fetch.cjs`](scripts/registry_fetch.cjs) (QVAC registry client, OCR weight download only).
+[`scripts/registry_fetch.cjs`](scripts/registry_fetch.cjs) (QVAC registry client, OCR weight download only) and
+[`scripts/profile_qvac.mjs`](scripts/profile_qvac.mjs) (`profiler`, measurements only).
 
 Rejected after measuring: Whisper base (fast, but it mangles Swahili names) and Qwen3.5-2B (about 5.2 s per request,
 2.9 GB, and 11/12 instead of 12/12 on our tuned intent set). Whisper large-v3-turbo q5_0 is available in the CLI as
@@ -307,11 +311,13 @@ scripts/eval_sw_requests.sh  # the commissioned Swahili test set (private: skipp
 # Judges: reproduce our checks on a PUBLIC, redistributable Swahili set (10 genuine + 3 scam) shipped in this repo:
 SAUTI_EVAL_SET=test/data/public/sw_requests_public.md SAUTI_EVAL_LABELS=test/data/public/sw_requests_public.labels.json scripts/eval_sw_requests.sh
 scripts/bench_latency.sh # before/after latency
+scripts/profile_qvac.sh  # QVAC profiler, one offline run of ASR + VAD, LLM and OCR -> evidence/qvac-profile.json
 scripts/eval_fleurs_asr.sh   # speech to text on 40 real Swahili voices (Google FLEURS; downloads 333 MB once, see below)
 ```
 
 ## Measurements
-Device: Linux aarch64, 6 cores, 7.9 GB RAM, **CPU only (no GPU)**. The machine is shared with other work. The
+Per model, from QVAC's own profiler (load, unload, time per call, time to first token, tokens/s, memory; one
+offline run): [`evidence/README.md`](evidence/README.md). Device: Linux aarch64, 6 cores, 7.9 GB RAM, **CPU only (no GPU)**. The machine is shared with other work. The
 table shows medians from `scripts/bench_latency.sh`; when the CPU was busy we saw requests take 2-5x longer. The demo
 video shows real, unedited timings from such a shared machine.
 
