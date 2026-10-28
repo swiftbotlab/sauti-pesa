@@ -10,7 +10,13 @@
 // treating that as "nonce used elsewhere" would let the person re-sign it, and then both payments could be mined.
 // Network errors never turn a payment into "failed" (which would drop it from the daily limit): the result is
 // unknown, so the entry keeps its status and the next run checks it again by hash.
+//
+// Undo window (src/undo.js): a queued payment that is still on hold is not sent, and neither is anything after it
+// (nonce order). A cancelled payment is never sent: each entry is read again from disk right before it is handled,
+// and the broadcaster takes the atomic "send" claim on its signature before the bytes go to a node; if the person's
+// "cancel" claim is already there, the payment is skipped.
 import { describeRaw } from './txdecode.js'
+import { isHeld, claimKey } from './undo.js'
 
 const KNOWN_TX = /already known|known transaction|already imported|already exists|ALREADY_EXISTS|tx already in mempool/i
 const NONCE_LOW = /nonce too low|nonce has already been used|NONCE_EXPIRED|old nonce/i
@@ -25,11 +31,12 @@ const NONCE_LOW = /nonce too low|nonce has already been used|NONCE_EXPIRED|old n
  * @param {(s:string)=>void} [p.log]
  * @param {number} [p.receiptWaitMs] how long to wait for a receipt after sending
  * @param {number} [p.pollMs]
- * @returns {Promise<{sent:number, confirmed:number, needsResign:number, unknown:number}>}
+ * @param {() => number} [p.clock] ms since epoch (tests)
+ * @returns {Promise<{sent:number, confirmed:number, needsResign:number, unknown:number, held:number, cancelled:number}>}
  */
-export async function broadcastQueue ({ rpc, store, chainId, address, explorer = null, log = console.log, receiptWaitMs = 90000, pollMs = 4000 }) {
-  const now = () => new Date().toISOString()
-  const out = { sent: 0, confirmed: 0, needsResign: 0, unknown: 0 }
+export async function broadcastQueue ({ rpc, store, chainId, address, explorer = null, log = console.log, receiptWaitMs = 90000, pollMs = 4000, clock = Date.now }) {
+  const now = () => new Date(clock()).toISOString()
+  const out = { sent: 0, confirmed: 0, needsResign: 0, unknown: 0, held: 0, cancelled: 0 }
   const mined = (e, r) => {
     const ok = r.status === '0x1'
     store.update(e.id, { status: ok ? 'confirmed' : 'failed', block: Number(BigInt(r.blockNumber)), gasUsed: Number(BigInt(r.gasUsed)), error: ok ? null : 'reverted on chain', checkedAt: now() })
@@ -45,7 +52,17 @@ export async function broadcastQueue ({ rpc, store, chainId, address, explorer =
     return null
   }
 
-  for (const e of store.list().filter((x) => x.status === 'queued' || x.status === 'broadcast')) {
+  for (const listed of store.list().filter((x) => x.status === 'queued' || x.status === 'broadcast')) {
+    // read it again: the person may have cancelled it (or a payment before it) since the list was read
+    const e = store.get(listed.id)
+    if (!e || !['queued', 'broadcast'].includes(e.status) || typeof e.raw !== 'string') {
+      log(`skip ${listed.id}: no longer waiting to be sent (${e ? e.status : 'gone'})`); out.cancelled++; break
+    }
+    if (isHeld(e, clock())) {
+      log(`held until ${e.holdUntil} (undo window: ${(e.holdReasons || []).join(', ') || 'flagged'}): not sent yet; payments after it wait for it`)
+      out.held++; break
+    }
+    if (store.claimOf(claimKey(e))?.by === 'cancel') { log(`skip ${e.id}: cancelled on this device`); out.cancelled++; break }
     const d = describeRaw(e.raw)
     if (d.hash !== e.hash || d.chainId !== chainId || d.from !== address || d.transfer?.to !== e.to || d.transfer?.amountUnits !== e.amountUnits) {
       store.update(e.id, { status: 'failed', error: 'queued transaction does not match its record' }); log(`skip ${e.id}: record mismatch`); continue
@@ -80,7 +97,11 @@ export async function broadcastQueue ({ rpc, store, chainId, address, explorer =
       log(`waiting: nonce ${d.nonce} is held by another pending transaction`); out.unknown++; break
     }
     if (d.nonce > pending) { log(`waiting: nonce gap (tx ${d.nonce}, chain ${pending})`); break }
-    // 4. Send (or send again: the same signed bytes, so at most one of them can ever be mined).
+    // 4. Send (or send again: the same signed bytes, so at most one of them can ever be mined). First the atomic
+    //    decision: from here on this payment can no longer be cancelled on the device.
+    const c = store.claim(claimKey(e), 'send')
+    if (!c.ok && c.by === 'cancel') { log(`skip ${e.id}: cancelled on this device a moment ago`); out.cancelled++; break }
+    if (!e.sentToNodeAt) store.update(e.id, { sentToNodeAt: now() })
     try {
       await rpc.sendRaw(e.raw)
     } catch (err) {

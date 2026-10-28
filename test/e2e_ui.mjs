@@ -235,6 +235,45 @@ ok(ob.j.entries.find((e) => e.id === stale.id)?.status === 'confirmed', 're-sign
 const s3 = await call('/api/status?network=devnet')
 ok(s3.j.chain.usdt === '887', 'balance 887: the re-signed payment was paid once', s3.j.chain.usdt)
 
+console.log('undo window: a flagged payment is held, can be cancelled before broadcast, nonces stay right')
+const NEW_ADDR = '0x2222222222222222222222222222222222222222' // not a contact and never paid: "new recipient"
+const balBefore = (await call('/api/status?network=devnet')).j.chain.usdt
+r = await ask(`Tuma USDT 5 kwa ${NEW_ADDR}`)
+ok(r.status === 200 && r.j.view.decision !== 'blocked' && JSON.stringify(r.j.view).includes('new_recipient'), 'payment to a first-time address: allowed with a warning', JSON.stringify(r.j?.view?.decision))
+c = await confirm(r.j.sid)
+const heldQ = c.j?.queued
+const holdMs = heldQ ? Date.parse(heldQ.holdUntil) - Date.parse(heldQ.created) : 0
+ok(c.status === 200 && heldQ.status === 'queued' && heldQ.held === true && heldQ.cancellable === true && Math.abs(holdMs - 600000) < 2000 && heldQ.holdReasons.includes('new_recipient'), 'signed offline, then HELD for 10 minutes (undo window), cancellable', JSON.stringify(heldQ && { held: heldQ.held, holdMs, reasons: heldQ.holdReasons }))
+r = await ask('Tuma USDT 2 kwa Amina')
+c = await confirm(r.j.sid)
+const behind = c.j?.queued
+ok(c.status === 200 && behind.nonce === heldQ.nonce + 1 && behind.held === false && behind.holdUntil === null, 'a clean payment after it is not held itself (next nonce)', JSON.stringify(behind && { nonce: behind.nonce, held: behind.held }))
+await call('/api/net/broadcast', { method: 'POST', json: { network: 'devnet' } })
+job = await waitJob()
+ob = await call('/api/outbox?network=devnet')
+let hq = ob.j.entries.find((e) => e.id === heldQ.id); let bq = ob.j.entries.find((e) => e.id === behind.id)
+ok(job.code === 0 && hq.status === 'queued' && hq.held && bq.status === 'queued' && job.lines.some((l) => /held until/.test(l)), 'broadcaster skipped the held payment and waited with the one behind it (nonce order)', job.lines.slice(-3).join(' | '))
+ok((await call('/api/status?network=devnet')).j.chain.usdt === balBefore, 'balance unchanged: nothing left the device', balBefore)
+ok((await call('/api/cancel', { method: 'POST', json: { id: heldQ.id, network: 'devnet' } })).status === 400, 'cancel without the person confirming refused')
+ok((await call('/api/cancel', { method: 'POST', json: { id: '../../private/wallet', network: 'devnet', confirm: true } })).status === 400, 'cancel with a bad id refused')
+r = await call('/api/cancel', { method: 'POST', json: { id: heldQ.id, network: 'devnet', confirm: true } })
+ok(r.status === 200 && r.j.entry.status === 'cancelled' && r.j.entry.cancellable === false && r.j.resign.length === 1 && r.j.resign[0].id === behind.id && r.j.resign[0].status === 'needs_resign', 'Ghairi: cancelled on the device; the payment behind it must be signed again', JSON.stringify(r.j?.entry?.status || r.j))
+ok(!JSON.stringify(r.j).match(/"raw"/), 'cancel response has no raw tx')
+ok((await call('/api/cancel', { method: 'POST', json: { id: heldQ.id, network: 'devnet', confirm: true } })).status === 409, 'a cancelled payment cannot be cancelled again')
+r = await call('/api/resign', { method: 'POST', json: { id: behind.id, network: 'devnet', confirm: true } })
+ok(r.status === 200 && r.j.entry.nonce === heldQ.nonce && r.j.entry.status === 'queued', 're-signed offline with the freed nonce (no gap)', JSON.stringify(r.j?.entry ? { nonce: r.j.entry.nonce, status: r.j.entry.status } : r.j))
+await call('/api/net/broadcast', { method: 'POST', json: { network: 'devnet' } })
+job = await waitJob()
+ob = await call('/api/outbox?network=devnet')
+hq = ob.j.entries.find((e) => e.id === heldQ.id); bq = ob.j.entries.find((e) => e.id === behind.id)
+ok(hq.status === 'cancelled' && bq.status === 'confirmed' && bq.nonce === heldQ.nonce, 'broadcast: the Amina payment confirmed with that nonce; the cancelled one was never sent', `${hq.status} ${bq.status} ${bq.nonce}`)
+const balAfter = (await call('/api/status?network=devnet')).j.chain.usdt
+ok(Number(balAfter) === Number(balBefore) - 2, `balance ${balBefore} - 2 = ${Number(balBefore) - 2}: the cancelled 5 test USDT never moved`, balAfter)
+ok((await call('/api/cancel', { method: 'POST', json: { id: behind.id, network: 'devnet', confirm: true } })).status === 409, 'a confirmed payment cannot be cancelled')
+const appJs = await (await fetch(`${B}/app.js`)).text()
+const i18nJs = await (await fetch(`${B}/i18n.js`)).text()
+ok(appJs.includes("'/api/cancel'") && appJs.includes('data-cancel') && appJs.includes('e.cancellable ?') && /cancelPayBtn: 'Ghairi'/.test(i18nJs) && /cancelPayBtn: 'Cancel'/.test(i18nJs) && /sendsAfterLbl/.test(appJs), 'UI: outbox rows get the Ghairi / Cancel button and the "sends after" label')
+
 console.log(`\n${pass} passed, ${fails.length} failed`)
 if (fails.length) { console.log('FAILED:', fails.join('; ')); process.exit(1) }
 console.log('E2E UI PASS')

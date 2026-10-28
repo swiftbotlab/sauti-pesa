@@ -21,12 +21,14 @@ Track: **Agentic finance with WDK** · AI Yako: Own Your AI (Tether QVAC) · bui
 </p>
 
 <details>
-<summary>More screens (390 px): home, look-alike address blocked, message check, outbox</summary>
+<summary>More screens (390 px): home, look-alike address blocked, message check, outbox, undo window</summary>
 <p>
   <img src="docs/ui-mobile-home.png" alt="Home: test-token badge, status pill, balance card, big mic button, text box and contacts" width="200">
   <img src="docs/ui-mobile-blocked.png" alt="A look-alike of Amina's address is blocked as address poisoning" width="200">
   <img src="docs/ui-mobile-check.png" alt="Message check: a Swahili prize SMS rated high risk, with reasons" width="200">
   <img src="docs/ui-mobile-outbox.png" alt="Outbox: payments signed offline, broadcast and confirmed, with explorer links" width="200">
+  <img src="docs/ui-mobile-undo.png" alt="Undo window: a payment to a new recipient held until 18:45 with a Ghairi (Cancel) button; the payment after it waits too" width="200">
+  <img src="docs/ui-mobile-undo-cancelled.png" alt="After Cancel: the held payment is cancelled and the payment behind it asks to be signed again" width="200">
 </p>
 </details>
 
@@ -55,7 +57,7 @@ the page needs that link; the payment flows in the video behave the same.
 ## Contents
 - **[JUDGES.md](JUDGES.md): run it offline in 5 commands**
 - [Why](#why) · [What it does](#what-it-does) · [How it works](#how-it-works) · [Offline vs network](#offline-vs-network)
-- [QVAC integration](#qvac-integration) · [WDK integration](#wdk-integration) · [Safety checks](#safety-checks) · [Security model](#security-model)
+- [QVAC integration](#qvac-integration) · [WDK integration](#wdk-integration) · [Safety checks](#safety-checks) · [Undo window](#undo-window) · [Security model](#security-model)
 - [Run it](#run-it) · [Measurements](#measurements) · [Real voices](#real-voices-fleurs-swahili-native-speakers) · [Runs in 3 GB](#runs-in-3-gb) · [Limitations](#limitations) · [Built during the event](#built-during-the-event-and-third-party-work)
 
 ## Why
@@ -90,6 +92,11 @@ school in USDT, and wants a second pair of eyes that works offline and never sen
   internet.
 - **Test money, labelled:** a header badge "TESTNET · test USDT on Sepolia · not real money" (or "on a local
   devnet"), and every amount reads "test USDT", in the app and in the CLI output.
+- **Undo window (Ghairi / Cancel).** Payments are signed offline and wait in the outbox, so nothing has left the
+  device until the sender runs. A queued payment can be **cancelled** (its signed bytes are deleted; it is never
+  sent), and a payment the checks flagged (a first-time recipient, scam wording, a look-alike address, a relation
+  that does not match) is **held for 10 minutes** before the sender may broadcast it: "Signed offline 14:03 · sends
+  after 14:13 · [Ghairi]". An online wallet cannot unsend. Details: [Undo window](#undo-window).
 - **Re-sign** a queued payment whose nonce was used elsewhere (after checking on-chain that it was not mined).
 - Mobile-first web UI (390 px and desktop), Swahili first, no external fonts or CDNs. Also a full CLI (`bin/sauti.mjs`).
 
@@ -129,6 +136,7 @@ broadcasts the outbox in nonce order after decoding each raw transaction and com
 | Message check from a screenshot (QVAC OCR) | **No** | `src/ocr.js`, `src/ocrtext.js` in the offline sandbox |
 | Signing (WDK + transaction policy) | **No** | `src/wallet.js` in the offline sandbox |
 | Outbox, re-sign after a nonce clash | **No** | `src/queue.js`, `src/pipeline.js` |
+| Cancel a queued payment, hold flagged payments (undo window) | **No** | `src/undo.js` (the sender skips held and cancelled payments) |
 | Web UI | **No** (127.0.0.1 only) | `ui/`, `bin/bridge.mjs` |
 | Broadcast signed payments | Yes | `bin/netsync.mjs broadcast` (no keys) |
 | Sync nonce, fee data, USDT and gas balances | Yes | `bin/netsync.mjs sync` (no keys) |
@@ -215,6 +223,28 @@ All in plain code, in [`src/safety.js`](src/safety.js), [`src/contacts.js`](src/
   secrecy, urgency, seed or PIN requests, remote-access apps, investment promises. The model's opinion can only
   **add** a low-level hint, never lower a risk. High risk needs a rule or address evidence.
 
+### Undo window
+Because signing happens offline and the broadcast happens later, Sauti Pesa can give the person a window to change
+their mind that an online wallet cannot ([`src/undo.js`](src/undo.js)).
+
+- **Cancel ("Ghairi").** Any queued payment that was never handed to a node can be cancelled from the outbox (UI
+  button, `bin/sauti.mjs cancel <id>`). Its signed bytes are deleted and it is never broadcast. Once a payment was
+  handed to a node (even if the node refused it or the connection dropped), it can no longer be cancelled offline,
+  and the app says so.
+- **Hold.** A payment the checks flagged (first-time recipient, scam wording, look-alike address, relation that does
+  not match) waits `hold_minutes` (10 in `config.json`; 0 turns it off) in the outbox before the sender may send it.
+  The outbox row says "Signed offline 14:03 · sends after 14:13" with a Ghairi button. Clean payments to saved
+  contacts are not held, so the everyday flow does not change.
+- **Nonces stay right.** A cancelled payment gives its nonce back, so the next payment reuses it (no gap). Payments
+  queued after it come back as "needs re-signing" (their old bytes are deleted, never sent) and take the lowest free
+  nonce when signed again. Payments go out in nonce order, so a held payment also holds back the ones behind it.
+- **Never both.** The sender takes an atomic "send" claim on a signature right before it hands the bytes to a node;
+  a cancel takes a "cancel" claim first. Whichever is first wins, so a cancelled payment can never be broadcast
+  later, even with the CLI and the sender running at the same time. Tested in [`test/undo.test.js`](test/undo.test.js)
+  (including a race test that fails when that check is removed), `test/e2e_ui.sh` (a held payment is skipped by
+  the real sender on the devnet, cancelled, the payment behind it re-signed with the freed nonce and confirmed;
+  the balance shows the cancelled 5 test USDT never moved) and `test/e2e_offline.sh` (CLI cancel).
+
 ## Security model
 - **Sandbox** ([`ops/sandbox.sh`](ops/sandbox.sh), bubblewrap). Only the project directory is visible, and it is
   **read-only in every mode**: code inside a sandbox can never change files that run on the host. `offline` mode
@@ -294,6 +324,7 @@ ops/sandbox.sh offline node bin/sauti.mjs check "Umeshinda zawadi! Lipa ada ya u
 ops/sandbox.sh offline node bin/sauti.mjs check --image test/data/public/screens/sw_rudisha_kimakosa.png
 ops/sandbox.sh offline node bin/sauti.mjs queue
 ops/sandbox.sh offline node bin/sauti.mjs resign <outbox-id> --yes      # after a nonce clash
+ops/sandbox.sh offline node bin/sauti.mjs cancel <outbox-id> --yes      # undo window: cancel a payment not sent yet
 ops/devnet.sh broadcast
 ```
 </details>
@@ -320,11 +351,11 @@ can also unplug the whole machine:
 **Tests:**
 
 ```bash
-ops/sandbox.sh offline node --test test/*.test.js   # 83 unit tests, no model (3 need the private test set, else skipped)
+ops/sandbox.sh offline node --test test/*.test.js   # 92 unit tests, no model (3 need the private test set, else skipped)
 test/sandbox.sh          # 22 sandbox checks with positive controls (read-only code, masks, lock, local.env)
-test/e2e_offline.sh      # CLI, internet off: Swahili text + English voice payments, blocks, devnet broadcast
+test/e2e_offline.sh      # CLI, internet off: Swahili text + English voice payments, blocks, hold + cancel, devnet broadcast
 test/e2e_ocr.sh          # CLI, internet off: 4 labelled screenshots -> QVAC OCR -> the same message checks
-test/e2e_ui.sh           # engine + bridge API, 93 checks, incl. the UI key, sw/en voice, screenshots, re-sign after a nonce clash
+test/e2e_ui.sh           # engine + bridge API, 108 checks, incl. the UI key, sw/en voice, screenshots, re-sign, undo window
 scripts/mem_cap_run.sh 3G test/e2e_ui.sh       # any of these under a hard 3 GB memory cap (see "Runs in 3 GB")
 scripts/fetch_registry_model.sh --probe PORT   # OCR download fence vs host: a local service on PORT, gateway, internet
 scripts/eval_sw_requests.sh  # the commissioned Swahili test set (private: skipped when absent, see below)
@@ -531,7 +562,7 @@ the test client.
 |---|---|---|---|---|
 | 3 GB: `test/e2e_offline.sh` (CLI: Swahili text and English voice payments, blocks, scam check, devnet broadcast) | PASS (2026-10-27 and again 2026-10-28) | 3,072 / 3,071 MB (at the cap: the kernel reclaims page cache of the weights) | 1,665 / 1,655 MB | 0 |
 | 3 GB: `test/e2e_ocr.sh` (4 screenshots: OCR, then the check with the LLM) | PASS, 4/4 | 2,840 MB | 1,674 MB | 0 |
-| 3 GB: `test/e2e_ui.sh` with the Swahili fine-tune (resident engine, 93 API checks: Swahili + English voice with model swaps, text, screenshots, re-sign, broadcast) | PASS, 93/93 (2 of 2 runs, 2026-10-28) | 3,072 MB | 2,998 and 2,901 MB | 0 |
+| 3 GB: `test/e2e_ui.sh` with the Swahili fine-tune (resident engine, 93 API checks: Swahili + English voice with model swaps, text, screenshots, re-sign, broadcast) | PASS, 93/93 (2 of 2 runs, 2026-10-28); after the undo window was added, 108/108 | 3,072 MB | 2,998 and 2,901 MB; 3,021 MB (108 checks) | 0 |
 | 3 GB: `test/e2e_ui.sh` before the fine-tune (90 checks, one Whisper for both languages) | PASS, 90/90 (2 of 2 runs) | 3,072 MB | 2,942 and 2,948 MB | 0 |
 | 2 GB: `test/e2e_offline.sh` | PASS, but LLM 7.0-8.6 s per request (weights are re-read from disk) | 2,048 MB | 1,664 MB | 0 |
 
@@ -540,8 +571,8 @@ the test client.
 - The resident engine first FAILED this test: with speech, LLM and OCR loaded at once, the QVAC worker was
   OOM-killed at the screenshot step (2.96 GB anonymous). Since then the engine unloads the speech model while it
   reads a screenshot (it reloads on the next voice note, about 1 s; `test/e2e_ui.sh` checks that voice still works).
-  The margin is small: anonymous memory reached 2.90-3.00 GB of the 3 GB in the passing engine runs (2.94-2.95 GB
-  before the Swahili fine-tune, 2.90 and 3.00 GB with it and its model swaps).
+  The margin is small: anonymous memory reached 2.90-3.02 GB of the 3 GB (3,072 MB) in the passing engine runs
+  (2.94-2.95 GB before the Swahili fine-tune, 2.90-3.02 GB with it and its model swaps).
 - QVAC's own view, `ops/sandbox.sh offline node scripts/system_fit.mjs`: `getSystemResources()` reports 6 cores,
   7.73 GiB and no GPU (it reads system memory, not the cgroup cap). The advisory `assessModelFit()` answers
   "unknown" offline, with computed floors only (Qwen3-1.7B at least 1.1 GiB with 2,048 tokens of context, Whisper

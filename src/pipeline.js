@@ -7,6 +7,8 @@ import { reasonText, confirmationText, FLAG_TEXT, RISK_TEXT } from './i18n.js'
 import { fromUnits, canonicalAmount, normalizeNumbers } from './amount.js'
 import { clean } from './text.js'
 import { describeRaw } from './txdecode.js'
+import { holdFor, claimKey } from './undo.js'
+import { randomUUID } from 'node:crypto'
 
 // Fee floors for signing offline: the cached fee data may be stale by the time the network is back.
 export const OFFLINE_FEE_DEFAULTS = {
@@ -157,7 +159,7 @@ function offlineFees (networkId, state) {
 /**
  * The person said yes. Bind WDK's policy to exactly this transfer, sign offline, queue for broadcast.
  */
-export async function confirmAndQueue ({ analysis, wallet, store, networkId, tokenAddress, retypedAmount }) {
+export async function confirmAndQueue ({ analysis, wallet, store, networkId, tokenAddress, retypedAmount, holdMinutes = 0, now = Date.now() }) {
   if (!analysis?.ok || analysis.decision === 'blocked') throw new Error('this payment is blocked and cannot be confirmed')
   if (!tokenAddress) throw new Error('token address unknown for this network (run the devnet setup or a sync first)')
   if (analysis.needsRetype && canonicalAmount(String(retypedAmount ?? '')) !== analysis.intent.amount) throw new Error('re-typed amount does not match')
@@ -184,7 +186,10 @@ export async function confirmAndQueue ({ analysis, wallet, store, networkId, tok
     maxPriorityFeePerGas: maxPriorityFeePerGas.toString(),
     feeSource,
     signedOffline: true,
-    lang: analysis.lang
+    signId: randomUUID(), // this signature's id: the send/cancel decision is made once per signature (src/queue.js)
+    lang: analysis.lang,
+    // undo window (src/undo.js): flagged payments wait in the outbox before the broadcaster may send them
+    ...(holdFor(analysis, holdMinutes, now) || {})
   })
 }
 
@@ -199,13 +204,23 @@ export async function resignEntry ({ entryId, wallet, store, networkId, chainId 
   const e = store.list().find((x) => x.id === entryId)
   if (!e) throw new Error('no such outbox entry')
   if (e.status !== 'needs_resign') throw new Error(`entry is "${e.status}", only "needs_resign" entries can be re-signed`)
-  const d = describeRaw(e.raw)
-  if (d.hash !== e.hash || d.chainId !== chainId || !d.transfer || d.transfer.to !== e.to || d.transfer.amountUnits !== e.amountUnits || (d.to || '').toLowerCase() !== String(e.token).toLowerCase()) {
-    throw new Error('outbox record does not match its signed transaction; refusing to re-sign')
-  }
   const state = store.state()
   const nonce = store.nextNonce()
-  if (nonce <= e.nonce) throw new Error(`no newer nonce known (chain at ${state.nonce}); sync first`)
+  if (e.resignReason === 'earlier_cancelled') {
+    // An earlier payment was cancelled on this device (src/undo.js), so this one was withdrawn from the queue: its
+    // signed bytes were deleted before they were ever sent, and its old signature carries a "cancel" claim the
+    // broadcaster honours. It may take any free nonce, also a lower one; the record was checked against the
+    // signed transaction when it was withdrawn.
+    if (e.raw !== null && e.raw !== undefined) throw new Error('withdrawn entry still has signed bytes; refusing to re-sign')
+    if (store.claimOf(claimKey(e))?.by !== 'cancel') throw new Error('withdrawn entry has no cancel record; refusing to re-sign')
+    if (!/^0x[0-9a-fA-F]{40}$/.test(String(e.to)) || !/^[0-9]{1,30}$/.test(String(e.amountUnits))) throw new Error('outbox record is damaged; refusing to re-sign')
+  } else {
+    const d = describeRaw(e.raw)
+    if (d.hash !== e.hash || d.chainId !== chainId || !d.transfer || d.transfer.to !== e.to || d.transfer.amountUnits !== e.amountUnits || (d.to || '').toLowerCase() !== String(e.token).toLowerCase()) {
+      throw new Error('outbox record does not match its signed transaction; refusing to re-sign')
+    }
+    if (nonce <= e.nonce) throw new Error(`no newer nonce known (chain at ${state.nonce}); sync first`)
+  }
   const { maxFeePerGas, maxPriorityFeePerGas, gasLimit, feeSource } = offlineFees(networkId, state)
   wallet.approve({ token: e.token, to: e.to, amountUnits: BigInt(e.amountUnits) })
   const signed = await wallet.signTransfer({ token: e.token, to: e.to, amountUnits: BigInt(e.amountUnits), nonce, gasLimit, maxFeePerGas, maxPriorityFeePerGas })
@@ -213,7 +228,7 @@ export async function resignEntry ({ entryId, wallet, store, networkId, chainId 
   return store.update(e.id, {
     status: 'queued', raw: signed.raw, hash: signed.hash, nonce, previous, error: null,
     gasLimit: gasLimit.toString(), maxFeePerGas: maxFeePerGas.toString(), maxPriorityFeePerGas: maxPriorityFeePerGas.toString(),
-    feeSource, resignedAt: new Date().toISOString(), signedOffline: true
+    feeSource, resignedAt: new Date().toISOString(), signedOffline: true, resignReason: null, signId: randomUUID()
   })
 }
 

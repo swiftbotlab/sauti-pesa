@@ -24,6 +24,7 @@ import { LocalASR, MAX_AUDIO_BYTES, asrLabel } from './asr.js'
 import { LocalOCR, MAX_IMAGE_BYTES, inspectImage } from './ocr.js'
 import { analyzeRequest, amendAnalysis, confirmAndQueue, analyzeMessage, resignEntry } from './pipeline.js'
 import { analysisView, outboxView, contactView } from './view.js'
+import { cancelEntry, holdMinutesFrom } from './undo.js'
 import { networkProof } from './offline.js'
 import { reasonText } from './i18n.js'
 import { fromUnits } from './amount.js'
@@ -43,6 +44,7 @@ const MAX_JSON = 16 * 1024
 const SESSION_TTL_MS = 15 * 60 * 1000
 const MAX_SESSIONS = 32
 const LIMITS = { perTx: '100', perDay: '300', newRecipientMax: '20', retypeAbove: '50', ...(CFG.limits || {}) }
+const HOLD_MINUTES = holdMinutesFrom(CFG) // undo window for flagged payments (src/undo.js); 0 = off
 
 function dataRoot () {
   const d = process.env.SAUTI_DATA
@@ -233,10 +235,10 @@ async function onConfirm (body) {
   const t0 = Date.now()
   const wallet = await openWallet(WALLET, { chainId: net.chainId })
   try {
-    const q = await confirmAndQueue({ analysis: fresh, wallet, store: ctx.store, networkId: netId, tokenAddress: ctx.tokenAddress, retypedAmount: body.retype === undefined ? undefined : String(body.retype).slice(0, 20) })
+    const q = await confirmAndQueue({ analysis: fresh, wallet, store: ctx.store, networkId: netId, tokenAddress: ctx.tokenAddress, retypedAmount: body.retype === undefined ? undefined : String(body.retype).slice(0, 20), holdMinutes: HOLD_MINUTES })
     s.used = true
     sessions.delete(sid)
-    return { ok: true, network: netId, queued: outboxView(q, net), steps: [{ id: 'sign', ms: Date.now() - t0, policy: 'WDK policy: only this transfer (token, recipient, amount, chain, fee cap), one signature' }] }
+    return { ok: true, network: netId, queued: outboxView(q, net, ctx.store), steps: [{ id: 'sign', ms: Date.now() - t0, policy: 'WDK policy: only this transfer (token, recipient, amount, chain, fee cap), one signature' }] }
   } catch (e) {
     throw httpError(400, String(e.message).slice(0, 200))
   } finally {
@@ -255,12 +257,27 @@ async function onResign (body, q) {
   const wallet = await openWallet(WALLET, { chainId: net.chainId })
   try {
     const e = await resignEntry({ entryId: id, wallet, store, networkId: netId, chainId: net.chainId })
-    return { ok: true, network: netId, entry: outboxView(e, net), steps: [{ id: 'sign', ms: Date.now() - t0, policy: 'WDK policy: re-sign the same transfer with a new nonce' }] }
+    return { ok: true, network: netId, entry: outboxView(e, net, store), steps: [{ id: 'sign', ms: Date.now() - t0, policy: 'WDK policy: re-sign the same transfer with a new nonce' }] }
   } catch (e) {
     throw httpError(400, String(e.message).slice(0, 200))
   } finally {
     wallet.dispose()
   }
+}
+
+// Undo window: cancel a queued payment that was never handed to the network (src/undo.js). No key is needed: the
+// signed bytes are deleted, nothing is signed. Newer queued payments come back as "needs_resign".
+async function onCancel (body) {
+  const netId = netOf(new URLSearchParams({ network: String(body.network || '') }))
+  if (body.confirm !== true) throw httpError(400, 'the person must confirm the cancel')
+  const id = String(body.id || '')
+  if (!/^[0-9a-f-]{36}$/.test(id)) throw httpError(400, 'bad id')
+  const net = network(netId)
+  const store = storeOf(netId)
+  let r
+  try { r = cancelEntry({ store, id, chainId: net.chainId }) } catch (e) { throw httpError(409, String(e.message).slice(0, 200)) }
+  log(`outbox: cancelled ${id.slice(0, 8)} (nonce ${r.entry.nonce})${r.resign.length ? `; ${r.resign.length} newer payment(s) need re-signing` : ''}`)
+  return { ok: true, network: netId, entry: outboxView(r.entry, net, store), resign: r.resign.map((e) => outboxView(e, net, store)) }
 }
 
 async function onCheck (body) {
@@ -334,7 +351,8 @@ async function onStatus (q) {
 function onOutbox (q) {
   const netId = netOf(q)
   const net = network(netId)
-  return { ok: true, network: netId, entries: storeOf(netId).list().map((e) => outboxView(e, net)).reverse() }
+  const store = storeOf(netId)
+  return { ok: true, network: netId, holdMinutes: HOLD_MINUTES, entries: store.list().map((e) => outboxView(e, net, store)).reverse() }
 }
 
 function onContacts () {
@@ -375,6 +393,7 @@ const ROUTES = {
   'POST /v1/amend': { fn: async (r) => onAmend(parseJson(await readBody(r.req, MAX_JSON))), ai: false },
   'POST /v1/confirm': { fn: async (r) => onConfirm(parseJson(await readBody(r.req, MAX_JSON))), ai: false },
   'POST /v1/resign': { fn: async (r) => onResign(parseJson(await readBody(r.req, MAX_JSON)), r.q), ai: false },
+  'POST /v1/cancel': { fn: async (r) => onCancel(parseJson(await readBody(r.req, MAX_JSON))), ai: false },
   'POST /v1/check': { fn: async (r) => onCheck(parseJson(await readBody(r.req, MAX_JSON))), ai: true },
   'POST /v1/read-image': { fn: async (r) => onReadImage(await readBody(r.req, MAX_IMAGE_BYTES)), ai: true, image: true }
 }

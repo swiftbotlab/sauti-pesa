@@ -4,6 +4,7 @@
 import { amountsInText, canonicalAmount, fromUnits } from './amount.js'
 import { resolveRecipient } from './contacts.js'
 import { shortAddr } from './text.js'
+import { canCancel, isHeld } from './undo.js'
 
 export const RELATION_TEXT = {
   brother: { sw: 'kaka', en: 'brother' },
@@ -158,7 +159,7 @@ export function analysisView (a, ctx) {
 }
 
 /** Outbox entry for display: public data only (no raw transaction). */
-export function outboxView (e, net) {
+export function outboxView (e, net, store = null, now = Date.now()) {
   const linkable = net.explorer && ['broadcast', 'confirmed', 'failed'].includes(e.status)
   return {
     id: e.id,
@@ -178,6 +179,13 @@ export function outboxView (e, net) {
     explorer: linkable ? `${net.explorer}${e.hash}` : null,
     error: e.error ? String(e.error).slice(0, 160) : null,
     resigned: Array.isArray(e.previous) ? e.previous.length : 0,
-    signedOffline: !!e.signedOffline
+    signedOffline: !!e.signedOffline,
+    // undo window (src/undo.js)
+    holdUntil: e.holdUntil || null,
+    holdReasons: Array.isArray(e.holdReasons) ? e.holdReasons.slice(0, 4) : [],
+    held: isHeld(e, now),
+    cancelledAt: e.cancelledAt || null,
+    cancellable: store ? canCancel(e, store) : false,
+    resignReason: e.resignReason || null
   }
 }

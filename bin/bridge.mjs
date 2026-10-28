@@ -87,6 +87,7 @@ const API = {
   'POST /api/amend': { to: '/v1/amend', query: [], timeout: 20000, max: MAX_JSON, type: 'json' },
   'POST /api/confirm': { to: '/v1/confirm', query: [], timeout: 30000, max: MAX_JSON, type: 'json' },
   'POST /api/resign': { to: '/v1/resign', query: [], timeout: 30000, max: MAX_JSON, type: 'json' },
+  'POST /api/cancel': { to: '/v1/cancel', query: [], timeout: 15000, max: MAX_JSON, type: 'json' }, // refused while a broadcast runs (busy/job check below)
   'POST /api/check': { to: '/v1/check', query: [], timeout: 90000, max: MAX_JSON, type: 'json' },
   'POST /api/read-image': { to: '/v1/read-image', query: [], timeout: 60000, max: MAX_IMAGE, type: 'image' }
 }

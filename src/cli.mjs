@@ -8,6 +8,7 @@
 //   check "<message>" | check --file msg.txt | check --image screenshot.png  [--json] [--no-ai]
 //   queue                      [--network ...]
 //   resign <outbox-id>         [--network ...] [--yes]   re-sign a payment whose nonce was used elsewhere
+//   cancel <outbox-id>         [--network ...] [--yes]   cancel a queued payment that was never sent (undo window)
 import { readFileSync, existsSync, realpathSync } from 'node:fs'
 import { createInterface } from 'node:readline/promises'
 import { join, resolve } from 'node:path'
@@ -21,6 +22,7 @@ import { LocalLLM } from './llm.js'
 import { LocalASR, asrLabel } from './asr.js'
 import { LocalOCR, readImageFile } from './ocr.js'
 import { analyzeRequest, confirmAndQueue, analyzeMessage, resignEntry } from './pipeline.js'
+import { cancelEntry, holdMinutesFrom, isHeld } from './undo.js'
 import { networkState } from './offline.js'
 import { reasonText } from './i18n.js'
 import { peakRssMb } from './procmem.js'
@@ -112,14 +114,20 @@ async function cmdAsk (o, text, extra = {}) {
       yes = ['y', 'yes', 'ndiyo', 'ndio'].includes(ans)
     }
     if (yes) {
-      queued = await confirmAndQueue({ analysis: a, wallet, store, networkId: netId, tokenAddress, retypedAmount: o.retype })
+      queued = await confirmAndQueue({ analysis: a, wallet, store, networkId: netId, tokenAddress, retypedAmount: o.retype, holdMinutes: holdMinutesFrom(CFG) })
       say(o, `\n${L === 'sw' ? 'Imesainiwa kwenye kifaa (bila mtandao) na kuwekwa foleni.' : 'Signed on this device (offline) and queued.'}`)
       say(o, `  tx ${queued.hash}  nonce ${queued.nonce}  ->  ${queued.recipientName || ''} ${shortAddr(queued.to)}  ${queued.amount} test USDT`)
+      if (queued.holdUntil) {
+        const at = hhmm(queued.holdUntil)
+        say(o, L === 'sw'
+          ? `  MUDA WA KUGHAIRI: yanasubiri kwenye kifaa hadi ${at} (${queued.holdReasons.join(', ')}). Ghairi: node bin/sauti.mjs cancel ${queued.id.slice(0, 8)}`
+          : `  UNDO WINDOW: held on this device until ${at} (${queued.holdReasons.join(', ')}). Cancel: node bin/sauti.mjs cancel ${queued.id.slice(0, 8)}`)
+      }
       say(o, `  NETWORK NEEDED LATER: broadcast with "node bin/netsync.mjs broadcast --network ${netId}" when online.`)
     } else say(o, L === 'sw' ? 'Hakuna kilichotumwa.' : 'Nothing was sent.')
   }
   timing.peak_rss_mb = peakRssMb()
-  if (o.json) console.log(JSON.stringify({ ...a, amountUnits: a.amountUnits?.toString() ?? null, queued: queued && { id: queued.id, hash: queued.hash, nonce: queued.nonce }, timing }))
+  if (o.json) console.log(JSON.stringify({ ...a, amountUnits: a.amountUnits?.toString() ?? null, queued: queued && { id: queued.id, hash: queued.hash, nonce: queued.nonce, holdUntil: queued.holdUntil || null }, timing }))
   else say(o, `\n[timing ms: ${Object.entries(timing).filter(([k]) => k !== 'peak_rss_mb').map(([k, v]) => `${k}=${v}`).join(' ')}]`)
   return finish(llm, wallet)
 }
@@ -219,6 +227,33 @@ async function cmdResign (o) {
   } finally { wallet.dispose() }
 }
 
+const hhmm = (iso) => new Date(iso).toISOString().slice(11, 16) + ' UTC'
+
+// Undo window: cancel a queued payment that was never handed to the network. Nothing is signed; the signed bytes
+// are deleted. Newer queued payments must then be signed again (their nonce moves down by one). Asks first.
+async function cmdCancel (o) {
+  const id = o._[1]
+  if (!id || !/^[0-9a-f-]{4,36}$/.test(id)) throw new Error('usage: cancel <outbox-id> [--network devnet|sepolia] [--yes]')
+  const netId = o.network || CFG.network
+  const net = network(netId)
+  const store = new Store(join(DATA, 'queue'), netId)
+  const matches = store.list().filter((x) => x.id === id || x.id.startsWith(id))
+  if (matches.length !== 1) throw new Error(matches.length ? 'that id prefix matches more than one entry' : 'no such outbox entry')
+  const e = matches[0]
+  say(o, `Cancel ${e.amount} test USDT -> ${e.recipientName || ''} ${shortAddr(e.to)} (nonce ${e.nonce}, ${e.status}${isHeld(e) ? `, held until ${hhmm(e.holdUntil)}` : ''})`)
+  let yes = !!o.yes
+  if (!yes && process.stdin.isTTY) {
+    const rl = createInterface({ input: process.stdin, output: process.stdout })
+    yes = ['y', 'yes', 'ndiyo', 'ndio'].includes((await rl.question('yes/no > ')).trim().toLowerCase())
+    rl.close()
+  }
+  if (!yes) { say(o, 'Nothing was changed.'); return }
+  const r = cancelEntry({ store, id: e.id, chainId: net.chainId })
+  say(o, `Cancelled on this device: tx ${r.entry.hash} (nonce ${r.entry.nonce}) will never be sent; its signed bytes are deleted.`)
+  for (const x of r.resign) say(o, `  newer payment ${x.id.slice(0, 8)} (${x.amount} test USDT -> ${x.recipientName || shortAddr(x.to)}) must be signed again: node bin/sauti.mjs resign ${x.id.slice(0, 8)}`)
+  if (o.json) console.log(JSON.stringify({ id: r.entry.id, status: r.entry.status, nonce: r.entry.nonce, resign: r.resign.map((x) => x.id) }))
+}
+
 async function main () {
   const o = opts(process.argv.slice(2))
   const [cmd, sub] = o._
@@ -242,10 +277,12 @@ async function main () {
   else if (cmd === 'check') await cmdCheck(o)
   else if (cmd === 'queue') {
     const store = new Store(join(DATA, 'queue'), o.network || CFG.network)
-    for (const e of store.list()) console.log(`${e.status.padEnd(10)} nonce ${String(e.nonce).padEnd(3)} ${e.amount} test USDT -> ${e.recipientName || ''} ${shortAddr(e.to)}  ${e.hash.slice(0, 18)}…`)
+    for (const e of store.list()) console.log(`${e.status.padEnd(10)} nonce ${String(e.nonce).padEnd(3)} ${e.amount} test USDT -> ${e.recipientName || ''} ${shortAddr(e.to)}  ${e.hash.slice(0, 18)}…  id ${e.id.slice(0, 8)}${isHeld(e) ? `  held until ${hhmm(e.holdUntil)}` : ''}`)
   } else if (cmd === 'resign') await cmdResign(o)
+  else if (cmd === 'cancel') await cmdCancel(o)
   else {
-    console.log(readFileSync(new URL(import.meta.url), 'utf8').split('\n').slice(1, 11).join('\n').replace(/^\/\/ ?/gm, ''))
+    const head = readFileSync(new URL(import.meta.url), 'utf8').split('\n')
+    console.log(head.slice(1, head.findIndex((l) => !l.startsWith('//'))).join('\n').replace(/^\/\/ ?/gm, ''))
   }
 }
 

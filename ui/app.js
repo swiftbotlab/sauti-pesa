@@ -820,14 +820,21 @@ async function onShotFile (e) {
 }
 
 // ---- outbox tab
+let holdTimer = null
 async function refreshOutbox () {
   const r = await api(`/api/outbox?network=${netId()}`)
-  if (r.ok) S.outbox = r.entries
+  if (r.ok) { S.outbox = r.entries; S.holdMinutes = r.holdMinutes || 0 }
   if (S.tab === 'outbox') renderView()
+  // while a payment is on hold, look again every 20 s so "sends after" turns into "ready to send" on time
+  clearTimeout(holdTimer)
+  if (S.outbox.some((e) => e.held)) holdTimer = setTimeout(() => { if (S.tab === 'outbox') refreshOutbox() }, 20000)
 }
 
 function outboxView () {
-  const waiting = S.outbox.filter((e) => e.status === 'queued').length
+  // payments go out in nonce order: a held payment also holds back every payment queued after it
+  const queued = S.outbox.filter((e) => e.status === 'queued')
+  const heldNext = queued.filter((e) => e.held).sort((a, b) => a.nonce - b.nonce)[0] || null
+  const waiting = queued.filter((e) => !e.held && (!heldNext || e.nonce < heldNext.nonce)).length
   const unconfirmed = S.outbox.filter((e) => e.status === 'broadcast').length // sent, result not known yet: re-checked by hash
   const job = S.job
   const running = !!job?.running
@@ -836,9 +843,10 @@ function outboxView () {
       h('h2', { text: t('outboxTitle') }),
       h('p', { class: 'sub', text: `${t('outboxSub')} · ${t(`net_${netId()}`)}` }),
       h('div', { class: 'actions', style: 'flex-wrap:wrap' },
-        h('button', { class: 'btn primary', type: 'button', disabled: running || !(waiting || unconfirmed), onclick: () => runNet('broadcast') }, icon('plane'), waiting ? t('sendQueued', waiting) : unconfirmed ? t('checkSent') : t('nothingToSend')),
+        h('button', { class: 'btn primary', type: 'button', disabled: running || !(waiting || unconfirmed), onclick: () => runNet('broadcast') }, icon('plane'), waiting ? t('sendQueued', waiting) : unconfirmed ? t('checkSent') : heldNext ? t('heldOnly', fmtTime(heldNext.holdUntil)) : t('nothingToSend')),
         h('button', { class: 'btn ghost small', type: 'button', disabled: running, onclick: () => runNet('sync') }, icon('refresh'), t('syncBtn'))),
       h('div', { class: 'netbadge' }, icon('lock'), h('div', null, h('b', { text: t('broadcastStep') }), h('span', { text: t('broadcasterNote') }))),
+      S.holdMinutes ? h('p', { class: 'sub hold-note', text: t('heldNote', S.holdMinutes) }) : null,
       job && job.network === netId() ? h('div', { class: 'joblog' },
         h('div', { class: 'hd' }, h('span', { class: `dot${running ? ' run' : ''}` }), running ? `${t('broadcasterOnline')} · ${job.action}` : `${t('broadcasterDone')} · exit ${job.code}`),
         (job.lines || []).slice(-14).join('\n')) : null
@@ -853,8 +861,13 @@ function obRow (e) {
     h('div', { class: 'main' },
       h('div', { class: 'nm', text: e.recipientName || e.short }),
       h('div', { class: 'meta', text: `nonce ${e.nonce} · ${e.hashShort}${e.block ? ` · ${t('block')} ${e.block}` : ''}` }),
+      e.status === 'queued' ? h('div', { class: `when${e.held ? ' held' : ''}`, 'data-entry': e.id },
+        `${t('signedAtLbl', fmtTime(e.resignedAt || e.created))}${e.held ? ` · ${t('sendsAfterLbl', fmtTime(e.holdUntil))}` : ''}`,
+        e.held && e.holdReasons?.length ? h('small', { text: ` (${e.holdReasons.map((c) => t('heldWhy')[c] || c).join(', ')})` }) : null) : null,
       h('span', { class: `status ${e.status}`, text: t(`st_${e.status}`) }),
+      e.status === 'needs_resign' && e.resignReason === 'earlier_cancelled' ? h('div', { class: 'when', text: t('withdrawnNote') }) : null,
       e.explorer ? h('div', null, h('a', { href: e.explorer, target: '_blank', rel: 'noopener noreferrer' }, t('explorer'), icon('ext'))) : null,
+      e.cancellable ? h('button', { class: 'btn small ghost cancel-pay', type: 'button', style: 'margin-top:8px', 'data-cancel': e.id, onclick: () => askCancel(e) }, icon('x'), t('cancelPayBtn')) : null,
       e.status === 'needs_resign' ? h('button', { class: 'btn small danger', type: 'button', style: 'margin-top:8px', onclick: () => askResign(e) }, icon('key'), t('resignBtn')) : null),
     h('div', { class: 'amt' }, fmtAmt(e.amount), h('small', { text: t('unit') })))
 }
@@ -874,10 +887,29 @@ async function runNet (action) {
   setTimeout(poll, 700)
 }
 
+// Undo window: cancel a queued payment that never left the device. Nothing is signed; the engine deletes the
+// signed bytes, and newer queued payments come back for re-signing.
+function askCancel (e) {
+  const newer = S.outbox.filter((x) => x.status === 'queued' && x.nonce > e.nonce).length
+  openSheet([
+    h('h2', { text: t('cancelPayTitle') }),
+    h('p', { class: 'sub', text: t('cancelPayConfirm', fmtAmt(e.amount), e.recipientName || e.short) }),
+    newer ? h('p', { class: 'sub', text: t('cancelPayNewer', newer) }) : null,
+    h('div', { class: 'actions' },
+      h('button', { class: 'btn ghost', type: 'button', onclick: closeSheet }, t('keepPay')),
+      h('button', { class: 'btn danger', type: 'button', 'data-confirm-cancel': e.id, onclick: async () => {
+        closeSheet()
+        const r = await api('/api/cancel', { method: 'POST', json: { id: e.id, network: netId(), confirm: true } })
+        if (!r.ok) toast(errText(r)); else toast(t('cancelledToast'))
+        refreshOutbox(); refreshStatus()
+      } }, icon('x'), t('cancelPayBtn')))
+  ])
+}
+
 function askResign (e) {
   openSheet([
     h('h2', { text: t('resignBtn') }),
-    h('p', { class: 'sub', text: t('resignConfirm', fmtAmt(e.amount), e.recipientName || e.short) }),
+    h('p', { class: 'sub', text: e.resignReason === 'earlier_cancelled' ? t('resignAfterCancel', fmtAmt(e.amount), e.recipientName || e.short) : t('resignConfirm', fmtAmt(e.amount), e.recipientName || e.short) }),
     h('div', { class: 'actions' },
       h('button', { class: 'btn ghost', type: 'button', onclick: closeSheet }, t('cancel')),
       h('button', { class: 'btn primary', type: 'button', onclick: async () => {
@@ -906,7 +938,7 @@ function contactsView () {
 
 // ------------------------------------------------------------------ sheets: proof, network menu
 function openSheet (kids) {
-  $('sheet').replaceChildren(h('div', { class: 'grab' }), ...kids)
+  $('sheet').replaceChildren(h('div', { class: 'grab' }), ...kids.filter((k) => k !== null && k !== undefined))
   $('sheet').hidden = false
   $('sheetBackdrop').hidden = false
   $('sheet').querySelector('button')?.focus()

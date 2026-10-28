@@ -3,7 +3,8 @@
 **What it is.** A USDT wallet you talk to in Swahili or English. On-device QVAC AI (Whisper speech to text with a
 Swahili fine-tune, Qwen3-1.7B for intent, OCR for screenshots) turns your words into a payment. Plain code checks it
 for scams and look-alike addresses, and WDK signs it **offline**. **Only the broadcast of signed payments needs the
-internet.** Test tokens only (Ethereum Sepolia or a local devnet), never real money.
+internet**, and until then a queued payment can still be cancelled (flagged ones wait 10 minutes: the undo window).
+Test tokens only (Ethereum Sepolia or a local devnet), never real money.
 
 Demo video (recorded with the internet off): [sauti-pesa-demo-v1.2.mp4](https://github.com/swiftbotlab/sauti-pesa/releases/download/v1.2/sauti-pesa-demo-v1.2.mp4) (3:05) · full details: [README](README.md)
 
@@ -38,14 +39,16 @@ Expected output (shortened, from our run):
 |---|---|
 | 2 | one `<MODEL>: ok sha256=…` (or `already present and verified`) line per model |
 | 3 | one JSON line with `"direct_ip_1_1_1_1_443":false,"dns_resolves":false,"internet_https":"fail:EAI_AGAIN"` |
-| 4 | `[network: OFF (verified: no route, no DNS) \| sandbox: offline]` before every step; `Imesainiwa kwenye kifaa (bila mtandao) na kuwekwa foleni.` (Swahili text payment); `Signed on this device (offline) and queued.` (English voice note); `BLOCK DANGER: this address looks like Amina's … address-poisoning trick.`; `HATARI KUBWA: usitume pesa.` (scam SMS); two `confirmed in block …` on the local devnet; last line **`E2E PASS`** |
+| 4 | `[network: OFF (verified: no route, no DNS) \| sandbox: offline]` before every step; `Imesainiwa kwenye kifaa (bila mtandao) na kuwekwa foleni.` (Swahili text payment); `Signed on this device (offline) and queued.` (English voice note); `BLOCK DANGER: this address looks like Amina's … address-poisoning trick.`; `HATARI KUBWA: usitume pesa.` (scam SMS); `Cancelled on this device: tx … will never be sent` (undo window); two `confirmed in block …` on the local devnet; last line **`E2E PASS`** |
 | 5 | `Open this link (it holds this session's key; it changes at every start): http://127.0.0.1:8787/#k=…`. Open that exact link. After 10-25 s (the models load) the status pill reads **AI + signing: on device · Network: OFF (verified)** |
 
 In the UI: tap the mic and say *"Tuma USDT ishirini kwa Amina"* (or type it), confirm, and the payment is signed and
 queued offline. Paste the look-alike address from `data/demo-attack.json` to see it blocked. **Kagua / Check**: tap
 "Prize", or "Check a screenshot" and pick `test/data/public/screens/sw_anwani_mpya.png` (OCR needs
 `scripts/fetch_models.sh OCR_LATIN OCR_CRAFT` online first). **Foleni / Outbox**: "Go online and send" broadcasts to
-the local devnet, which needs no internet either.
+the local devnet, which needs no internet either. To see the undo window, pay a first-time address (type
+*"Tuma USDT 5 kwa 0x2222222222222222222222222222222222222222"*): the outbox shows "sends after …" and a **Ghairi**
+(Cancel) button.
 
 ## Where QVAC and WDK are called
 
@@ -58,13 +61,14 @@ the local devnet, which needs no internet either.
 | Intent and message model: load Qwen3-1.7B | `loadModel(…)` | [`src/llm.js:64`](src/llm.js#L64) |
 | JSON intent, grammar-constrained, KV-cached prompt prefix | `completion({ responseFormat: { type: 'json_schema' }, kvCache, … })` | [`src/llm.js:98`](src/llm.js#L98) |
 | Screenshot text (CRAFT detector + latin_g2) | `loadModel({ modelType: 'ggml-ocr', … })`, `ocr({ modelId, image })` | [`src/ocr.js:28`](src/ocr.js#L28), [`src/ocr.js:48`](src/ocr.js#L48) |
-| Resident engine: speech model, LLM, prompt-cache warm-up | `new LocalASR`, `llm.load()`, `llm.warm()` | [`src/engine.js:443`](src/engine.js#L443), [`src/engine.js:456`](src/engine.js#L456) |
+| Resident engine: speech model, LLM, prompt-cache warm-up | `new LocalASR`, `llm.load()`, `llm.warm()` | [`src/engine.js:462`](src/engine.js#L462), [`src/engine.js:475`](src/engine.js#L475) |
 | Profiler (evidence only) | `profiler.enable`, `onRecord`, `exportJSON` | [`scripts/profile_qvac.mjs`](scripts/profile_qvac.mjs) |
 | WDK wallet: seed, EVM account with **no provider** (offline signer) | `new WDK(seed).registerWallet(…, WalletManagerEvm, { chainId })` | [`src/wallet.js:48`](src/wallet.js#L48) |
 | WDK transaction policy: allow ONE `signTransaction` for this token, recipient, amount, chain, fee cap | `registerPolicy({ … operation: 'signTransaction' … })` | [`src/wallet.js:50`](src/wallet.js#L50) |
 | Sign offline; anything else is refused by WDK (`PolicyViolationError`) | `account.signTransaction(tx)` | [`src/wallet.js:89`](src/wallet.js#L89) |
-| The person confirmed: sign, then queue in the outbox | `wallet.signTransfer(…)`, `store.add(…)` | [`src/pipeline.js:169`](src/pipeline.js#L169) |
+| The person confirmed: sign, then queue in the outbox | `wallet.signTransfer(…)`, `store.add(…)` | [`src/pipeline.js:171`](src/pipeline.js#L171) |
 | Tests of the policy, both directions (signs the confirmed transfer, refuses changes) | `node --test` | [`test/wallet.test.js`](test/wallet.test.js) |
+| Undo window: cancel a queued payment that never left the device; the sender skips held and cancelled payments | `cancelEntry`, `isHeld`, atomic send/cancel claim | [`src/undo.js:71`](src/undo.js#L71), [`src/broadcast.js:61`](src/broadcast.js#L61), [`src/broadcast.js:102`](src/broadcast.js#L102) |
 
 ## What needs the internet, and how "off" is enforced
 
@@ -77,7 +81,7 @@ the local devnet, which needs no internet either.
   ([`ops/sandbox.sh:79`](ops/sandbox.sh#L79)), so the process has its own empty network namespace (only `lo`).
   The CLI, the engine and the server refuse to start outside that sandbox or when the internet is reachable
   ([`bin/sauti.mjs:9`](bin/sauti.mjs#L9), [`bin/serve.mjs:10`](bin/serve.mjs#L10),
-  [`src/engine.js:419`](src/engine.js#L419)), by a live probe: TCP to 1.1.1.1:443 and to its IPv6 twin, and a DNS lookup, must all fail
+  [`src/engine.js:438`](src/engine.js#L438)), by a live probe: TCP to 1.1.1.1:443 and to its IPv6 twin, and a DNS lookup, must all fail
   ([`src/offline.js:27`](src/offline.js#L27)). Models load from local files only, never by registry name or URL.
 - **Verified:** step 3 (the probe), the UI's status pill (the same live probe), [`test/sandbox.sh`](test/sandbox.sh)
   (22 isolation checks, each with a positive control), and the network state recorded before and after the QVAC

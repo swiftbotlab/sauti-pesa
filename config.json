@@ -18,6 +18,7 @@
   "newRecipientMax": "20",
   "retypeAbove": "50"
  },
+ "hold_minutes": 10,
  "asr_warmup": "test/audio/sw_amina_20.wav",
  "ocr_threads": 4
 }

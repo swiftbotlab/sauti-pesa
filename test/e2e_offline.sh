@@ -32,6 +32,15 @@ grep -q 'Signed\|Imesainiwa' tmp/e2e/05.txt && fail "payment without an amount w
 run check "Umeshinda zawadi ya USDT 500! Lipa ada ya usajili 20 USDT ndani ya saa 1 ili kupokea." | tee tmp/e2e/06.txt
 grep -q 'HATARI KUBWA' tmp/e2e/06.txt || fail "scam SMS not rated high risk"
 
+# undo window: a payment to a first-time address is signed, HELD on the device, and can be cancelled (never sent)
+run ask "Tuma USDT 5 kwa 0x2222222222222222222222222222222222222222" --yes --json > tmp/e2e/08.json
+HID=$(python3 -I -c "import json,sys; d=json.load(open(sys.argv[1])); q=d['queued']; assert q and q['holdUntil'], d.get('decision'); print(q['id'][:8])" tmp/e2e/08.json) || fail "new-recipient payment was not queued with a hold"
+ops/sandbox.sh offline node bin/sauti.mjs queue | grep "id $HID" | grep -q 'held until' || fail "queue does not show the hold"
+run cancel "$HID" --yes | tee tmp/e2e/09.txt
+grep -q 'will never be sent' tmp/e2e/09.txt || fail "held payment was not cancelled"
+ops/sandbox.sh offline node bin/sauti.mjs queue | grep "id $HID" | grep -q '^cancelled' || fail "cancelled payment not shown as cancelled"
+run cancel "$HID" --yes > tmp/e2e/10.txt 2>&1 && fail "a cancelled payment was cancelled twice"
+
 [ "$(ops/sandbox.sh offline node bin/sauti.mjs queue | grep -c '^queued')" = 2 ] || fail "expected 2 queued payments"
 
 # network back: broadcast the queue on the local chain (still no internet)

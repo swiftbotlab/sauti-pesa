@@ -81,6 +81,26 @@ Scope: a TEST-NETWORK wallet assistant. There is no mainnet configuration in `sr
 - Each sync/broadcast run holds an exclusive `flock` on its outbox directory `queue/<network>/` (the directory
   itself, so there is no lock file to swap for a link): runs from the CLI and from the UI never overlap.
 
+## Undo window: cancel and hold (src/undo.js)
+- Only a `queued` payment that was never handed to a node can be cancelled (no `broadcastAt`, `sendTriedAt`,
+  `sentToNodeAt`, no node refusal, no "send" claim). The person must confirm (`confirm: true`, CLI `--yes` or a
+  prompt). Nothing is signed; the signed bytes are deleted from the outbox after the record was checked against them.
+- The send/cancel decision is made once per signature, atomically: `claim-<signId>.json` is created with O_EXCL by
+  whichever comes first, the broadcaster ("send", right before the bytes go to a node) or the cancel ("cancel").
+  The broadcaster also re-reads every entry from disk right before it handles it. So a cancel and a broadcast at
+  the same moment (CLI in two terminals) can never both happen. An unreadable or odd claim file counts as "send"
+  (never cancellable). The UI bridge also refuses a cancel while a broadcast job runs.
+- Nonces: a cancelled payment's nonce is free again (no gap). Newer queued payments behind it become
+  `needs_resign` with their bytes deleted and a "cancel" claim on their old signature; signing one again gives it
+  the lowest free nonce. Signatures are deterministic, so a re-signed payment can be byte-identical to its withdrawn
+  bytes: that is the same single payment, and claims are keyed by signature id (not hash) so it stays sendable.
+- Hold: a payment with a first-time recipient, scam wording, a look-alike warning or a relation that does not match
+  is queued with `holdUntil` = now + `hold_minutes` (config.json, 10; 0 = off, max 60). The broadcaster does not
+  send it, or anything after it, before that time. The hold is a protective delay on this device's clock, not a
+  security boundary.
+- Tests: `test/undo.test.js` (incl. a race test that fails with the claim check removed: positive control) and the
+  undo-window checks in `test/e2e_ui.mjs` and `test/e2e_offline.sh`.
+
 ## Sandboxing (ops/sandbox.sh, bubblewrap)
 The project directory is mounted **read-only in every mode**, so code inside a sandbox can never change files that
 later run on the host (`bin/`, `ops/`, `scripts/`, `src/`, `ui/`, `.git`). Each mode gets write access only to:

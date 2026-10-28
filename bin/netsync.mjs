@@ -89,6 +89,7 @@ async function broadcast () {
   await sync()
   const r = await broadcastQueue({ rpc, store, chainId: net.chainId, address: addressOrDie(), explorer: net.explorer, pollMs: netId === 'devnet' ? 300 : 4000 })
   if (r.unknown) console.log(`${r.unknown} payment(s) still waiting for a result; run broadcast again later`)
+  if (r.held) console.log('a payment is still in its undo window (held on this device); run broadcast again after the time shown')
   await sync()
 }
 
