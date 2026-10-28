@@ -18,7 +18,7 @@ import { loadContacts, saveContacts, validateContact } from './contacts.js'
 import { Store } from './queue.js'
 import { network, NETWORKS } from './networks.js'
 import { LocalLLM } from './llm.js'
-import { LocalASR } from './asr.js'
+import { LocalASR, asrLabel } from './asr.js'
 import { LocalOCR, readImageFile } from './ocr.js'
 import { analyzeRequest, confirmAndQueue, analyzeMessage, resignEntry } from './pipeline.js'
 import { networkState } from './offline.js'
@@ -133,18 +133,23 @@ async function cmdSay (o) {
   const file = o._[1]
   if (!file) throw new Error('usage: say <file.wav> [--lang sw|en|auto]')
   const contacts = loadContacts(CONTACTS)
+  // Swahili: the Swahili fine-tune of Whisper small when it is on disk (config.models.asr_sw); --accurate: turbo
+  const swRel = !o.accurate && CFG.models.asr_sw
+  const swOk = swRel && existsSync(join(ROOT, swRel))
+  if (swRel && !swOk && (o.lang || 'sw') === 'sw') say(o, `(Swahili speech model ${swRel} is missing: using ${CFG.models.asr}; run scripts/fetch_models.sh WHISPER_SMALL_SW_Q8_0 once, online)`)
   const asr = new LocalASR({
     modelPath: modelPath(o.accurate ? CFG.models.asr_accurate : CFG.models.asr),
+    modelPaths: swOk ? { sw: modelPath(swRel) } : {},
     vadPath: modelPath(CFG.models.vad),
     threads: CFG.asr_threads || 4,
     audioCtx: o.accurate ? (CFG.asr_accurate_audio_ctx || 0) : 0,
     names: contacts.map((c) => c.name)
   })
   const r = await asr.transcribe(realpathSync(file), o.lang || 'sw')
-  const timing = { asr_load_ms: Object.values(asr.loadMs)[0], asr_ms: r.ms, audio_s: r.seconds, input_gain_db: r.gain?.gain_db ?? 0 }
+  const timing = { asr_model: r.model, asr_load_ms: Object.values(asr.loadMs)[0], asr_ms: r.ms, audio_s: r.seconds, input_gain_db: r.gain?.gain_db ?? 0 }
   await asr.unload() // free the speech model before loading the language model (RAM)
   if (r.gain?.applied) say(o, `Quiet recording (${r.gain.rms_dbfs} dBFS RMS, peak ${r.gain.peak_dbfs} dBFS): input raised by ${r.gain.gain_db} dB before speech to text.`)
-  say(o, `Transcript (${r.lang}, ${r.ms} ms for ${r.seconds} s of audio): "${r.text}"`)
+  say(o, `Transcript (${r.lang}, ${asrLabel(r.model)}, ${r.ms} ms for ${r.seconds} s of audio): "${r.text}"`)
   return cmdAsk(o, r.text, { timing })
 }
 

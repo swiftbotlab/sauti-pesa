@@ -22,7 +22,8 @@ scripts/profile_qvac.sh     # about 1.5 min; stop ops/ui.sh first (RAM). Writes 
 In the resident engine's order (`src/engine.js`), through the app's own modules, with the test files in this repository:
 
 1. **Speech to text + VAD** (`src/asr.js`): Whisper small q8_0 with Silero VAD as `vadModelSrc`, one instance, sw/en
-   switched with reload-config. Load, the warm-up clip, then the 6 test voice notes (`test/audio/`).
+   switched with reload-config. (This run used the multilingual Whisper small for both languages; since 2026-10-28
+   the app uses a Swahili fine-tune of the same size for Swahili: see the [last section](#evidence-swahili-speech-model-2026-10-28).) Load, the warm-up clip, then the 6 test voice notes (`test/audio/`).
 2. **Intent LLM** (`src/llm.js`, `src/pipeline.js`): Qwen3-1.7B Q4_0 with KV-cached prompts. Load, prompt-cache
    warm-up, then the 6 transcripts and the 12 test requests (`test/llm_cases.json`) through `analyzeRequest()`, and
    the 4 test scam messages through `analyzeMessage()`. No wallet is opened and nothing is signed.
@@ -112,3 +113,28 @@ Written from the events of this run (`notes` in the JSON), not assumed:
 | `profiler.events` | all 1,017 profiler events as recorded, each labelled with its step |
 | `profiler.aggregates`, `profiler_table`, `profiler_summary` | `exportJSON().aggregates`, `exportTable()`, `exportSummary()` |
 | `hardware`, `sandbox`, `models`, `app_config` | machine, network state before and after, model files (QVAC constant, bytes, sha256), threads and OCR settings |
+
+# Evidence: Swahili speech model (2026-10-28)
+
+[`asr-swahili-finetune.json`](asr-swahili-finetune.json): the measurements behind switching the app's **Swahili**
+speech to text from the multilingual Whisper small to a Swahili fine-tune of it
+([malinali-app/whisper-swahili-small-ggml](https://huggingface.co/malinali-app/whisper-swahili-small-ggml) at commit
+`403b03e660aa3635823c42e4589c57a9b2c26fe5`, ggml q8_0 of
+[PaschalK/whisper-swahili-small](https://huggingface.co/PaschalK/whisper-swahili-small), Apache-2.0, sha256
+`5d89c6ee…2381a6` = the Hugging Face LFS oid at that commit). The weights load through the same QVAC call as every
+other model here, `loadModel({ modelSrc: <local file>, modelType: 'whispercpp-transcription', modelConfig })`
+([`src/asr.js`](../src/asr.js)); no code from the model's repository is used. Same box and offline sandbox as above.
+
+| Measure (same app code and settings) | Multilingual Whisper small | Swahili fine-tune |
+|---|---|---|
+| FLEURS Swahili, 40 real voices: WER | 78.3% | **20.1%** |
+| FLEURS: CER | 20.4% | **7.2%** |
+| FLEURS: clips with a contact name copied from the prompt | 4 | 0 |
+| FLEURS: time per clip, median (run 1 / run 2; shared box) | 1.5 s / 3.2 s | 1.9 s / 1.4 s |
+| FLEURS: load (run 1 / run 2) | 1.5 s / 2.0 s | 2.2 s / 1.5 s |
+| 6 synthetic voice notes to the right decision (`scripts/bench_e2e.mjs`) | 6/6 | 6/6 (Swahili clips; the 2 English clips use the multilingual model) |
+| English test clip "Please send 40 USDT to Otieno for the rent." | heard right | "Please send for usdt tu otieno for the rent." (so English keeps the multilingual model) |
+| 3 GB memory cap, `test/e2e_ui.sh` (max anonymous memory) | 2,942 / 2,948 MB (90/90) | 2,998 / 2,901 MB (93/93, with sw → en → sw swaps) |
+
+Reproduce: `scripts/eval_fleurs_asr.sh all`, `ops/sandbox.sh offline node scripts/bench_e2e.mjs` and
+`... bench_e2e.mjs --generic`, `scripts/mem_cap_run.sh 3G test/e2e_ui.sh`.

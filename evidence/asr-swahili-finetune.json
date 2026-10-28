@@ -1,0 +1,680 @@
+{
+ "what": "Swahili-tuned Whisper small vs the multilingual Whisper small the app used before (and the CLI-only large-v3-turbo), measured 2026-10-28 on the same CPU-only ARM64 box, internet off (ops/sandbox.sh offline). Adopted for Swahili only; English stays on the multilingual model.",
+ "candidate": {
+  "key": "WHISPER_SMALL_SW_Q8_0",
+  "file": "models/ggml-whisper-swahili-small-q8_0.bin",
+  "source": "https://huggingface.co/malinali-app/whisper-swahili-small-ggml",
+  "commit": "403b03e660aa3635823c42e4589c57a9b2c26fe5",
+  "source_file": "ggml-model-q8_0.bin",
+  "bytes": 264464624,
+  "sha256": "5d89c6ee07592a0c43fa560d592949635e7154cd716debda8d40919a772381a6",
+  "sha256_origin": "Hugging Face API tree at that commit: lfs.oid of ggml-model-q8_0.bin (checked again on the downloaded file)",
+  "license": "Apache-2.0",
+  "upstream": "https://huggingface.co/PaschalK/whisper-swahili-small (revision 6a7bba1de513d1f100ef7a68b0544c96e1c708ae, fine-tuned from openai/whisper-small on Common Voice 11)",
+  "loaded_by": "QVAC @qvac/sdk 0.22.0 loadModel({ modelSrc: <local path>, modelType: 'whispercpp-transcription', modelConfig }) - the same call and settings as the multilingual model (src/asr.js); no code from the model repository is used"
+ },
+ "fleurs_sw_ke_40_clips": {
+  "note": "Google FLEURS sw_ke test split, first 40 sentence ids (scripts/eval_fleurs_asr.sh all). Accuracy is deterministic (greedy, temperature 0): every run gave the same WER/CER per model. Timings move with the load of this shared box, so two full runs are listed. A separate run of the fine-tune alone at 14:32 UTC gave latency median 1394 ms, p90 1620, max 1805, RTF 0.104, load 1474 ms. Per-clip references and transcripts of run 2: test/data/public/fleurs_results.json.",
+  "run_1": [
+   {
+    "model": "small",
+    "model_file": "models/ggml-small-q8_0.bin",
+    "model_sha256": "49c8fb02b65e6049d5fa6c04f81f53b867b5ec9540406812c643f177317f779f",
+    "run_at": "2026-10-28T14:36:41.666Z",
+    "clips": 40,
+    "wer": 0.783,
+    "cer": 0.204,
+    "median_clip_wer": 0.764,
+    "median_clip_cer": 0.186,
+    "wer_breakdown": {
+     "substitutions": 484,
+     "deletions": 38,
+     "insertions": 119
+    },
+    "clips_with_wer_over_0_5": 37,
+    "empty_transcripts": 0,
+    "clips_with_prompt_words_in_output": 4,
+    "up_to_15_4_s": {
+     "clips": 26,
+     "wer": 0.749,
+     "cer": 0.197
+    },
+    "latency_ms": {
+     "median": 1549,
+     "mean": 1584,
+     "p90": 1891,
+     "min": 1215,
+     "max": 2518
+    },
+    "median_rtf": 0.112,
+    "model_load_ms": 1474,
+    "peak_rss_mb": {
+     "bare:13": 834,
+     "node:2": 170
+    }
+   },
+   {
+    "model": "turbo",
+    "model_file": "models/ggml-large-v3-turbo-q5_0.bin",
+    "model_sha256": "394221709cd5ad1f40c46e6031ca61bce88931e6e088c188294c6d5a55ffa7e2",
+    "run_at": "2026-10-28T14:42:02.839Z",
+    "clips": 40,
+    "wer": 0.535,
+    "cer": 0.272,
+    "median_clip_wer": 0.362,
+    "median_clip_cer": 0.096,
+    "wer_breakdown": {
+     "substitutions": 218,
+     "deletions": 26,
+     "insertions": 194
+    },
+    "clips_with_wer_over_0_5": 10,
+    "empty_transcripts": 0,
+    "clips_with_prompt_words_in_output": 0,
+    "up_to_15_4_s": {
+     "clips": 26,
+     "wer": 0.361,
+     "cer": 0.118
+    },
+    "latency_ms": {
+     "median": 6419.5,
+     "mean": 7794,
+     "p90": 10777,
+     "min": 5749,
+     "max": 27792
+    },
+    "median_rtf": 0.542,
+    "model_load_ms": 2148,
+    "peak_rss_mb": {
+     "bare:13": 1134,
+     "node:2": 138
+    }
+   },
+   {
+    "model": "sw_small",
+    "model_file": "models/ggml-whisper-swahili-small-q8_0.bin",
+    "model_sha256": "5d89c6ee07592a0c43fa560d592949635e7154cd716debda8d40919a772381a6",
+    "run_at": "2026-10-28T14:43:45.396Z",
+    "clips": 40,
+    "wer": 0.201,
+    "cer": 0.072,
+    "median_clip_wer": 0.174,
+    "median_clip_cer": 0.051,
+    "wer_breakdown": {
+     "substitutions": 129,
+     "deletions": 10,
+     "insertions": 26
+    },
+    "clips_with_wer_over_0_5": 2,
+    "empty_transcripts": 0,
+    "clips_with_prompt_words_in_output": 0,
+    "up_to_15_4_s": {
+     "clips": 26,
+     "wer": 0.202,
+     "cer": 0.075
+    },
+    "latency_ms": {
+     "median": 1946.5,
+     "mean": 2442,
+     "p90": 4102,
+     "min": 1372,
+     "max": 7245
+    },
+    "median_rtf": 0.143,
+    "model_load_ms": 2192,
+    "peak_rss_mb": {
+     "bare:13": 837,
+     "node:2": 153
+    }
+   }
+  ],
+  "run_2": [
+   {
+    "model": "small",
+    "model_file": "models/ggml-small-q8_0.bin",
+    "model_sha256": "49c8fb02b65e6049d5fa6c04f81f53b867b5ec9540406812c643f177317f779f",
+    "run_at": "2026-10-28T15:00:57.748Z",
+    "clips": 40,
+    "wer": 0.783,
+    "cer": 0.204,
+    "median_clip_wer": 0.764,
+    "median_clip_cer": 0.186,
+    "wer_breakdown": {
+     "substitutions": 484,
+     "deletions": 38,
+     "insertions": 119
+    },
+    "clips_with_wer_over_0_5": 37,
+    "empty_transcripts": 0,
+    "clips_with_prompt_words_in_output": 4,
+    "up_to_15_4_s": {
+     "clips": 26,
+     "wer": 0.749,
+     "cer": 0.197
+    },
+    "latency_ms": {
+     "median": 3220.5,
+     "mean": 3425,
+     "p90": 5327,
+     "min": 1711,
+     "max": 5959
+    },
+    "median_rtf": 0.248,
+    "model_load_ms": 2017,
+    "peak_rss_mb": {
+     "bare:13": 818,
+     "node:2": 144
+    }
+   },
+   {
+    "model": "turbo",
+    "model_file": "models/ggml-large-v3-turbo-q5_0.bin",
+    "model_sha256": "394221709cd5ad1f40c46e6031ca61bce88931e6e088c188294c6d5a55ffa7e2",
+    "run_at": "2026-10-28T15:07:10.012Z",
+    "clips": 40,
+    "wer": 0.535,
+    "cer": 0.272,
+    "median_clip_wer": 0.362,
+    "median_clip_cer": 0.096,
+    "wer_breakdown": {
+     "substitutions": 218,
+     "deletions": 26,
+     "insertions": 194
+    },
+    "clips_with_wer_over_0_5": 10,
+    "empty_transcripts": 0,
+    "clips_with_prompt_words_in_output": 0,
+    "up_to_15_4_s": {
+     "clips": 26,
+     "wer": 0.361,
+     "cer": 0.118
+    },
+    "latency_ms": {
+     "median": 8555,
+     "mean": 8977,
+     "p90": 11872,
+     "min": 5834,
+     "max": 17724
+    },
+    "median_rtf": 0.657,
+    "model_load_ms": 2485,
+    "peak_rss_mb": {
+     "bare:13": 1113,
+     "node:2": 140
+    }
+   },
+   {
+    "model": "sw_small",
+    "model_file": "models/ggml-whisper-swahili-small-q8_0.bin",
+    "model_sha256": "5d89c6ee07592a0c43fa560d592949635e7154cd716debda8d40919a772381a6",
+    "run_at": "2026-10-28T15:08:09.044Z",
+    "clips": 40,
+    "wer": 0.201,
+    "cer": 0.072,
+    "median_clip_wer": 0.174,
+    "median_clip_cer": 0.051,
+    "wer_breakdown": {
+     "substitutions": 129,
+     "deletions": 10,
+     "insertions": 26
+    },
+    "clips_with_wer_over_0_5": 2,
+    "empty_transcripts": 0,
+    "clips_with_prompt_words_in_output": 0,
+    "up_to_15_4_s": {
+     "clips": 26,
+     "wer": 0.202,
+     "cer": 0.075
+    },
+    "latency_ms": {
+     "median": 1404,
+     "mean": 1389,
+     "p90": 1541,
+     "min": 1112,
+     "max": 1814
+    },
+    "median_rtf": 0.101,
+    "model_load_ms": 1463,
+    "peak_rss_mb": {
+     "bare:13": 847,
+     "node:2": 166
+    }
+   }
+  ]
+ },
+ "voice_to_decision_6_clips": {
+  "note": "scripts/bench_e2e.mjs: test/audio/*.wav (synthetic Edge neural voices sw-KE, sw-TZ, en-KE) -> speech to text -> Qwen3-1.7B intent -> safety checks. One Whisper in RAM (single mode); --generic = the multilingual model for every language.",
+  "generic_multilingual_small": [
+   {
+    "id": "sw_amina_20",
+    "ok": true,
+    "asr_model": "ggml-small-q8_0.bin",
+    "asr_ms": 1393,
+    "audio_s": 4.3,
+    "llm_ms": 4719,
+    "heard": "Tafadali Tuma USDT ishirini ku Amina ku Ajilia Kodi.",
+    "got": {
+     "amount": "20",
+     "to": "Amina",
+     "decision": "confirm"
+    },
+    "codes": []
+   },
+   {
+    "id": "sw_juma_15",
+    "ok": true,
+    "asr_model": "ggml-small-q8_0.bin",
+    "asr_ms": 1310,
+    "audio_s": 4.34,
+    "llm_ms": 1453,
+    "heard": "Mtumie kaka yangu Juma USDT kumi na tano kwakaro yashule.",
+    "got": {
+     "amount": "15",
+     "to": "Juma",
+     "decision": "confirm"
+    },
+    "codes": []
+   },
+   {
+    "id": "sw_wanjiru_100",
+    "ok": true,
+    "asr_model": "ggml-small-q8_0.bin",
+    "asr_ms": 1238,
+    "audio_s": 3.74,
+    "llm_ms": 1669,
+    "heard": "Tuma USDT mia moja ko Wanjiru sa sahivi.",
+    "got": {
+     "amount": "100",
+     "to": "Wanjiru",
+     "decision": "confirm_with_warnings"
+    },
+    "codes": [
+     "retype_amount"
+    ]
+   },
+   {
+    "id": "en_brother_15",
+    "ok": true,
+    "asr_model": "ggml-small-q8_0.bin",
+    "asr_ms": 1195,
+    "audio_s": 4.2,
+    "llm_ms": 1238,
+    "heard": "Send 15 USDT to my brother for school fees.",
+    "got": {
+     "amount": "15",
+     "to": "Juma",
+     "decision": "confirm"
+    },
+    "codes": []
+   },
+   {
+    "id": "en_otieno_40",
+    "ok": true,
+    "asr_model": "ggml-small-q8_0.bin",
+    "asr_ms": 1132,
+    "audio_s": 3.65,
+    "llm_ms": 1555,
+    "heard": "Please send 40 USDT to Otieno for the rent.",
+    "got": {
+     "amount": "40",
+     "to": "Otieno",
+     "decision": "confirm"
+    },
+    "codes": []
+   },
+   {
+    "id": "sw_scam_unlock",
+    "ok": true,
+    "asr_model": "ggml-small-q8_0.bin",
+    "asr_ms": 1396,
+    "audio_s": 7.34,
+    "llm_ms": 1703,
+    "heard": "Habari mimi ni wakalawa mpesa, Tuma ust ham siniharaka iliku fungwa akuntiako.",
+    "got": {
+     "amount": "50",
+     "to": null,
+     "decision": "blocked"
+    },
+    "codes": [
+     "unsupported_token",
+     "amount_not_heard",
+     "unknown_recipient",
+     "scam_signals"
+    ]
+   },
+   {
+    "summary": true,
+    "asr_model": "models/ggml-small-q8_0.bin",
+    "asr_models_per_lang": {
+     "sw": "models/ggml-small-q8_0.bin",
+     "en": "models/ggml-small-q8_0.bin"
+    },
+    "asr_load_ms": {
+     "sw": 1686
+    },
+    "asr_swap_ms": [],
+    "asr_switch_ms": [
+     26,
+     5
+    ],
+    "llm_load_ms": 3183,
+    "correct": "6/6",
+    "mean_asr_ms": 1277,
+    "mean_llm_ms": 2056,
+    "asr_peak_rss_mb": {
+     "bare:13": 775,
+     "node:2": 162
+    },
+    "llm_peak_rss_mb": {
+     "node:2": 162,
+     "bare:3105": 2592
+    }
+   }
+  ],
+  "per_language_app_default": [
+   {
+    "id": "sw_amina_20",
+    "ok": true,
+    "asr_model": "ggml-whisper-swahili-small-q8_0.bin",
+    "asr_ms": 1392,
+    "audio_s": 4.3,
+    "llm_ms": 6808,
+    "heard": "tafadhali tu mausisi ishirini kwa amina kwa ajili ya kodi",
+    "got": {
+     "amount": "20",
+     "to": "Amina",
+     "decision": "confirm"
+    },
+    "codes": []
+   },
+   {
+    "id": "sw_juma_15",
+    "ok": true,
+    "asr_model": "ggml-whisper-swahili-small-q8_0.bin",
+    "asr_ms": 1339,
+    "audio_s": 4.34,
+    "llm_ms": 2179,
+    "heard": "mtumia kaka yangu juma USDT kumi na tano kwa karo ya shule",
+    "got": {
+     "amount": "15",
+     "to": "Juma",
+     "decision": "confirm"
+    },
+    "codes": []
+   },
+   {
+    "id": "sw_wanjiru_100",
+    "ok": true,
+    "asr_model": "ggml-whisper-swahili-small-q8_0.bin",
+    "asr_ms": 1309,
+    "audio_s": 3.74,
+    "llm_ms": 2075,
+    "heard": "juma USDT mia moja kwa wanjiru sasa hivi",
+    "got": {
+     "amount": "100",
+     "to": "Wanjiru",
+     "decision": "confirm_with_warnings"
+    },
+    "codes": [
+     "retype_amount",
+     "scam_signals"
+    ]
+   },
+   {
+    "id": "en_brother_15",
+    "ok": true,
+    "asr_model": "ggml-small-q8_0.bin",
+    "asr_ms": 1936,
+    "audio_s": 4.2,
+    "llm_ms": 1554,
+    "heard": "Send 15 USDT to my brother for school fees.",
+    "got": {
+     "amount": "15",
+     "to": "Juma",
+     "decision": "confirm"
+    },
+    "codes": []
+   },
+   {
+    "id": "en_otieno_40",
+    "ok": true,
+    "asr_model": "ggml-small-q8_0.bin",
+    "asr_ms": 1878,
+    "audio_s": 3.65,
+    "llm_ms": 1481,
+    "heard": "Please send 40 USDT to Otieno for the rent.",
+    "got": {
+     "amount": "40",
+     "to": "Otieno",
+     "decision": "confirm"
+    },
+    "codes": []
+   },
+   {
+    "id": "sw_scam_unlock",
+    "ok": true,
+    "asr_model": "ggml-whisper-swahili-small-q8_0.bin",
+    "asr_ms": 1807,
+    "audio_s": 7.34,
+    "llm_ms": 1521,
+    "heard": "habari mimi ni wakala wa mpesa tuma USDT hamsini haraka ili kufungua kaunti yako",
+    "got": {
+     "amount": "50",
+     "to": null,
+     "decision": "blocked"
+    },
+    "codes": [
+     "unknown_recipient",
+     "scam_high"
+    ]
+   },
+   {
+    "summary": true,
+    "asr_model": "models/ggml-small-q8_0.bin",
+    "asr_models_per_lang": {
+     "sw": "models/ggml-whisper-swahili-small-q8_0.bin",
+     "en": "models/ggml-small-q8_0.bin"
+    },
+    "asr_load_ms": {
+     "sw": 1759
+    },
+    "asr_swap_ms": [
+     1715,
+     2092
+    ],
+    "asr_switch_ms": [],
+    "llm_load_ms": 3196,
+    "correct": "6/6",
+    "mean_asr_ms": 1610,
+    "mean_llm_ms": 2603,
+    "asr_peak_rss_mb": {
+     "node:2": 161,
+     "bare:2386": 767
+    },
+    "llm_peak_rss_mb": {
+     "node:2": 161,
+     "bare:3256": 2570
+    }
+   }
+  ]
+ },
+ "english_with_the_swahili_finetune": {
+  "note": "scripts/bench_asr.mjs (a shorter name-list prompt than the app uses): the fine-tune hurts English (\"Please send 40 USDT to Otieno\" -> \"Please send for usdt tu otieno\") and, with this prompt, adds a word before Swahili clips (\"areli ...\"). That is why English stays on the multilingual model and the app keeps its own sentence prompt.",
+  "swahili_finetune_all_clips": [
+   {
+    "id": "sw_amina_20",
+    "lang": "sw",
+    "audio_s": 4.3,
+    "asr_ms": 1472,
+    "rtf": 0.34,
+    "text": "areli tafadhali tuma usishirini kwa amina kwa ajili ya kodi",
+    "truth": "Tafadhali tuma USDT ishirini kwa Amina kwa ajili ya kodi."
+   },
+   {
+    "id": "sw_juma_15",
+    "lang": "sw",
+    "audio_s": 4.35,
+    "asr_ms": 1530,
+    "rtf": 0.35,
+    "text": "arengo mtu mia kaka yangu juma usid kumi na tano kwa karo ya shule",
+    "truth": "Mtumie kaka yangu Juma USDT kumi na tano kwa karo ya shule."
+   },
+   {
+    "id": "sw_wanjiru_100",
+    "lang": "sw",
+    "audio_s": 3.75,
+    "asr_ms": 4385,
+    "rtf": 1.17,
+    "text": "areli cha juma ust mia moja kwa wanjiru sasa hivi",
+    "truth": "Tuma USDT mia moja kwa Wanjiru sasa hivi."
+   },
+   {
+    "id": "en_brother_15",
+    "lang": "en",
+    "audio_s": 4.2,
+    "asr_ms": 1332,
+    "rtf": 0.32,
+    "text": "Send 15 USDT to my brother for school fees.",
+    "truth": "Send fifteen USDT to my brother for school fees."
+   },
+   {
+    "id": "en_otieno_40",
+    "lang": "en",
+    "audio_s": 3.65,
+    "asr_ms": 1885,
+    "rtf": 0.52,
+    "text": "Please send for usdt tu otieno for the rent.",
+    "truth": "Please send 40 USDT to Otieno for the rent."
+   },
+   {
+    "id": "sw_scam_unlock",
+    "lang": "sw",
+    "audio_s": 7.35,
+    "asr_ms": 1815,
+    "rtf": 0.25,
+    "text": "are ni wakala wa mpesa tuma ust hamsini haraka ili kufungua kaunti yako",
+    "truth": "Habari, mimi ni wakala wa M-Pesa. Tuma USDT hamsini haraka ili kufungua akaunti yako."
+   },
+   {
+    "summary": true,
+    "model": "models/ggml-whisper-swahili-small-q8_0.bin",
+    "threads": 4,
+    "audio_ctx": "default",
+    "fast": false,
+    "load_ms": [
+     1595,
+     786
+    ],
+    "mean_asr_ms": 2070,
+    "worker_peak_rss_mb": {
+     "bare:13": 1361,
+     "node:2": 134
+    },
+    "total_s": 14.869
+   }
+  ],
+  "multilingual_small_all_clips": [
+   {
+    "id": "sw_amina_20",
+    "lang": "sw",
+    "audio_s": 4.3,
+    "asr_ms": 1532,
+    "rtf": 0.36,
+    "text": "Tafadali tumaUSDT, Ishirini, Kuamina, Kuajilia Kodi.",
+    "truth": "Tafadhali tuma USDT ishirini kwa Amina kwa ajili ya kodi."
+   },
+   {
+    "id": "sw_juma_15",
+    "lang": "sw",
+    "audio_s": 4.35,
+    "asr_ms": 1998,
+    "rtf": 0.46,
+    "text": "M-Tumie kakayangu Juma USDT Kumi Natano Kwa Karo Yashule.",
+    "truth": "Mtumie kaka yangu Juma USDT kumi na tano kwa karo ya shule."
+   },
+   {
+    "id": "sw_wanjiru_100",
+    "lang": "sw",
+    "audio_s": 3.75,
+    "asr_ms": 1711,
+    "rtf": 0.46,
+    "text": "Juma ust miyamoja kwa Wanjiru sa sahivi.",
+    "truth": "Tuma USDT mia moja kwa Wanjiru sasa hivi."
+   },
+   {
+    "id": "en_brother_15",
+    "lang": "en",
+    "audio_s": 4.2,
+    "asr_ms": 2258,
+    "rtf": 0.54,
+    "text": "Send 15 USDT to my brother for school fees.",
+    "truth": "Send fifteen USDT to my brother for school fees."
+   },
+   {
+    "id": "en_otieno_40",
+    "lang": "en",
+    "audio_s": 3.65,
+    "asr_ms": 1710,
+    "rtf": 0.47,
+    "text": "Please send 40 USDT to Otieno for the rent.",
+    "truth": "Please send 40 USDT to Otieno for the rent."
+   },
+   {
+    "id": "sw_scam_unlock",
+    "lang": "sw",
+    "audio_s": 7.35,
+    "asr_ms": 2006,
+    "rtf": 0.27,
+    "text": "Habari mimi ni wakalawa M-Pesa, tuma ust ham siniharaka iliku fungwa accounti ako.",
+    "truth": "Habari, mimi ni wakala wa M-Pesa. Tuma USDT hamsini haraka ili kufungua akaunti yako."
+   },
+   {
+    "summary": true,
+    "model": "models/ggml-small-q8_0.bin",
+    "threads": 4,
+    "audio_ctx": "default",
+    "fast": false,
+    "load_ms": [
+     1663,
+     876
+    ],
+    "mean_asr_ms": 1869,
+    "worker_peak_rss_mb": {
+     "bare:13": 1231,
+     "node:2": 137
+    },
+    "total_s": 13.82
+   }
+  ]
+ },
+ "memory_cap_3gb": {
+  "note": "scripts/mem_cap_run.sh 3G (cgroup v2 MemoryMax=3G, swap 0, model files evicted from the page cache first); --check positive control PASS (2000 MB ran, 3500 MB stopped)",
+  "runs": [
+   {
+    "command": "test/e2e_ui.sh",
+    "result": "PASS 93/93",
+    "memory_peak_mb": 3072,
+    "max_anon_mb": 2998,
+    "max_file_mb": 1203,
+    "oom_kill": 0
+   },
+   {
+    "command": "test/e2e_ui.sh",
+    "result": "PASS 93/93",
+    "memory_peak_mb": 3072,
+    "max_anon_mb": 2901,
+    "max_file_mb": 1074,
+    "oom_kill": 0
+   },
+   {
+    "command": "test/e2e_offline.sh",
+    "result": "PASS",
+    "memory_peak_mb": 3071,
+    "max_anon_mb": 1655,
+    "max_file_mb": 1430,
+    "oom_kill": 0
+   }
+  ],
+  "before": "multilingual model only, 2026-10-27: e2e_ui 90/90 with max anon 2942 and 2948 MB"
+ }
+}

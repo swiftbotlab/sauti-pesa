@@ -2,8 +2,10 @@
 # Speech to text on REAL human voices: 40 clips of Google FLEURS, Swahili (Kenya) test split, read by native speakers.
 # FLEURS: Conneau et al. 2022, https://huggingface.co/datasets/google/fleurs, licence CC-BY 4.0.
 #
-#   scripts/eval_fleurs_asr.sh            # the model the app ships (Whisper small q8_0)
+#   scripts/eval_fleurs_asr.sh            # multilingual Whisper small q8_0 (config.models.asr: English; Swahili until 2026-10-28)
 #   scripts/eval_fleurs_asr.sh both       # + the CLI's optional `--accurate` model (large-v3-turbo q5_0), for comparison
+#   scripts/eval_fleurs_asr.sh all        # small + turbo + the Swahili fine-tune of Whisper small (config.models.asr_sw:
+#                                         # what the app uses for Swahili since 2026-10-28)
 #   scripts/eval_fleurs_asr.sh both nogain   # the same with the app's input level normalization (src/gain.js) OFF:
 #                                            # the app as it was before it had one -> fleurs_results_before_gain.json
 #
@@ -20,9 +22,9 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 WHICH="${1:-small}"
-case "$WHICH" in small) RUNS=(small) ;; both) RUNS=(small turbo) ;; turbo) RUNS=(turbo) ;; *) echo "usage: $0 [small|both|turbo] [nogain]" >&2; exit 2 ;; esac
+case "$WHICH" in small) RUNS=(small) ;; both) RUNS=(small turbo) ;; turbo) RUNS=(turbo) ;; sw_small) RUNS=(sw_small) ;; all) RUNS=(small turbo sw_small) ;; *) echo "usage: $0 [small|both|turbo|sw_small|all] [nogain]" >&2; exit 2 ;; esac
 GAIN="${2:-}"
-case "$GAIN" in "") SUF=""; OUT=test/data/public/fleurs_results.json ;; nogain) SUF="-nogain"; OUT=test/data/public/fleurs_results_before_gain.json ;; *) echo "usage: $0 [small|both|turbo] [nogain]" >&2; exit 2 ;; esac
+case "$GAIN" in "") SUF=""; OUT=test/data/public/fleurs_results.json ;; nogain) SUF="-nogain"; OUT=test/data/public/fleurs_results_before_gain.json ;; *) echo "usage: $0 [small|both|turbo|sw_small|all] [nogain]" >&2; exit 2 ;; esac
 
 REV=70bb2e84b976b7e960aa89f1c648e09c59f894dd # google/fleurs commit (2026-05-15)
 BASE="https://huggingface.co/datasets/google/fleurs/resolve/$REV/data/sw_ke"

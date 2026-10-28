@@ -39,6 +39,17 @@
   "qvac_constant": "WHISPER_SMALL_Q8_0",
   "role": "asr"
  },
+ "WHISPER_SMALL_SW_Q8_0": {
+  "file": "ggml-whisper-swahili-small-q8_0.bin",
+  "url": "https://huggingface.co/malinali-app/whisper-swahili-small-ggml/resolve/403b03e660aa3635823c42e4589c57a9b2c26fe5/ggml-model-q8_0.bin",
+  "sha256": "5d89c6ee07592a0c43fa560d592949635e7154cd716debda8d40919a772381a6",
+  "bytes": 264464624,
+  "engine": "whispercpp-transcription",
+  "license": "Apache-2.0 (PaschalK/whisper-swahili-small, Swahili fine-tune of OpenAI Whisper small on Common Voice 11; ggml q8_0 conversion by malinali-app)",
+  "qvac_constant": null,
+  "note": "Not a QVAC registry constant: a community Swahili fine-tune of Whisper small, loaded by QVAC's whispercpp-transcription engine from a local path. Pinned to commit 403b03e660aa3635823c42e4589c57a9b2c26fe5 of malinali-app/whisper-swahili-small-ggml (file ggml-model-q8_0.bin, renamed here); sha256 = Hugging Face LFS oid at that commit. Upstream: https://huggingface.co/PaschalK/whisper-swahili-small (revision 6a7bba1de513d1f100ef7a68b0544c96e1c708ae).",
+  "role": "asr"
+ },
  "WHISPER_BASE_Q8_0": {
   "file": "ggml-base-q8_0.bin",
   "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-base-q8_0.bin",

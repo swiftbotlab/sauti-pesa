@@ -1,12 +1,14 @@
 // Speech to text on REAL human Swahili voices: Google FLEURS, Swahili (Kenya) test split, read speech by native
 // speakers (CC-BY 4.0). Run by scripts/eval_fleurs_asr.sh, inside the offline sandbox:
-//   ops/sandbox.sh offline node scripts/eval_fleurs_asr.mjs tmp/fleurs small|turbo [nogain]
+//   ops/sandbox.sh offline node scripts/eval_fleurs_asr.mjs tmp/fleurs small|turbo|sw_small [nogain]
 // It uses the app's own speech code, src/asr.js LocalASR, with the app's settings: config.json models, VAD, threads,
 // language 'sw', greedy, temperature 0, and the demo contacts' names in the initial prompt (as the engine does),
 // including the app's input level normalization (src/gain.js) before VAD/ASR. `nogain` turns only that step off,
 // to measure the app as it was before it had one.
-//   small = what the app ships and the resident engine uses (config.models.asr)
+//   small = the multilingual Whisper small (config.models.asr): the app's English model, its Swahili model until 2026-10-28
 //   turbo = the CLI's optional `say --accurate` model (config.models.asr_accurate + asr_accurate_audio_ctx)
+//   sw_small = the Swahili fine-tune of Whisper small (models.json WHISPER_SMALL_SW_Q8_0 = config.models.asr_sw): what
+//              the app and the resident engine use for Swahili since 2026-10-28; same settings as small
 // Scores the RAW transcript (before the app turns number words into digits) against the FLEURS `transcription`
 // column with the small normalizer in scripts/asr_score.mjs. Writes DIR/results_<model>[-nogain].json.
 // The clip list (DIR/selected.json, made by scripts/fleurs_prepare.py) is data: every field is checked here again.
@@ -23,13 +25,13 @@ const DIR = resolve(ROOT, process.argv[2] || 'tmp/fleurs')
 const WHICH = process.argv[3] || 'small'
 const GAIN_ON = process.argv[4] !== 'nogain'
 if (!DIR.startsWith(join(ROOT, 'tmp') + '/')) throw new Error('DIR must be under tmp/')
-if (!['small', 'turbo'].includes(WHICH)) throw new Error('model must be small or turbo')
+if (!['small', 'turbo', 'sw_small'].includes(WHICH)) throw new Error('model must be small, turbo or sw_small')
 if (![undefined, 'nogain'].includes(process.argv[4])) throw new Error('third argument: nogain or nothing')
 
 const CFG = JSON.parse(readFileSync(join(ROOT, 'config.json'), 'utf8'))
 const MODELS = JSON.parse(readFileSync(join(ROOT, 'models.json'), 'utf8'))
-const rel = WHICH === 'small' ? CFG.models.asr : CFG.models.asr_accurate
-const audioCtx = WHICH === 'small' ? 0 : (CFG.asr_accurate_audio_ctx || 0)
+const rel = WHICH === 'small' ? CFG.models.asr : WHICH === 'turbo' ? CFG.models.asr_accurate : `models/${MODELS.WHISPER_SMALL_SW_Q8_0.file}`
+const audioCtx = WHICH === 'turbo' ? (CFG.asr_accurate_audio_ctx || 0) : 0
 const modelFile = realpathSync(join(ROOT, rel))
 const entry = Object.entries(MODELS).find(([, m]) => m.file === basename(rel))
 if (!entry) throw new Error(`${rel} is not in models.json`)
@@ -54,7 +56,7 @@ const asr = new LocalASR({
   threads: CFG.asr_threads || 4,
   audioCtx,
   names,
-  single: WHICH === 'small', // the resident engine keeps one instance; the CLI path is the same for one language
+  single: WHICH !== 'turbo', // the resident engine keeps one instance; the CLI path is the same for one language
   tmpDir: DIR, // a level-raised copy of a quiet clip is written here for the call, then removed
   inputGain: GAIN_ON
 })

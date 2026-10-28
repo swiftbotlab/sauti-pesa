@@ -20,7 +20,7 @@ import { loadContacts } from './contacts.js'
 import { Store } from './queue.js'
 import { network, NETWORKS } from './networks.js'
 import { LocalLLM } from './llm.js'
-import { LocalASR, MAX_AUDIO_BYTES } from './asr.js'
+import { LocalASR, MAX_AUDIO_BYTES, asrLabel } from './asr.js'
 import { LocalOCR, MAX_IMAGE_BYTES, inspectImage } from './ocr.js'
 import { analyzeRequest, amendAnalysis, confirmAndQueue, analyzeMessage, resignEntry } from './pipeline.js'
 import { analysisView, outboxView, contactView } from './view.js'
@@ -66,6 +66,22 @@ function modelPath (rel) {
   const p = join(ROOT, rel)
   if (!existsSync(p)) throw new Error(`model missing: ${rel} (run scripts/fetch_models.sh in setup mode first)`)
   return realpathSync(p)
+}
+
+// Per-language speech models: Swahili uses the Swahili fine-tune of Whisper small when it is on disk
+// (config.models.asr_sw), every other language the multilingual Whisper small (config.models.asr). Only one of them
+// is in RAM at a time (LocalASR single mode swaps them when the language changes).
+function asrModelPaths () {
+  const rel = CFG.models.asr_sw
+  if (!rel) return {}
+  if (!existsSync(join(ROOT, rel))) { log(`Swahili speech model ${rel} is missing: Swahili uses ${CFG.models.asr} (run scripts/fetch_models.sh WHISPER_SMALL_SW_Q8_0 once, online)`); return {} }
+  return { sw: modelPath(rel) }
+}
+
+function asrModelsText () {
+  if (!asr) return asrLabel(CFG.models.asr)
+  const sw = asrLabel(asr.pathFor('sw')); const en = asrLabel(asr.pathFor('en'))
+  return sw === en ? sw : `${sw} (sw) · ${en} (en)`
 }
 
 async function proof (maxAgeMs = 5000) {
@@ -157,7 +173,7 @@ async function onVoice (buf, q) {
   } finally {
     rmSync(f, { force: true })
   }
-  const step = { id: 'asr', model: 'whisper small q8_0 + Silero VAD (QVAC)', ms: r.ms, audio_s: r.seconds, lang: r.lang, input_gain_db: r.gain?.gain_db ?? 0 }
+  const step = { id: 'asr', model: `${asrLabel(r.model)} + Silero VAD (QVAC)`, asr_model: asrLabel(r.model), ms: r.ms, audio_s: r.seconds, lang: r.lang, input_gain_db: r.gain?.gain_db ?? 0 }
   if (r.gain?.applied) log(`voice note: quiet input (${r.gain.rms_dbfs} dBFS RMS, peak ${r.gain.peak_dbfs} dBFS) raised by ${r.gain.gain_db} dB`)
   if (!r.text || r.text.length < 2) return { ok: false, transcript: '', errors: ['no speech heard'], steps: [step] }
   // Speech -> text only. The page shows the words at once and then sends them to /v1/ask like typed text,
@@ -297,7 +313,7 @@ async function onStatus (q) {
       startedAt: engine.startedAt,
       loadMs: engine.loadMs,
       warmMs: engine.warmMs,
-      models: { asr: 'whisper small q8_0 (WHISPER_SMALL_Q8_0)', vad: 'Silero VAD 5.1.2 (VAD_SILERO_5_1_2)', llm: 'Qwen3-1.7B Q4_0 (QWEN3_1_7B_INST_Q4)', ocr: 'OCR_LATIN + OCR_CRAFT (loaded per screenshot)', sdk: '@qvac/sdk 0.22.0' },
+      models: { asr: asrModelsText(), vad: 'Silero VAD 5.1.2 (VAD_SILERO_5_1_2)', llm: 'Qwen3-1.7B Q4_0 (QWEN3_1_7B_INST_Q4)', ocr: 'OCR_LATIN + OCR_CRAFT (loaded per screenshot)', sdk: '@qvac/sdk 0.22.0' },
       rssMb: Object.values(rss).reduce((x, y) => x + y, 0)
     },
     net: await proof(),
@@ -424,7 +440,7 @@ async function start () {
   const names = existsSync(CONTACTS) ? loadContacts(CONTACTS).map((c) => c.name) : []
   engine.stage = 'loading speech model'
   let t = Date.now()
-  asr = new LocalASR({ modelPath: modelPath(CFG.models.asr), vadPath: modelPath(CFG.models.vad), threads: CFG.asr_threads || 4, names, single: true, tmpDir: UPLOADS }) // a level-raised copy of a quiet clip lives in uploads/ for the call
+  asr = new LocalASR({ modelPath: modelPath(CFG.models.asr), modelPaths: asrModelPaths(), vadPath: modelPath(CFG.models.vad), threads: CFG.asr_threads || 4, names, single: true, tmpDir: UPLOADS }) // a level-raised copy of a quiet clip lives in uploads/ for the call
   await asr.prepare('sw')
   engine.loadMs.asr = Date.now() - t
   // Warm the speech path once (the first transcription pays one-off setup), so the person's first voice note is

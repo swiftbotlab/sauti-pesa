@@ -126,6 +126,12 @@ r = await ask(v.j.transcript)
 ok(r.j?.view?.amount === '15' && r.j.view.recipient?.name === 'Juma', 'voice request -> 15 USDT to Juma', JSON.stringify(r.j?.view?.amount))
 c = await confirm(r.j.sid)
 ok(c.status === 200 && c.j.queued.nonce === 1, 'voice payment signed + queued (nonce 1)')
+ok(/Swahili Whisper/.test(v.j.steps[0].asr_model || ''), 'Swahili voice note heard by the Swahili fine-tune of Whisper', v.j.steps[0].asr_model)
+// English uses the multilingual Whisper: the engine swaps the speech model (still one in RAM), then back for Swahili
+const ve = await call('/api/voice?network=devnet&lang=en', { method: 'POST', body: readFileSync(`${ROOT}test/audio/en_otieno_40.wav`), type: 'audio/wav' })
+ok(ve.status === 200 && /otieno/i.test(ve.j.transcript) && /\b40\b/.test(ve.j.transcript) && ve.j.steps[0].asr_model === 'whisper small q8_0', 'English voice note heard by the multilingual Whisper (model swap)', `${ve.j?.transcript} | ${ve.j?.steps?.[0]?.asr_model}`)
+const sm = await call('/api/status?network=devnet')
+ok(/Swahili Whisper.*\(sw\).*whisper small q8_0 \(en\)/.test(sm.j.engine.models.asr), 'status names both speech models', sm.j.engine.models.asr)
 
 r = await ask('send 60 USDT to Otieno for rent')
 ok(r.j?.view?.needsRetype === true && r.j.view.decision !== 'blocked', 'large amount needs the re-type step')
@@ -190,7 +196,7 @@ r = await call('/api/read-image', { method: 'POST', body: bomb, type: 'image/png
 ok(r.status === 400 && /too big/.test(r.j?.error || ''), 'PNG announcing 50000x50000 px refused before decoding', `${r.status} ${r.j?.error}`)
 // the engine frees the speech model while it reads a screenshot: the next voice note must load it again and work
 const v2 = await call('/api/voice?network=devnet&lang=sw', { method: 'POST', body: readFileSync(`${ROOT}test/audio/sw_juma_15.wav`), type: 'audio/wav' })
-ok(v2.status === 200 && /juma/i.test(v2.j.transcript), 'voice works again after a screenshot (speech model reloaded)', `${v2.status} ${v2.j?.transcript} ${v2.j?.steps?.[0]?.ms} ms`)
+ok(v2.status === 200 && /juma/i.test(v2.j.transcript) && /Swahili Whisper/.test(v2.j.steps[0].asr_model || ''), 'voice works again after a screenshot (Swahili speech model reloaded)', `${v2.status} ${v2.j?.transcript} ${v2.j?.steps?.[0]?.ms} ms`)
 
 console.log('outbox -> broadcast on the local devnet (separate keyless process)')
 let ob = await call('/api/outbox?network=devnet')

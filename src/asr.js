@@ -3,7 +3,7 @@
 // gain before voice detection and speech to text; normal and loud recordings are passed on unchanged.
 import { openSync, readSync, closeSync, statSync, fstatSync, writeFileSync, rmSync, realpathSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, basename } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { loadModel, transcribe, unloadModel } from '@qvac/sdk'
 import { clean } from './text.js'
@@ -64,6 +64,21 @@ function readCapped (path, max) {
   } finally { closeSync(fd) }
 }
 
+// Short, human labels for the Whisper files the app can use (UI steps, status, CLI output)
+const ASR_LABELS = {
+  'ggml-whisper-swahili-small-q8_0.bin': 'Swahili Whisper small q8_0 (fine-tune)',
+  'ggml-small-q8_0.bin': 'whisper small q8_0',
+  'ggml-large-v3-turbo-q5_0.bin': 'whisper large-v3-turbo q5_0',
+  'ggml-base-q8_0.bin': 'whisper base q8_0'
+}
+export function asrLabel (file) { return ASR_LABELS[basename(String(file || ''))] || basename(String(file || '')) }
+
+// The Swahili fine-tune writes lower case without punctuation and spells the token "ust" ("tuma ust hamsini").
+// Only these whole words become "USDT" again, so the transcript the person sees and the amount checks (which look
+// for "USDT 20" / "20 USDT") read it as said. Nothing else in the transcript is changed.
+const TOKEN_WORD = /(?<![\p{L}\p{N}_])(?:ust|usdt)(?![\p{L}\p{N}_])/giu
+export function normalizeTokenWords (text) { return String(text).replace(TOKEN_WORD, 'USDT') }
+
 const PROMPTS = {
   sw: (names) => `Tuma USDT kumi na tano kwa ${names[0] || 'Amina'}. Mtumie kaka yangu USDT mia moja. ${names.join(', ')}.`,
   en: (names) => `Send 15 USDT to ${names[0] || 'Amina'}. ${names.join(', ')}.`,
@@ -73,20 +88,30 @@ const PROMPTS = {
 export class LocalASR {
   /**
    * @param {object} o
+   * @param {string} o.modelPath the Whisper file for every language without its own entry in modelPaths
+   * @param {Object<string,string>} [o.modelPaths] per-language Whisper files, e.g. { sw: <Swahili fine-tune> }. In
+   *   single mode a language with a DIFFERENT file unloads the current instance first and loads that file, so
+   *   there is still only one Whisper in RAM; a language with the same file only reloads its config.
    * @param {boolean} [o.single] keep ONE whisper instance and switch its language with QVAC's reload-config
    *   (loadModel({ modelId, modelConfig })) instead of loading one instance per language: about half the RAM
    *   for the resident engine. The CLI keeps the old behaviour.
    * @param {string} [o.tmpDir] where a level-raised copy of a quiet clip is written for a moment (default: TMPDIR)
    * @param {boolean} [o.inputGain] level normalization before VAD/ASR (default on; off only to measure without it)
    */
-  constructor ({ modelPath, vadPath, threads = 4, audioCtx = 0, names = [], single = false, tmpDir = null, inputGain = true }) {
+  constructor ({ modelPath, modelPaths = {}, vadPath, threads = 4, audioCtx = 0, names = [], single = false, tmpDir = null, inputGain = true }) {
     Object.assign(this, { modelPath, vadPath, threads, audioCtx, single, tmpDir, inputGain })
+    this.modelPaths = {}
+    for (const [l, f] of Object.entries(modelPaths || {})) if (['sw', 'en'].includes(l) && typeof f === 'string' && f) this.modelPaths[l] = f
     this.names = names.map((n) => clean(n, 40)).filter(Boolean).slice(0, 12)
     this.models = new Map()
     this.loadMs = {}
-    this.current = null // single mode: { id, lang }
-    this.switchMs = []
+    this.current = null // single mode: { id, lang, path }
+    this.switchMs = [] // same file, other language: reload-config
+    this.swapMs = [] // other file: unload + load
   }
+
+  /** The Whisper file used for a language. */
+  pathFor (lang) { return this.modelPaths[lang] || this.modelPath }
 
   _config (lang) {
     return {
@@ -103,23 +128,26 @@ export class LocalASR {
   }
 
   async _model (lang) {
+    const path = this.pathFor(lang)
     if (this.single) {
       if (this.current?.lang === lang) return this.current.id
       const t = Date.now()
-      if (!this.current) {
-        const id = await loadModel({ modelSrc: this.modelPath, modelType: 'whispercpp-transcription', modelConfig: this._config(lang) })
-        this.current = { id, lang }
-        this.loadMs[lang] = Date.now() - t
-      } else {
+      if (this.current && this.current.path === path) {
         await loadModel({ modelId: this.current.id, modelType: 'whispercpp-transcription', modelConfig: this._config(lang) })
-        this.current = { id: this.current.id, lang }
+        this.current = { id: this.current.id, lang, path }
         this.switchMs.push(Date.now() - t)
+        return this.current.id
       }
-      return this.current.id
+      const swap = !!this.current
+      if (swap) { const old = this.current.id; this.current = null; await unloadModel({ modelId: old }) } // never two Whispers in RAM
+      const id = await loadModel({ modelSrc: path, modelType: 'whispercpp-transcription', modelConfig: this._config(lang) })
+      this.current = { id, lang, path }
+      if (swap) this.swapMs.push(Date.now() - t); else this.loadMs[lang] = Date.now() - t
+      return id
     }
     if (this.models.has(lang)) return this.models.get(lang)
     const t = Date.now()
-    const id = await loadModel({ modelSrc: this.modelPath, modelType: 'whispercpp-transcription', modelConfig: this._config(lang) })
+    const id = await loadModel({ modelSrc: path, modelType: 'whispercpp-transcription', modelConfig: this._config(lang) })
     this.loadMs[lang] = Date.now() - t
     this.models.set(lang, id)
     return id
@@ -129,8 +157,9 @@ export class LocalASR {
   async prepare (lang = 'sw') { await this._model(lang) }
 
   /**
-   * @returns {Promise<{text:string, ms:number, lang:string, seconds:number, gain:object}>} gain: the input level
-   *   step ({ rms_dbfs, peak_dbfs, gain_db, applied, reason }, or { applied: false, reason: 'off' })
+   * @returns {Promise<{text:string, ms:number, lang:string, seconds:number, gain:object, model:string}>} gain: the
+   *   input level step ({ rms_dbfs, peak_dbfs, gain_db, applied, reason }, or { applied: false, reason: 'off' });
+   *   model: the file name of the Whisper weights that heard it
    */
   async transcribe (wavPath, lang = 'sw') {
     if (!['sw', 'en', 'auto'].includes(lang)) throw new Error('lang must be sw, en or auto')
@@ -140,7 +169,7 @@ export class LocalASR {
       const id = await this._model(lang)
       const t = Date.now()
       const text = await transcribe({ modelId: id, audioChunk: lv.path })
-      return { text: clean(String(text), 1000), ms: Date.now() - t, lang, seconds: +info.seconds.toFixed(2), gain: lv.info }
+      return { text: normalizeTokenWords(clean(String(text), 1000)), ms: Date.now() - t, lang, seconds: +info.seconds.toFixed(2), gain: lv.info, model: basename(this.pathFor(lang)) }
     } finally {
       lv.cleanup()
     }

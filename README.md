@@ -4,8 +4,8 @@
 Many people in East Africa keep savings and receive money in USDT next to M-Pesa, and the scams arrive in Swahili:
 a fake M-Pesa "confirmation", then *"nimekutumia pesa kimakosa, nirudishie"* ("I sent you money by mistake, send it
 back"). With Sauti Pesa you say or type *"Tuma USDT ishirini kwa Amina"*, or pick a screenshot of a message you are
-not sure about. The AI runs **on your own device** with [QVAC](https://docs.qvac.tether.io): Whisper for speech,
-Qwen3-1.7B for intent, OCR for screenshots. Plain code then checks the payment or the message, and
+not sure about. The AI runs **on your own device** with [QVAC](https://docs.qvac.tether.io): Whisper for speech (a Swahili
+fine-tune for Swahili), Qwen3-1.7B for intent, OCR for screenshots. Plain code then checks the payment or the message, and
 [WDK](https://docs.wdk.tether.io) signs **offline**. Signed payments wait in an outbox until there is a network.
 The whole app passes its end-to-end tests under a hard [3 GB memory cap](#runs-in-3-gb) (measured on an ARM64 Linux box, not a phone).
 
@@ -44,7 +44,7 @@ the page needs that link; the payment flows in the video behave the same.
 
 **Supplementary 1-min clip: [check a scam screenshot offline](https://github.com/swiftbotlab/sauti-pesa/releases/download/v1.1/sauti-pesa-screenshot-check.mp4)** · QVAC OCR on the device, three Swahili test screenshots (two scams, one with a look-alike address, and one genuine message), English captions, 1:08.
 
-**Evidence:** [QVAC profiler run](evidence/README.md) (one offline run: load and unload, time to first token, tokens/s and memory for Whisper + VAD, Qwen3-1.7B and OCR; [`qvac-profile.json`](evidence/qvac-profile.json)) · [Remote APIs](REMOTE_APIS.md) (every endpoint the code can contact; the AI path contacts none).
+**Evidence:** [QVAC profiler run](evidence/README.md) (one offline run: load and unload, time to first token, tokens/s and memory for Whisper + VAD, Qwen3-1.7B and OCR; [`qvac-profile.json`](evidence/qvac-profile.json)) · [Swahili speech model comparison](evidence/README.md#evidence-swahili-speech-model-2026-10-28) (multilingual Whisper small vs a Swahili fine-tune: WER 78.3% → 20.1% on 40 real voices; [`asr-swahili-finetune.json`](evidence/asr-swahili-finetune.json)) · [Remote APIs](REMOTE_APIS.md) (every endpoint the code can contact; the AI path contacts none).
 
 > [!IMPORTANT]
 > Testnets only. There is no mainnet configuration in the code (`src/networks.js`). Use a fresh test wallet.
@@ -94,7 +94,7 @@ school in USDT, and wants a second pair of eyes that works offline and never sen
 ```mermaid
 flowchart LR
   subgraph OFF["Offline sandbox (no network interface at all)"]
-    MIC["Voice note (WAV) or text"] --> LVL["Input level: quiet clips raised (code)"] --> ASR["QVAC Whisper small + Silero VAD"]
+    MIC["Voice note (WAV) or text"] --> LVL["Input level: quiet clips raised (code)"] --> ASR["QVAC Whisper small (Swahili fine-tune for sw) + Silero VAD"]
     ASR --> NUM["Number words to digits (code)"]
     NUM --> LLM["QVAC Qwen3-1.7B: JSON intent (grammar-constrained)"]
     LLM --> VAL["Validator + safety checks (code)"]
@@ -143,17 +143,17 @@ and OCR.
 | Item | Value |
 |---|---|
 | SDK | `@qvac/sdk` **0.22.0** (exact pin, lockfile committed) |
-| Speech to text | Whisper small, q8_0 (`WHISPER_SMALL_Q8_0`, 264 MB), engine `whispercpp-transcription`, greedy, temperature 0, contact names as the initial prompt |
+| Speech to text | **Swahili:** a Swahili fine-tune of Whisper small, q8_0 (264 MB, Apache-2.0: [malinali-app/whisper-swahili-small-ggml](https://huggingface.co/malinali-app/whisper-swahili-small-ggml), a conversion of [PaschalK/whisper-swahili-small](https://huggingface.co/PaschalK/whisper-swahili-small); `WHISPER_SMALL_SW_Q8_0` in `models.json`, not a QVAC registry constant, loaded from a local path like every model here). **English:** Whisper small, q8_0 (`WHISPER_SMALL_Q8_0`, 264 MB). Engine `whispercpp-transcription`, greedy, temperature 0, contact names as the initial prompt. Real Swahili voices: WER 78.3% → **20.1%** with the fine-tune ([Real voices](#real-voices-fleurs-swahili-native-speakers)) |
 | Voice activity | Silero VAD 5.1.2 (`VAD_SILERO_5_1_2`, 0.9 MB), passed as `vadModelSrc` |
 | Language model | Qwen3-1.7B Q4_0 (`QWEN3_1_7B_INST_Q4`, 1.06 GB), engine `llamacpp-completion` |
 | OCR (screenshots) | EasyOCR pipeline on GGUF: `OCR_CRAFT` text detector (83 MB) + `OCR_LATIN` recognizer (15 MB), engine `ggml-ocr`: `loadModel({ modelType: 'ggml-ocr', modelConfig: { detectorModelSrc, langList: ['en'], magRatio: 1.0, canvasSize: 1024 } })`, then `ocr({ modelId, image })`. The text goes into the same message checks as pasted text |
 | Structured output | `completion({ responseFormat: { type: 'json_schema', … } })` (QVAC turns it into a llama.cpp grammar), then every field is re-validated in code (`src/intent.js`) |
 | Speed | QVAC `kvCache` keys (`sauti-intent-v1`, `sauti-scam-v1`) keep the fixed system + few-shot prefix: about 680 of 700 prompt tokens come from the cache |
-| One Whisper instance | `loadModel({ modelId, modelConfig })` reload-config switches sw/en without a second copy in RAM |
-| Model files | `models.json`: Hugging Face origin at the exact commit QVAC's registry pins, with QVAC's sha256. `scripts/fetch_models.sh` downloads with curl and checks size + sha256. The OCR weights exist only in QVAC's own peer-to-peer registry: `scripts/fetch_registry_model.sh` gets them with QVAC's registry client inside a network fence (see [`SECURITY.md`](SECURITY.md)), then checks size + sha256 |
+| One Whisper in RAM | For a language that uses the same file, `loadModel({ modelId, modelConfig })` reload-config switches the language. When the other language uses the other file, the engine first unloads the current Whisper (`unloadModel`) and then loads the other one (0.7-2.1 s measured), so the two are never in RAM together |
+| Model files | `models.json`: Hugging Face origin at the exact commit QVAC's registry pins, with QVAC's sha256 (the Swahili fine-tune: pinned to its Hugging Face commit, with the LFS sha256 Hugging Face publishes for that commit). `scripts/fetch_models.sh` downloads with curl and checks size + sha256. The OCR weights exist only in QVAC's own peer-to-peer registry: `scripts/fetch_registry_model.sh` gets them with QVAC's registry client inside a network fence (see [`SECURITY.md`](SECURITY.md)), then checks size + sha256 |
 | Device check | `getSystemResources()` and the advisory `assessModelFit()` for our models: `scripts/system_fit.mjs` (results under [Runs in 3 GB](#runs-in-3-gb)) |
 | Profiler | `profiler.enable({ mode: 'verbose', includeServerBreakdown: true, includeResourceGauges: true })` + `onRecord` + `exportJSON()` over one offline run of all four capabilities: `scripts/profile_qvac.sh` writes [`evidence/qvac-profile.json`](evidence/qvac-profile.json), read it with [`evidence/README.md`](evidence/README.md) |
-| Licences | Qwen3-1.7B Apache-2.0 · Whisper MIT · Silero VAD MIT · EasyOCR latin_g2 Apache-2.0 · CRAFT MIT |
+| Licences | Qwen3-1.7B Apache-2.0 · Whisper MIT · Swahili Whisper fine-tune Apache-2.0 · Silero VAD MIT · EasyOCR latin_g2 Apache-2.0 · CRAFT MIT |
 
 Files that call QVAC: [`src/asr.js`](src/asr.js) (`loadModel`, `transcribe`, `unloadModel`),
 [`src/llm.js`](src/llm.js) (`loadModel`, `completion`, `deleteCache`, `unloadModel`),
@@ -163,7 +163,9 @@ Files that call QVAC: [`src/asr.js`](src/asr.js) (`loadModel`, `transcribe`, `un
 [`scripts/registry_fetch.cjs`](scripts/registry_fetch.cjs) (QVAC registry client, OCR weight download only) and
 [`scripts/profile_qvac.mjs`](scripts/profile_qvac.mjs) (`profiler`, measurements only).
 
-Rejected after measuring: Whisper base (fast, but it mangles Swahili names) and Qwen3.5-2B (about 5.2 s per request,
+Adopted after measuring: the Swahili fine-tune of Whisper small, for Swahili only (on 40 real Swahili voices WER
+78.3% → 20.1%, CER 20.4% → 7.2%, same speed and size; it makes English worse, so English keeps the multilingual
+model). Rejected after measuring: Whisper base (fast, but it mangles Swahili names) and Qwen3.5-2B (about 5.2 s per request,
 2.9 GB, and 11/12 instead of 12/12 on our tuned intent set). Whisper large-v3-turbo q5_0 is available in the CLI as
 `say --accurate` (better Swahili, but 6-10 s per clip on this CPU).
 
@@ -252,7 +254,7 @@ All in plain code, in [`src/safety.js`](src/safety.js), [`src/contacts.js`](src/
 ## Run it
 
 **Requirements:** Linux (tested on Ubuntu 26.04, aarch64, 6 CPU cores, 8 GB RAM, no GPU), Node.js ≥ 22.17
-(tested 22.22.1), bubblewrap (tested 0.11.1), curl, python3, about 4 GB of disk (1.4 GB models; QVAC's native
+(tested 22.22.1), bubblewrap (tested 0.11.1), curl, python3, about 4 GB of disk (1.7 GB models; QVAC's native
 packages are about 1.6 GB of the 2.6 GB `node_modules`). For the local chain: Foundry's
 [anvil](https://getfoundry.sh) (tested 1.8.5). For the one-time OCR model download: pasta (Debian/Ubuntu package
 `passt`, tested 2026-01-20). For the UI: any current browser.
@@ -260,7 +262,7 @@ packages are about 1.6 GB of the 2.6 GB `node_modules`). For the local chain: Fo
 ```bash
 git clone https://github.com/swiftbotlab/sauti-pesa.git && cd sauti-pesa
 ops/sandbox.sh setup npm ci                                   # exact pins, install scripts off
-scripts/fetch_models.sh QWEN3_1_7B_INST_Q4 WHISPER_SMALL_Q8_0 VAD_SILERO_5_1_2   # ~1.3 GB, sha256-checked
+scripts/fetch_models.sh QWEN3_1_7B_INST_Q4 WHISPER_SMALL_Q8_0 WHISPER_SMALL_SW_Q8_0 VAD_SILERO_5_1_2   # ~1.6 GB, sha256-checked
 scripts/fetch_models.sh OCR_LATIN OCR_CRAFT                  # 98 MB OCR weights from QVAC's registry (needs pasta)
 
 ops/sandbox.sh offline node bin/sauti.mjs wallet init        # new TEST wallet; the seed stays in private/
@@ -314,11 +316,11 @@ can also unplug the whole machine:
 **Tests:**
 
 ```bash
-ops/sandbox.sh offline node --test test/*.test.js   # 78 unit tests, no model (3 need the private test set, else skipped)
+ops/sandbox.sh offline node --test test/*.test.js   # 83 unit tests, no model (3 need the private test set, else skipped)
 test/sandbox.sh          # 22 sandbox checks with positive controls (read-only code, masks, lock, local.env)
 test/e2e_offline.sh      # CLI, internet off: Swahili text + English voice payments, blocks, devnet broadcast
 test/e2e_ocr.sh          # CLI, internet off: 4 labelled screenshots -> QVAC OCR -> the same message checks
-test/e2e_ui.sh           # engine + bridge API, 90 checks, incl. the UI key, screenshots, re-sign after a nonce clash
+test/e2e_ui.sh           # engine + bridge API, 93 checks, incl. the UI key, sw/en voice, screenshots, re-sign after a nonce clash
 scripts/mem_cap_run.sh 3G test/e2e_ui.sh       # any of these under a hard 3 GB memory cap (see "Runs in 3 GB")
 scripts/fetch_registry_model.sh --probe PORT   # OCR download fence vs host: a local service on PORT, gateway, internet
 scripts/eval_sw_requests.sh  # the commissioned Swahili test set (private: skipped when absent, see below)
@@ -326,7 +328,8 @@ scripts/eval_sw_requests.sh  # the commissioned Swahili test set (private: skipp
 SAUTI_EVAL_SET=test/data/public/sw_requests_public.md SAUTI_EVAL_LABELS=test/data/public/sw_requests_public.labels.json scripts/eval_sw_requests.sh
 scripts/bench_latency.sh # before/after latency
 scripts/profile_qvac.sh  # QVAC profiler, one offline run of ASR + VAD, LLM and OCR -> evidence/qvac-profile.json
-scripts/eval_fleurs_asr.sh   # speech to text on 40 real Swahili voices (Google FLEURS; downloads 333 MB once, see below)
+scripts/eval_fleurs_asr.sh all  # speech to text on 40 real Swahili voices, 3 Whisper models (Google FLEURS; 333 MB once, see below)
+ops/sandbox.sh offline node scripts/bench_e2e.mjs [--generic]   # 6 voice notes -> decisions (--generic: multilingual Whisper for all)
 ```
 
 ## Measurements
@@ -348,7 +351,8 @@ About 680 of the ~700 prompt tokens are served from QVAC's KV cache (median; `sc
 
 **Memory:** resident engine about 2.2-2.8 GB RSS in a `/proc` reading (both models loaded, including memory-mapped weights); the
 QVAC SDK's own gauge in the profiler run samples up to 3.1 GB, and 3.8 GB while a screenshot is read ([evidence](evidence/README.md#memory)). The CLI loads one model at a time: peak
-~2.6 GB. Whisper alone ~1.2 GB with two language instances; one instance with reload-config in the engine.
+~2.6 GB. Whisper alone ~1.2 GB with two language instances; one instance in the engine (the Swahili fine-tune and the
+multilingual model are the same size, and the engine holds only one of them at a time).
 OCR (CRAFT detector + latin_g2, detection magnification 1.0, canvas capped at 1024 px): peak 1.39-1.48 GB for
 720x700 and 1080x2400 screenshots. QVAC's default magnification 1.5 read our test address in one piece but took
 5.5 s and 2.55 GB, so we use 1.0 and join an address that the detector splits into two touching boxes. The engine
@@ -357,9 +361,11 @@ loads OCR for each screenshot and unloads it afterwards, and frees the speech mo
 
 **Accuracy:**
 - Voice to decision, 6 synthetic clips (sw-KE, sw-TZ, en-KE neural voices): **6/6** (5 payments with the right
-  amount and payee; the scam clip blocked).
-- Speech to text alone on 40 **real** native-speaker recordings (FLEURS, read speech): Whisper small **20.4%** character
-  error rate, **78.3%** word error rate, no empty transcripts (before the input gain: 26.2%, 76.6%, 3 empty). See
+  amount and payee; the scam clip blocked), both with the Swahili fine-tune for Swahili (now) and with the
+  multilingual Whisper for all clips (before).
+- Speech to text alone on 40 **real** native-speaker recordings (FLEURS, read speech): the app's Swahili model (a
+  Swahili fine-tune of Whisper small) **20.1%** word error rate, **7.2%** character error rate, no empty transcripts.
+  The multilingual Whisper small the app used before: 78.3% and 20.4%. See
   [Real voices](#real-voices-fleurs-swahili-native-speakers).
 - Intent: tuned set 12/12; held-out set **11/12**. In every miss, the code blocked the payment instead of sending a
   wrong amount.
@@ -413,14 +419,48 @@ female speakers, 6.8-24.1 s, 9.6 min in all). We score the raw transcript agains
 no number or spelling rules).
 
 ```bash
-scripts/eval_fleurs_asr.sh        # 333 MB at a pinned commit, sha256-checked; keeps 40 clips, runs offline, deletes the audio
-scripts/eval_fleurs_asr.sh both   # + Whisper large-v3-turbo (the CLI's say --accurate option), for comparison
-scripts/eval_fleurs_asr.sh both nogain   # the same with the input gain OFF: the "before gain" rows below
+scripts/eval_fleurs_asr.sh all    # 333 MB at a pinned commit, sha256-checked; 3 models, runs offline, deletes the audio
+scripts/eval_fleurs_asr.sh        # only the multilingual Whisper small; `both` adds large-v3-turbo
+scripts/eval_fleurs_asr.sh both nogain   # small + turbo with the input gain OFF: the "before gain" rows further down
 ```
+
+**Which Whisper for Swahili** (two runs, 2026-10-28 14:36-15:08 UTC, the same 40 clips, the app's own code and
+settings, input gain on; the error rates are identical in both runs, the timings are not, because this box is shared
+with other work):
+
+| Whisper model (as the app runs it, input gain on) | Used for | WER | CER | Median per clip, WER / CER | Load (run 1 / run 2) | Time per clip, median (run 1 / run 2) | RTF, median (run 1 / run 2) | Peak RSS (QVAC worker) |
+|---|---|---|---|---|---|---|---|---|
+| **Swahili fine-tune of Whisper small**, q8_0 (`WHISPER_SMALL_SW_Q8_0`, 264 MB) | **Swahili (since 2026-10-28)** | **20.1%** | **7.2%** | 17.4% / 5.1% | 2.2 s / 1.5 s | 1.9 s / 1.4 s | 0.14 / 0.10 | 847 MB |
+| Whisper small q8_0, multilingual (`WHISPER_SMALL_Q8_0`, 264 MB) | English; Swahili before | 78.3% | 20.4% | 76.4% / 18.6% | 1.5 s / 2.0 s | 1.5 s / 3.2 s | 0.11 / 0.25 | 818 MB |
+| Whisper large-v3-turbo q5_0 (574 MB) | CLI `say --accurate` only | 53.5% | 27.2% | 36.2% / 9.6% | 2.1 s / 2.5 s | 6.4 s / 8.6 s | 0.54 / 0.66 | 1,113 MB |
+
+- **The Swahili fine-tune gets about one word in five wrong, where the multilingual Whisper small got three in four
+  wrong** (WER 78.3% → 20.1%, CER 20.4% → 7.2%, median clip WER 76.4% → 17.4%; 2 clips above 50% WER instead of
+  37). It also no longer copies contact names from the prompt into the text (0 clips instead of 4). It has the same
+  size and architecture, so speed and memory are the same within run-to-run noise (in run 1 the fine-tune was
+  slower, in run 2 the multilingual model; a separate earlier run of the fine-tune alone gave 1.4 s per clip median,
+  RTF 0.10, load 1.5 s). It is the app's Swahili model since 2026-10-28: `config.json` `models.asr_sw`, used by the
+  engine and the CLI for `lang=sw` (if the file is missing, the app falls back to the multilingual model and says so).
+- **English stays on the multilingual Whisper small.** On our English test clip the fine-tune wrote "Please send
+  for usdt tu otieno" for "Please send 40 USDT to Otieno". The engine keeps one Whisper in RAM and swaps on a
+  language change (0.7-2.1 s measured; `test/e2e_ui.sh` checks a Swahili, an English and a Swahili voice note in a
+  row).
+- **Voice to decision, 6 synthetic clips** (`scripts/bench_e2e.mjs`): 6/6 with the fine-tune for Swahili, as with the
+  multilingual model. The fine-tune writes lower case without punctuation and spells the token "ust"; the code turns
+  that whole word back into "USDT" (`src/asr.js` `normalizeTokenWords`, nothing else is changed). On these
+  synthetic voices it misheard "Tuma USDT" at the start of 2 of 4 Swahili clips ("tu mausisi", "juma USDT"); amount
+  and payee still came out right, and the scam clip is now blocked for its scam wording ("wakala wa mpesa … haraka
+  ili kufungua") instead of only for a missing amount.
+- **Memory:** under the hard 3 GB cap `test/e2e_ui.sh` passes with the fine-tune and the swaps (2 of 2 runs; see
+  [Runs in 3 GB](#runs-in-3-gb)).
+- Raw numbers, transcripts and both 6-clip runs: [`evidence/asr-swahili-finetune.json`](evidence/asr-swahili-finetune.json)
+  and [`test/data/public/fleurs_results.json`](test/data/public/fleurs_results.json).
+
+**Input gain** (measured 2026-10-27 with the multilingual Whisper small and large-v3-turbo):
 
 | Whisper model, as the app runs it | Input gain | WER | CER | Median per clip, WER / CER | Empty | Time per clip: median (p90, max) |
 |---|---|---|---|---|---|---|
-| small q8_0 (what the app ships) | **on (now)** | **78.3%** | **20.4%** | 76.4% / 18.6% | **0/40** | **1.3 s** (1.5 s, 1.9 s) |
+| small q8_0 (multilingual) | on (now) | 78.3% | 20.4% | 76.4% / 18.6% | 0/40 | 1.3 s (1.5 s, 1.9 s) |
 | small q8_0 | before gain | 76.6% | 26.2% | 75.0% / 19.7% | 3/40 | 1.3 s (1.5 s, 4.3 s) |
 | large-v3-turbo q5_0 (`say --accurate`, CLI only) | on (now) | 53.5% | 27.2% | 36.2% / 9.6% | 0/40 | 5.7 s (8.4 s, 12.4 s) |
 | large-v3-turbo q5_0 | before gain | 53.4% | 30.1% | 42.3% / 11.5% | 3/40 | 5.7 s (10.8 s, 13.7 s) |
@@ -442,11 +482,12 @@ same 40 transcripts; turbo: the same error rates).
   (deletions 113 to 38), and on the other 36 clips small did slightly worse
   (WER 74.3% to 76.8%, CER 19.2% to 19.5%; 10 clips better, 15 worse, 11 the same). For turbo the other 36 were
   about the same (WER 49.1% to 48.4%, CER 24.0% to 23.3%).
-- **Whisper small gets about three words in four wrong on this read speech.** Many of the errors are near misses:
-  a word split in two or a letter off ("kiwango cha kukatwa" became "kiwangu chaku katua"), so about one character
-  in five is wrong. The app does not act on a transcript alone: the person sees what was heard, the amount and the
-  recipient must appear in the words, and the person confirms the payment.
-- In 4 clips (small), a contact name from the prompt replaced a similar word ("kama" → "Mama", "majuma" → "Juma").
+- **The multilingual Whisper small got about three words in four wrong on this read speech** (the reason we
+  measured the fine-tune). Many of its errors were near misses: a word split in two or a letter off ("kiwango cha
+  kukatwa" became "kiwangu chaku katua"), so about one character in five was wrong. With either model the app does
+  not act on a transcript alone: the person sees what was heard, the amount and the recipient must appear in the
+  words, and the person confirms the payment.
+- In 4 clips (multilingual small), a contact name from the prompt replaced a similar word ("kama" → "Mama", "majuma" → "Juma").
 - large-v3-turbo gets more words right but is about 4x slower. With the CLI's `audio_ctx` 768 (about 15 s of audio,
   chosen for short voice notes) it repeats itself on some of the 14 clips longer than 15.4 s, which makes its
   character error rate worse overall. On the 26 clips up to 15.4 s, with the gain: turbo WER 36.1%, CER 11.8%; small
@@ -484,9 +525,10 @@ the test client.
 
 | Run under the cap | Result | cgroup peak | Max anonymous | OOM kills |
 |---|---|---|---|---|
-| 3 GB: `test/e2e_offline.sh` (CLI: Swahili text and English voice payments, blocks, scam check, devnet broadcast) | PASS | 3,072 MB (at the cap: the kernel reclaims page cache of the weights) | 1,665 MB | 0 |
+| 3 GB: `test/e2e_offline.sh` (CLI: Swahili text and English voice payments, blocks, scam check, devnet broadcast) | PASS (2026-10-27 and again 2026-10-28) | 3,072 / 3,071 MB (at the cap: the kernel reclaims page cache of the weights) | 1,665 / 1,655 MB | 0 |
 | 3 GB: `test/e2e_ocr.sh` (4 screenshots: OCR, then the check with the LLM) | PASS, 4/4 | 2,840 MB | 1,674 MB | 0 |
-| 3 GB: `test/e2e_ui.sh` (resident engine, 90 API checks: voice, text, screenshots, re-sign, broadcast) | PASS, 90/90 (2 of 2 runs) | 3,072 MB | 2,942 and 2,948 MB | 0 |
+| 3 GB: `test/e2e_ui.sh` with the Swahili fine-tune (resident engine, 93 API checks: Swahili + English voice with model swaps, text, screenshots, re-sign, broadcast) | PASS, 93/93 (2 of 2 runs, 2026-10-28) | 3,072 MB | 2,998 and 2,901 MB | 0 |
+| 3 GB: `test/e2e_ui.sh` before the fine-tune (90 checks, one Whisper for both languages) | PASS, 90/90 (2 of 2 runs) | 3,072 MB | 2,942 and 2,948 MB | 0 |
 | 2 GB: `test/e2e_offline.sh` | PASS, but LLM 7.0-8.6 s per request (weights are re-read from disk) | 2,048 MB | 1,664 MB | 0 |
 
 - At 3 GB the CLI latencies stayed within run-to-run noise of the uncapped run (LLM 3.6-5.9 s per request vs
@@ -494,7 +536,8 @@ the test client.
 - The resident engine first FAILED this test: with speech, LLM and OCR loaded at once, the QVAC worker was
   OOM-killed at the screenshot step (2.96 GB anonymous). Since then the engine unloads the speech model while it
   reads a screenshot (it reloads on the next voice note, about 1 s; `test/e2e_ui.sh` checks that voice still works).
-  The margin is small: anonymous memory reached 2.94-2.95 GB of the 3 GB in the passing runs.
+  The margin is small: anonymous memory reached 2.90-3.00 GB of the 3 GB in the passing engine runs (2.94-2.95 GB
+  before the Swahili fine-tune, 2.90 and 3.00 GB with it and its model swaps).
 - QVAC's own view, `ops/sandbox.sh offline node scripts/system_fit.mjs`: `getSystemResources()` reports 6 cores,
   7.73 GiB and no GPU (it reads system memory, not the cgroup cap). The advisory `assessModelFit()` answers
   "unknown" offline, with computed floors only (Qwen3-1.7B at least 1.1 GiB with 2,048 tokens of context, Whisper
@@ -504,8 +547,11 @@ the test client.
 
 ## Limitations
 - **Payment voice clips are synthetic.** The voice-to-payment tests use neural TTS voices. Real speakers are measured
-  for speech to text only, on read speech ([Real voices](#real-voices-fleurs-swahili-native-speakers)): Whisper small
-  gets about three words in four wrong there (about one character in five). Very quiet recordings used to come back
+  for speech to text only, on read speech ([Real voices](#real-voices-fleurs-swahili-native-speakers)): the app's
+  Swahili model (a Swahili fine-tune of Whisper small) gets about one word in five wrong there (WER 20.1%, CER 7.2%;
+  the multilingual Whisper small: 78.3%, 20.4%). The fine-tune makes English worse, so English keeps the multilingual
+  model; it spells USDT "ust" (turned back into USDT in code) and on our synthetic voices sometimes mishears the
+  first word ("Tuma"). Very quiet recordings used to come back
   empty; an input gain now raises them, but it does not make normal-level speech more accurate. Noisy street audio, phone microphones and heavy code-switching are not tested yet. The
   code catches many speech mistakes (amount and recipient must match the words) but it can ask more often than it
   should.
