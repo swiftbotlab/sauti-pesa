@@ -20,16 +20,27 @@ Track: **Agentic finance with WDK** · AI Yako: Own Your AI (Tether QVAC) · bui
 <details>
 <summary>More screens (390 px): home, look-alike address blocked, message check, outbox</summary>
 <p>
-  <img src="docs/ui-mobile-home.png" alt="Home: status pill, balance card, big mic button, text box and contacts" width="200">
+  <img src="docs/ui-mobile-home.png" alt="Home: test-token badge, status pill, balance card, big mic button, text box and contacts" width="200">
   <img src="docs/ui-mobile-blocked.png" alt="A look-alike of Amina's address is blocked as address poisoning" width="200">
   <img src="docs/ui-mobile-check.png" alt="Message check: a Swahili prize SMS rated high risk, with reasons" width="200">
   <img src="docs/ui-mobile-outbox.png" alt="Outbox: payments signed offline, broadcast and confirmed, with explorer links" width="200">
 </p>
 </details>
 
-**Demo video (internet off): [sauti-pesa-demo.mp4](https://github.com/swiftbotlab/sauti-pesa/releases/download/v1.0/sauti-pesa-demo.mp4)** · captions ([.srt](https://github.com/swiftbotlab/sauti-pesa/releases/download/v1.0/sauti-pesa-demo.srt)) + English voice-over, 2:57.
+**Demo video (internet off): [sauti-pesa-demo-v1.2.mp4](https://github.com/swiftbotlab/sauti-pesa/releases/download/v1.2/sauti-pesa-demo-v1.2.mp4)** · captions ([.srt](https://github.com/swiftbotlab/sauti-pesa/releases/download/v1.2/sauti-pesa-demo-v1.2.srt)) + English voice-over, 3:05.
+The same recording as the [original cut](https://github.com/swiftbotlab/sauti-pesa/releases/download/v1.0/sauti-pesa-demo.mp4) (2:57 + a 5 s offline-proof card), with a
+test-token label on screen the whole time and a 3 s opening card that says what is tested.
 Recorded before the final hardening pass. Since then `ops/ui.sh` prints a link that carries a per-launch key, and
 the page needs that link; the payment flows in the video behave the same.
+
+> [!NOTE]
+> **Test money only.** Every USDT amount in the app, the video and the transaction table below is a **test token
+> worth nothing**, not Tether's USDT: on Sepolia the 6-decimal test USDT
+> [`0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0`](https://eth-sepolia.blockscout.com/token/0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0)
+> (listed in the WDK docs for testnets), on the local devnet our own [`contracts/MockUSDT.sol`](contracts/MockUSDT.sol).
+> The app labels every amount "test USDT" and shows a "TESTNET · not real money" badge.
+> **Offline vs online:** speech to text, intent, the scam and safety checks and the signing all run **offline** on
+> the device. Only the broadcast of payments that are already signed needs the internet.
 
 **Supplementary 1-min clip: [check a scam screenshot offline](https://github.com/swiftbotlab/sauti-pesa/releases/download/v1.1/sauti-pesa-screenshot-check.mp4)** · QVAC OCR on the device, three Swahili test screenshots (two scams, one with a look-alike address, and one genuine message), English captions, 1:08.
 
@@ -70,8 +81,11 @@ school in USDT, and wants a second pair of eyes that works offline and never sen
   OCR reads the text on the device), and get a Swahili or English risk explanation, including look-alike address
   detection against your own contacts. The text read from the image goes through exactly the same checks as pasted
   text and is shown to the person, who can correct it.
-- **Status pill, always on screen:** "AI: on device · Network: OFF (verified)". It is backed by a live probe
-  (interfaces, TCP, DNS), not a setting.
+- **Status pill, always on screen:** "AI + signing: on device · Network: OFF (verified)". It is backed by a live
+  probe (interfaces, TCP, DNS), not a setting. The confirm card and the outbox say that only the broadcast needs
+  internet.
+- **Test money, labelled:** a header badge "TESTNET · test USDT on Sepolia · not real money" (or "on a local
+  devnet"), and every amount reads "test USDT", in the app and in the CLI output.
 - **Re-sign** a queued payment whose nonce was used elsewhere (after checking on-chain that it was not mined).
 - Mobile-first web UI (390 px and desktop), Swahili first, no external fonts or CDNs. Also a full CLI (`bin/sauti.mjs`).
 

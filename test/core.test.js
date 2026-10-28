@@ -206,6 +206,6 @@ test('model flags can raise risk but unknown ids are ignored', () => {
 
 test('confirmation text in both languages', () => {
   const r = checkSend({ ...base, intent: intent({ memo: 'kodi' }), transcript: 'Tuma USDT ishirini kwa Amina' })
-  assert.match(confirmationText({ intent: intent({ memo: 'kodi' }), recipient: r.recipient, decision: r.decision }, 'sw'), /^Unatuma 20 USDT \(test\) kwa Amina \(0x/)
-  assert.match(confirmationText({ intent: intent(), recipient: r.recipient, decision: r.decision }, 'en'), /^You are sending 20 USDT/)
+  assert.match(confirmationText({ intent: intent({ memo: 'kodi' }), recipient: r.recipient, decision: r.decision }, 'sw'), /^Unatuma 20 USDT ya majaribio kwa Amina \(0x/)
+  assert.match(confirmationText({ intent: intent(), recipient: r.recipient, decision: r.decision }, 'en'), /^You are sending 20 test USDT/)
 })

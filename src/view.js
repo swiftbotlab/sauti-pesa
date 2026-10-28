@@ -34,7 +34,7 @@ const PASSED = {
   address: { sw: (v) => (v.saved ? 'Anwani ni ile ile uliyohifadhi' : 'Anwani ni sahihi (checksum)'), en: (v) => (v.saved ? 'Same address you saved' : 'Address is valid (checksum)') },
   amount: { sw: (v) => `Kiasi ${v.amount} kimo kwenye maneno yako`, en: (v) => `The amount ${v.amount} is in your own words` },
   limits: { sw: (v) => `Ndani ya vikomo: ${v.perTx} kwa malipo, ${v.perDay} kwa siku`, en: (v) => `Within limits: ${v.perTx} per payment, ${v.perDay} per day` },
-  balance: { sw: (v) => `Salio linatosha (${v.balance} USDT)`, en: (v) => `Enough balance (${v.balance} USDT)` },
+  balance: { sw: (v) => `Salio linatosha (${v.balance} USDT ya majaribio)`, en: (v) => `Enough balance (${v.balance} test USDT)` },
   scam: { sw: () => 'Hakuna dalili za utapeli', en: () => 'No scam signs' }
 }
 

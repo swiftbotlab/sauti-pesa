@@ -103,7 +103,7 @@ export async function broadcastQueue ({ rpc, store, chainId, address, explorer =
     }
     store.update(e.id, { status: 'broadcast', broadcastAt: e.broadcastAt || now(), error: null })
     out.sent++
-    log(`broadcast ${e.hash}  ${e.amount} USDT -> ${e.recipientName || e.to}${explorer ? `  ${explorer}${e.hash}` : ''}`)
+    log(`broadcast ${e.hash}  ${e.amount} test USDT -> ${e.recipientName || e.to}${explorer ? `  ${explorer}${e.hash}` : ''}`)
     const r = await waitReceipt(e.hash)
     if (r) mined(e, r); else { out.unknown++; log('  no receipt yet; run broadcast/status again later') }
   }

@@ -114,7 +114,7 @@ async function cmdAsk (o, text, extra = {}) {
     if (yes) {
       queued = await confirmAndQueue({ analysis: a, wallet, store, networkId: netId, tokenAddress, retypedAmount: o.retype })
       say(o, `\n${L === 'sw' ? 'Imesainiwa kwenye kifaa (bila mtandao) na kuwekwa foleni.' : 'Signed on this device (offline) and queued.'}`)
-      say(o, `  tx ${queued.hash}  nonce ${queued.nonce}  ->  ${queued.recipientName || ''} ${shortAddr(queued.to)}  ${queued.amount} USDT`)
+      say(o, `  tx ${queued.hash}  nonce ${queued.nonce}  ->  ${queued.recipientName || ''} ${shortAddr(queued.to)}  ${queued.amount} test USDT`)
       say(o, `  NETWORK NEEDED LATER: broadcast with "node bin/netsync.mjs broadcast --network ${netId}" when online.`)
     } else say(o, L === 'sw' ? 'Hakuna kilichotumwa.' : 'Nothing was sent.')
   }
@@ -198,7 +198,7 @@ async function cmdResign (o) {
   const store = new Store(join(DATA, 'queue'), netId)
   const e = store.list().find((x) => x.id === id || x.id.startsWith(id))
   if (!e) throw new Error('no such outbox entry')
-  say(o, `Re-sign ${e.amount} USDT -> ${e.recipientName || ''} ${shortAddr(e.to)} (old nonce ${e.nonce}: ${e.error || e.status})`)
+  say(o, `Re-sign ${e.amount} test USDT -> ${e.recipientName || ''} ${shortAddr(e.to)} (old nonce ${e.nonce}: ${e.error || e.status})`)
   let yes = !!o.yes
   if (!yes && process.stdin.isTTY) {
     const rl = createInterface({ input: process.stdin, output: process.stdout })
@@ -237,7 +237,7 @@ async function main () {
   else if (cmd === 'check') await cmdCheck(o)
   else if (cmd === 'queue') {
     const store = new Store(join(DATA, 'queue'), o.network || CFG.network)
-    for (const e of store.list()) console.log(`${e.status.padEnd(10)} nonce ${String(e.nonce).padEnd(3)} ${e.amount} USDT -> ${e.recipientName || ''} ${shortAddr(e.to)}  ${e.hash.slice(0, 18)}…`)
+    for (const e of store.list()) console.log(`${e.status.padEnd(10)} nonce ${String(e.nonce).padEnd(3)} ${e.amount} test USDT -> ${e.recipientName || ''} ${shortAddr(e.to)}  ${e.hash.slice(0, 18)}…`)
   } else if (cmd === 'resign') await cmdResign(o)
   else {
     console.log(readFileSync(new URL(import.meta.url), 'utf8').split('\n').slice(1, 11).join('\n').replace(/^\/\/ ?/gm, ''))

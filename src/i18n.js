@@ -9,9 +9,9 @@ const L = {
   missing_amount: { sw: 'Sikusikia kiasi. Sema au andika kiasi cha USDT.', en: 'I did not catch an amount. Say or type how much USDT.' },
   amount_not_heard: { sw: 'Sikusikia kiasi kwenye maneno yako. Sema au andika kiasi kwa tarakimu (k.m. 20).', en: 'I could not find an amount in your words. Say or type it in digits (e.g. 20).' },
   amount_not_in_request: { sw: (d) => `Kiasi ${d.amount} hakikuwa kwenye ombi lako. Rudia ombi.`, en: (d) => `The amount ${d.amount} was not in your request. Please repeat it.` },
-  over_tx_limit: { sw: (d) => `Zaidi ya kikomo chako cha malipo moja (${d.limit} USDT).`, en: (d) => `Above your per-payment limit (${d.limit} USDT).` },
-  over_daily_limit: { sw: (d) => `Utazidi kikomo cha siku (${d.limit} USDT; umeshatuma ${d.spent}).`, en: (d) => `This would pass your daily limit (${d.limit} USDT; already ${d.spent}).` },
-  insufficient_balance: { sw: (d) => `Salio halitoshi (${d.balance} USDT kwa mujibu wa usawazishaji wa mwisho).`, en: (d) => `Not enough balance (${d.balance} USDT at the last sync).` },
+  over_tx_limit: { sw: (d) => `Zaidi ya kikomo chako cha malipo moja (${d.limit} USDT ya majaribio).`, en: (d) => `Above your per-payment limit (${d.limit} test USDT).` },
+  over_daily_limit: { sw: (d) => `Utazidi kikomo cha siku (${d.limit} USDT ya majaribio; umeshatuma ${d.spent}).`, en: (d) => `This would pass your daily limit (${d.limit} test USDT; already ${d.spent}).` },
+  insufficient_balance: { sw: (d) => `Salio halitoshi (${d.balance} USDT ya majaribio kwa mujibu wa usawazishaji wa mwisho).`, en: (d) => `Not enough balance (${d.balance} test USDT at the last sync).` },
   balance_unknown: { sw: 'Salio halijulikani (hakuna mtandao). Litaangaliwa kabla ya kutuma.', en: 'Balance unknown (offline). It is checked before sending.' },
   retype_amount: { sw: (d) => `Kiasi kikubwa: andika ${d.amount} tena kuthibitisha.`, en: (d) => `Large amount: type ${d.amount} again to confirm.` },
   missing_recipient: { sw: 'Sikusikia unamtumia nani.', en: 'I did not catch who to pay.' },
@@ -31,7 +31,7 @@ const L = {
     en: (d) => `DANGER: this address looks like ${d.similarTo ? `${d.similarTo}'s` : 'one you paid before'} (${shortAddr(d.similarAddress)}) but is NOT the same. This is an address-poisoning trick.`
   },
   new_recipient: { sw: 'Hujawahi kumtumia mtu huyu. Hakikisha anwani kwa simu.', en: 'You have never paid this address. Confirm it by phone.' },
-  new_recipient_over_limit: { sw: (d) => `Malipo ya kwanza kwa anwani mpya yamezuiliwa juu ya ${d.limit} USDT. Tuma kiasi kidogo kwanza.`, en: (d) => `First payments to a new address are capped at ${d.limit} USDT. Send a small test first.` },
+  new_recipient_over_limit: { sw: (d) => `Malipo ya kwanza kwa anwani mpya yamezuiliwa juu ya ${d.limit} USDT ya majaribio. Tuma kiasi kidogo kwanza.`, en: (d) => `First payments to a new address are capped at ${d.limit} test USDT. Send a small test first.` },
   scam_high: { sw: 'Ombi lina dalili kali za utapeli. Malipo yamezuiliwa.', en: 'This request shows strong scam signs. Payment blocked.' },
   scam_signals: { sw: 'Ombi lina dalili za utapeli. Soma maonyo kabla ya kuthibitisha.', en: 'This request shows scam signs. Read the warnings before confirming.' }
 }
@@ -69,6 +69,6 @@ export function confirmationText ({ intent, recipient, decision }, lang, feeNote
   if (decision === 'blocked') return lang === 'sw' ? 'Malipo hayawezi kuendelea:' : 'This payment cannot go ahead:'
   const fee = feeNote ? ` ${feeNote}` : ''
   return lang === 'sw'
-    ? `Unatuma ${intent.amount} USDT (test) kwa ${who}${memo}.${fee} Thibitisha? (ndiyo/hapana)`
-    : `You are sending ${intent.amount} USDT (test) to ${who}${memo}.${fee} Confirm? (yes/no)`
+    ? `Unatuma ${intent.amount} USDT ya majaribio kwa ${who}${memo}.${fee} Thibitisha? (ndiyo/hapana)`
+    : `You are sending ${intent.amount} test USDT to ${who}${memo}.${fee} Confirm? (yes/no)`
 }

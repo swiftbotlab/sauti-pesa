@@ -82,7 +82,7 @@ async function sync () {
     ...(gasLimit ? { gasLimit } : {}),
     tokenAddress: token
   })
-  console.log(`synced ${net.name}: nonce ${s.nonce}, USDT ${balance === null ? '?' : fromUnits(balance)}, gas balance ${fromUnits(native, 18)} ${net.nativeSymbol}, maxFee ${fromUnits(fees.maxFeePerGas, 9)} gwei`)
+  console.log(`synced ${net.name}: nonce ${s.nonce}, test USDT ${balance === null ? '?' : fromUnits(balance)}, gas balance ${fromUnits(native, 18)} ${net.nativeSymbol}, maxFee ${fromUnits(fees.maxFeePerGas, 9)} gwei`)
 }
 
 async function broadcast () {
@@ -105,7 +105,7 @@ async function devnetSetup () {
     await waitReceipt(await rpc.call('eth_sendTransaction', [{ from: ANVIL_DEV0, to: token, data: mint, gas: '0x30000' }]))
     await rpc.call('anvil_setBalance', [address, '0xde0b6b3a7640000']) // 1 test ETH for gas
     store.saveState({ tokenAddress: token })
-    console.log(`devnet: deployed test USDT at ${token}, minted 1000 USDT + 1 ETH to ${address}`)
+    console.log(`devnet: deployed test USDT at ${token}, minted 1000 test USDT + 1 test ETH to ${address}`)
   }
   await sync()
 }
@@ -139,7 +139,7 @@ async function devnetBumpNonce () {
 function status () {
   const s = store.state()
   console.log(JSON.stringify({ network: net.name, address: s.address, nonce: s.nonce, usdt: s.balance ? fromUnits(s.balance.units) : null, synced: s.nonceAt || null }))
-  for (const e of store.list()) console.log(`${e.status.padEnd(12)} nonce ${e.nonce}  ${e.amount} USDT -> ${e.recipientName || e.to}  ${e.hash}`)
+  for (const e of store.list()) console.log(`${e.status.padEnd(12)} nonce ${e.nonce}  ${e.amount} test USDT -> ${e.recipientName || e.to}  ${e.hash}`)
 }
 
 const run = { sync, broadcast, status, 'devnet-setup': devnetSetup, 'devnet-bump-nonce': devnetBumpNonce, 'faucet-mint': faucetMint }[cmd]

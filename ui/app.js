@@ -140,10 +140,23 @@ function renderChrome () {
   document.documentElement.lang = S.lang
   $('tagline').textContent = t('tagline')
   for (const b of $('langSeg').querySelectorAll('button')) b.setAttribute('aria-pressed', String(b.dataset.lang === S.lang))
+  renderTestnet()
   renderPill()
   renderBalance()
   renderTabs()
   renderSide()
+}
+
+// Persistent header badge: every amount in this app is a TEST token on a test network (never real money). The
+// network comes from the engine's status (or the person's saved choice); until it is known, no network is named.
+function renderTestnet () {
+  const el = $('testnet')
+  if (!el) return
+  const net = S.network || S.status?.network?.id || null
+  const sig = `${S.lang}|${net}`
+  if (el.dataset.sig === sig) return
+  el.dataset.sig = sig
+  el.replaceChildren(icon('info'), h('span', null, h('b', { text: t('testnetTag') }), ` · ${t('testnetLine', net)} · ${t('notReal')}`))
 }
 
 function renderPill () {
@@ -187,9 +200,8 @@ function renderBalance () {
       h('span', { class: 'lbl', text: t('balance') }),
       h('button', { class: 'net-chip', id: 'netChip', type: 'button', 'aria-haspopup': 'dialog', 'aria-label': `${t('networkMenu')}: ${t(`net_${netId()}`)}`, onclick: openNetMenu },
         h('span', { class: 'dot' }), t(`net_${netId()}`), icon('chev'))),
-    h('div', { class: 'amt' }, c?.usdt === null || c?.usdt === undefined ? '—' : fmtAmt(c.usdt), h('small', { text: 'USDT' })),
+    h('div', { class: 'amt' }, c?.usdt === null || c?.usdt === undefined ? '—' : fmtAmt(c.usdt), h('small', { text: t('unit') })),
     h('div', { class: 'meta' },
-      h('span', { class: 'badge', text: t('testUsdt') }),
       h('span', { text: c?.syncedAt ? `${t('synced')} ${fmtTime(c.syncedAt)}` : t('neverSynced') }),
       st?.wallet ? h('code', { text: st.wallet.short }) : null)
   )
@@ -442,7 +454,7 @@ function resultView () {
   const passed = v.groups.filter((g) => g.status === 'ok')
   if (v.hardBlock) {
     kids.push(h('div', { class: 'banner bad', style: 'margin-top:12px' }, h('span', { class: 'ic' }, icon('x')), h('div', null, h('b', { text: t('blockedTitle') }), h('span', { text: t('blockedSub') }))))
-    if (v.amount) kids.push(h('div', { class: 'amount-big' }, fmtAmt(v.amount), h('small', { text: 'USDT' })))
+    if (v.amount) kids.push(h('div', { class: 'amount-big' }, fmtAmt(v.amount), h('small', { text: t('unit') })))
     kids.push(payeeNode(v))
     kids.push(h('h3', { text: t('checks') }), h('div', { class: 'groups' }, flagged.map(groupNode)), passedList(passed))
     kids.push(flagsNode(v.scamFlags, v.aiFlags, v.aiNote))
@@ -451,7 +463,7 @@ function resultView () {
   }
   if (v.amountQuestion || v.contactQuestion) {
     kids.push(h('div', { class: 'confirm-top', style: 'margin-top:12px' }, h('h2', { text: t('questionTitle') })))
-    if (v.amount && !v.amountQuestion) kids.push(h('div', { class: 'amount-big' }, fmtAmt(v.amount), h('small', { text: 'USDT' })))
+    if (v.amount && !v.amountQuestion) kids.push(h('div', { class: 'amount-big' }, fmtAmt(v.amount), h('small', { text: t('unit') })))
     if (!v.contactQuestion) kids.push(payeeNode(v))
     if (v.amountQuestion) kids.push(amountQuestionNode(v.amountQuestion))
     else kids.push(contactQuestionNode(v.contactQuestion))
@@ -463,7 +475,7 @@ function resultView () {
   // ready to confirm
   kids.push(h('div', { class: 'confirm-top', style: 'margin-top:12px' }, h('h2', { text: t('confirmTitle') }), h('span', { class: 'status queued', text: t('testBadge') })))
   kids.push(h('div', { class: 'sub', text: t('sending') }))
-  kids.push(h('div', { class: 'amount-big' }, fmtAmt(v.amount), h('small', { text: 'USDT' })))
+  kids.push(h('div', { class: 'amount-big' }, fmtAmt(v.amount), h('small', { text: t('unit') })))
   kids.push(payeeNode(v))
   if (v.memo) kids.push(h('div', { class: 'memo' }, h('span', { text: `${t('forWhat')}: ` }), v.memo))
   kids.push(h('h3', { text: t('checks') }), flagged.length ? h('div', { class: 'groups' }, flagged.map(groupNode)) : null, passedList(passed))
@@ -510,7 +522,7 @@ function amountQuestionNode (q) {
   if (q.kind === 'choose' && !S.F.typeAmount) {
     return h('div', { class: 'question' },
       h('div', { class: 'q', text: t('chooseAmount') }),
-      h('div', { class: 'chips' }, q.amounts.map((a) => h('button', { class: 'chip', type: 'button', onclick: () => doAmend({ amount: a }) }, `${a} USDT`)),
+      h('div', { class: 'chips' }, q.amounts.map((a) => h('button', { class: 'chip', type: 'button', onclick: () => doAmend({ amount: a }) }, `${a} ${t('unit')}`)),
         h('button', { class: 'chip', type: 'button', onclick: () => { S.F.typeAmount = true; renderView() } }, t('noTypeIt'))))
   }
   const inp = h('input', { type: 'text', inputmode: 'decimal', autocomplete: 'off', maxlength: '20', 'aria-label': t('howMuch'), placeholder: '0', onkeydown: (e) => { if (e.key === 'Enter') go() } })
@@ -534,7 +546,7 @@ function signedView () {
     h('h2', { text: t('signedTitle') }),
     h('p', { class: 'sub', text: t('signedSub') }),
     h('dl', { class: 'kv' },
-      h('dt', { text: t('sending') }), h('dd', { text: `${fmtAmt(q.amount)} USDT` }),
+      h('dt', { text: t('sending') }), h('dd', { text: `${fmtAmt(q.amount)} ${t('unit')}` }),
       h('dt', { text: t('to') }), h('dd', { text: `${q.recipientName || ''} ${q.short}` }),
       h('dt', { text: 'nonce' }), h('dd', { text: String(q.nonce) }),
       h('dt', { text: 'tx' }), h('dd', { text: q.hashShort }),
@@ -826,7 +838,7 @@ function outboxView () {
       h('div', { class: 'actions', style: 'flex-wrap:wrap' },
         h('button', { class: 'btn primary', type: 'button', disabled: running || !(waiting || unconfirmed), onclick: () => runNet('broadcast') }, icon('plane'), waiting ? t('sendQueued', waiting) : unconfirmed ? t('checkSent') : t('nothingToSend')),
         h('button', { class: 'btn ghost small', type: 'button', disabled: running, onclick: () => runNet('sync') }, icon('refresh'), t('syncBtn'))),
-      h('div', { class: 'netbadge' }, icon('lock'), h('div', null, h('b', { text: `${t('broadcasterOnline')} · ${t('noKeys')}` }), h('span', { text: t('broadcasterNote') }))),
+      h('div', { class: 'netbadge' }, icon('lock'), h('div', null, h('b', { text: t('broadcastStep') }), h('span', { text: t('broadcasterNote') }))),
       job && job.network === netId() ? h('div', { class: 'joblog' },
         h('div', { class: 'hd' }, h('span', { class: `dot${running ? ' run' : ''}` }), running ? `${t('broadcasterOnline')} · ${job.action}` : `${t('broadcasterDone')} · exit ${job.code}`),
         (job.lines || []).slice(-14).join('\n')) : null
@@ -844,7 +856,7 @@ function obRow (e) {
       h('span', { class: `status ${e.status}`, text: t(`st_${e.status}`) }),
       e.explorer ? h('div', null, h('a', { href: e.explorer, target: '_blank', rel: 'noopener noreferrer' }, t('explorer'), icon('ext'))) : null,
       e.status === 'needs_resign' ? h('button', { class: 'btn small danger', type: 'button', style: 'margin-top:8px', onclick: () => askResign(e) }, icon('key'), t('resignBtn')) : null),
-    h('div', { class: 'amt', text: `${fmtAmt(e.amount)} USDT` }))
+    h('div', { class: 'amt' }, fmtAmt(e.amount), h('small', { text: t('unit') })))
 }
 
 async function runNet (action) {

@@ -29,8 +29,12 @@ RESULT = "!!document.querySelector('.amount-big') || !!document.querySelector('.
 
 
 def fresh(t, lang):
+    # the page drops the key from the address bar, so going to URL again would only change the #fragment (no
+    # reload): pass through about:blank to load the app from scratch each time
+    t.goto("about:blank", 0.3)
     t.goto(URL, 1.0)
     t.js(f"localStorage.setItem('sauti.network', '{a.network}'); localStorage.setItem('sauti.lang', '{lang}'); true")
+    t.goto("about:blank", 0.3)
     t.goto(URL, 1.5)
     t.wait_js(READY, 90)
     t.pump(0.8)
