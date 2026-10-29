@@ -246,7 +246,7 @@ const STEP_META = {
 }
 function stepDetail (s) {
   if (s.id === 'asr') return `${s.asr_model || 'whisper small q8_0'} · ${t('audioSec', s.audio_s ?? '?')}`
-  if (s.id === 'llm') return `Qwen3-1.7B Q4_0 · ${s.cached_tokens !== null && s.cached_tokens !== undefined ? t('tokensCached', s.cached_tokens, s.prompt_tokens ?? '?') : 'QVAC'}`
+  if (s.id === 'llm') return `${String(s.model || 'Qwen3-1.7B Q4_0').replace(/ \(.*$/, '')} · ${s.cached_tokens !== null && s.cached_tokens !== undefined ? t('tokensCached', s.cached_tokens, s.prompt_tokens ?? '?') : 'QVAC'}`
   if (s.id === 'checks') return t('checksCount', s.count || 6)
   if (s.id === 'ocr') return `QVAC OCR · ${s.image || ''}`
   if (s.id === 'sign') return t('policy')

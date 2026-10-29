@@ -1,0 +1,3845 @@
+{
+ "what": "Lite (\"phone-class\") model profile vs the default, measured with the repository's own harnesses on one Linux arm64 VM. Not run on a phone.",
+ "date": "2026-10-29",
+ "measured_utc": {
+  "first_step": "2026-10-29T05:01:10Z",
+  "last_step": "2026-10-29T05:22:06Z"
+ },
+ "switch": "SAUTI_PROFILE=lite (env, passes through ops/sandbox.sh) or `node bin/portable.mjs --lite <command>`; default OFF. src/profile.js, config.json profiles.lite",
+ "hardware": {
+  "machine": "Linux virtual machine (Apple Virtualization Generic Platform), no phone",
+  "cpu": "6 arm64 vCPUs (vendor Apple; no CPU model name given to the guest)",
+  "ram_total_mb": 7913,
+  "gpu": "none (CPU only)",
+  "shared": "the VM also runs other services; one run per measurement, not an average"
+ },
+ "software": {
+  "os": "Ubuntu 26.04.1 LTS",
+  "kernel": "7.0.0-38-generic",
+  "node": "v22.22.1",
+  "qvac_sdk": "0.22.0"
+ },
+ "models": {
+  "default": {
+   "llm": {
+    "models_json_key": "QWEN3_1_7B_INST_Q4",
+    "qvac_constant": "QWEN3_1_7B_INST_Q4",
+    "file": "models/Qwen3-1.7B-Q4_0.gguf",
+    "bytes": 1056782912,
+    "sha256": "c876f159707a4e4f70e045106c69db15bfc935a4981706fd4f65c6e7ea1e81c5",
+    "url": "https://huggingface.co/unsloth/Qwen3-1.7B-GGUF/resolve/d7f544eead698dbd1f15126ef60b45a1e1933222/Qwen3-1.7B-Q4_0.gguf",
+    "license": "Apache-2.0 (Qwen/Qwen3-1.7B)"
+   }
+  },
+  "lite": {
+   "llm": {
+    "models_json_key": "QWEN3_600M_INST_Q4",
+    "qvac_constant": "QWEN3_600M_INST_Q4",
+    "file": "models/Qwen3-0.6B-Q4_0.gguf",
+    "bytes": 382156480,
+    "sha256": "33bcc57074ec7b6eada5a90651ee546ec0c2b271002c22baf9f1b2dd1e8f75cb",
+    "url": "https://huggingface.co/unsloth/Qwen3-0.6B-GGUF/resolve/50968a4468ef4233ed78cd7c3de230dd1d61a56b/Qwen3-0.6B-Q4_0.gguf",
+    "license": "Apache-2.0 (Qwen/Qwen3-0.6B)"
+   },
+   "qvac_registry_path": "unsloth/Qwen3-0.6B-GGUF/blob/50968a4468ef4233ed78cd7c3de230dd1d61a56b/Qwen3-0.6B-Q4_0.gguf (QVAC 0.22.0 registry, constant QWEN3_600M_INST_Q4); sha256 equals the Hugging Face LFS oid at that commit, checked 2026-10-29"
+  },
+  "both": {
+   "asr_sw": {
+    "models_json_key": "WHISPER_SMALL_SW_Q8_0",
+    "qvac_constant": null,
+    "file": "models/ggml-whisper-swahili-small-q8_0.bin",
+    "bytes": 264464624,
+    "sha256": "5d89c6ee07592a0c43fa560d592949635e7154cd716debda8d40919a772381a6",
+    "url": "https://huggingface.co/malinali-app/whisper-swahili-small-ggml/resolve/403b03e660aa3635823c42e4589c57a9b2c26fe5/ggml-model-q8_0.bin",
+    "license": "Apache-2.0 (PaschalK/whisper-swahili-small, Swahili fine-tune of OpenAI Whisper small on Common Voice 11; ggml q8_0 conversion by malinali-app)"
+   },
+   "asr_en": {
+    "models_json_key": "WHISPER_SMALL_Q8_0",
+    "qvac_constant": "WHISPER_SMALL_Q8_0",
+    "file": "models/ggml-small-q8_0.bin",
+    "bytes": 264464607,
+    "sha256": "49c8fb02b65e6049d5fa6c04f81f53b867b5ec9540406812c643f177317f779f",
+    "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-small-q8_0.bin",
+    "license": "MIT (OpenAI Whisper, ggml conversion by whisper.cpp)"
+   },
+   "vad": {
+    "models_json_key": "VAD_SILERO_5_1_2",
+    "qvac_constant": "VAD_SILERO_5_1_2",
+    "file": "models/ggml-silero-v5.1.2.bin",
+    "bytes": 885098,
+    "sha256": "29940d98d42b91fbd05ce489f3ecf7c72f0a42f027e4875919a28fb4c04ea2cf",
+    "url": "https://huggingface.co/ggml-org/whisper-vad/resolve/9ffd54a1e1ee413ddf265af9913beaf518d1639b/ggml-silero-v5.1.2.bin",
+    "license": "MIT (Silero VAD, ggml conversion by whisper.cpp)"
+   },
+   "ocr": [
+    {
+     "models_json_key": "OCR_LATIN",
+     "qvac_constant": "OCR_LATIN",
+     "file": "models/latin_g2.gguf",
+     "bytes": 15396512,
+     "sha256": "dd1c7a436e9175904e63683e939635892f45c8c6377d5e14e87cf8b175e10768",
+     "url": null,
+     "license": "Apache-2.0 (EasyOCR latin_g2 recognizer by JaidedAI; GGUF conversion by QVAC)"
+    },
+    {
+     "models_json_key": "OCR_CRAFT",
+     "qvac_constant": "OCR_CRAFT",
+     "file": "models/craft_mlt_25k.gguf",
+     "bytes": 83133856,
+     "sha256": "74501993caf4581ce09b280f49a1b3d249c0f5a78496e047718b398457a875aa",
+     "url": null,
+     "license": "MIT (CRAFT text detector by NAVER Clova AI, as used by EasyOCR; GGUF conversion by QVAC)"
+    }
+   ]
+  }
+ },
+ "intent_step": {
+  "command": "LLM_CASES=<set> ops/sandbox.sh offline node scripts/bench_llm.mjs models/<file>",
+  "note": "ok = action, amount and payee all right in the model JSON. wrong_but_confirmable = a wrong answer that the code checks (src/safety.js checkSend) would still let reach the person's confirm. scam rows: the final risk after the rules, where model flags can only add a low hint.",
+  "tuned": {
+   "default": {
+    "model": "models/Qwen3-1.7B-Q4_0.gguf",
+    "set": "test/llm_cases.json (tuned)",
+    "intent_correct": "12/12",
+    "wrong_but_confirmable": 0,
+    "scam_final_risk_correct": "4/4",
+    "median_intent_ms": 987,
+    "mean_intent_ms": 1092,
+    "load_ms": 2737,
+    "prompt_cache_warm_ms": 6290,
+    "peak_rss_mb": {
+     "bare:13": 2612,
+     "node:2": 152
+    },
+    "misses": [],
+    "model_scam_flags_per_message": [
+     4,
+     3,
+     2,
+     2
+    ]
+   },
+   "lite": {
+    "model": "models/Qwen3-0.6B-Q4_0.gguf",
+    "set": "test/llm_cases.json (tuned)",
+    "intent_correct": "11/12",
+    "wrong_but_confirmable": 0,
+    "scam_final_risk_correct": "4/4",
+    "median_intent_ms": 536,
+    "mean_intent_ms": 665,
+    "load_ms": 2314,
+    "prompt_cache_warm_ms": 4039,
+    "peak_rss_mb": {
+     "bare:13": 1379,
+     "node:2": 150
+    },
+    "misses": [
+     {
+      "text": "Tuma USDT mia moja kuwanjiru sa sahivi.",
+      "model_output": {
+       "a": "send",
+       "amt": "100",
+       "name": "sa hamsini",
+       "who": "unknown",
+       "memo": "sahivi",
+       "lang": "sw"
+      },
+      "code_decision": "blocked",
+      "block_codes": [
+       "unknown_recipient"
+      ],
+      "confirmable": false
+     }
+    ],
+    "model_scam_flags_per_message": [
+     9,
+     10,
+     10,
+     10
+    ]
+   }
+  },
+  "held_out": {
+   "default": {
+    "model": "models/Qwen3-1.7B-Q4_0.gguf",
+    "set": "test/llm_heldout.json (held-out)",
+    "intent_correct": "11/12",
+    "wrong_but_confirmable": 0,
+    "scam_final_risk_correct": "4/4",
+    "median_intent_ms": 922,
+    "mean_intent_ms": 893,
+    "load_ms": 2359,
+    "prompt_cache_warm_ms": 6207,
+    "peak_rss_mb": {
+     "bare:13": 2613,
+     "node:2": 151
+    },
+    "misses": [
+     {
+      "text": "nitumie Juma pesa",
+      "model_output": [
+       "amount must be a positive number with at most 6 decimals"
+      ],
+      "code_decision": "not_understood",
+      "block_codes": [],
+      "confirmable": false
+     }
+    ],
+    "model_scam_flags_per_message": [
+     3,
+     2,
+     3,
+     2
+    ]
+   },
+   "lite": {
+    "model": "models/Qwen3-0.6B-Q4_0.gguf",
+    "set": "test/llm_heldout.json (held-out)",
+    "intent_correct": "10/12",
+    "wrong_but_confirmable": 0,
+    "scam_final_risk_correct": "4/4",
+    "median_intent_ms": 505,
+    "mean_intent_ms": 486,
+    "load_ms": 1970,
+    "prompt_cache_warm_ms": 3389,
+    "peak_rss_mb": {
+     "bare:13": 1385,
+     "node:2": 150
+    },
+    "misses": [
+     {
+      "text": "how much USDT do I have",
+      "model_output": {
+       "a": "balance",
+       "amt": "150",
+       "name": "mama",
+       "who": "mama",
+       "memo": "school fees",
+       "lang": "en"
+      },
+      "code_decision": "no payment (balance)",
+      "block_codes": [],
+      "confirmable": false
+     },
+     {
+      "text": "nitumie Juma pesa",
+      "model_output": {
+       "a": "send",
+       "amt": "100",
+       "name": "Juma",
+       "who": "juma",
+       "memo": "pesa",
+       "lang": "en"
+      },
+      "code_decision": "blocked",
+      "block_codes": [
+       "amount_not_heard"
+      ],
+      "confirmable": false
+     }
+    ],
+    "model_scam_flags_per_message": [
+     11,
+     10,
+     9,
+     7
+    ]
+   }
+  }
+ },
+ "voice_notes_6_end_to_end": {
+  "command": "[SAUTI_PROFILE=lite] ops/sandbox.sh offline node scripts/bench_e2e.mjs",
+  "default": {
+   "correct": "6/6",
+   "llm_model": "models/Qwen3-1.7B-Q4_0.gguf",
+   "asr_models_per_lang": {
+    "sw": "models/ggml-whisper-swahili-small-q8_0.bin",
+    "en": "models/ggml-small-q8_0.bin"
+   },
+   "median_asr_ms": 1288,
+   "median_llm_ms": 1088,
+   "llm_load_ms": 2672,
+   "asr_peak_rss_mb": {
+    "node:2": 153,
+    "bare:2386": 738
+   },
+   "llm_peak_rss_mb": {
+    "node:2": 153,
+    "bare:3256": 2585
+   },
+   "clips": [
+    {
+     "id": "sw_amina_20",
+     "ok": true,
+     "heard": "tafadhali tu mausisi ishirini kwa amina kwa ajili ya kodi",
+     "got": {
+      "amount": "20",
+      "to": "Amina",
+      "decision": "confirm"
+     },
+     "asr_ms": 1288,
+     "llm_ms": 4591
+    },
+    {
+     "id": "sw_juma_15",
+     "ok": true,
+     "heard": "mtumia kaka yangu juma USDT kumi na tano kwa karo ya shule",
+     "got": {
+      "amount": "15",
+      "to": "Juma",
+      "decision": "confirm"
+     },
+     "asr_ms": 1447,
+     "llm_ms": 1155
+    },
+    {
+     "id": "sw_wanjiru_100",
+     "ok": true,
+     "heard": "juma USDT mia moja kwa wanjiru sasa hivi",
+     "got": {
+      "amount": "100",
+      "to": "Wanjiru",
+      "decision": "confirm_with_warnings"
+     },
+     "asr_ms": 1187,
+     "llm_ms": 973
+    },
+    {
+     "id": "en_brother_15",
+     "ok": true,
+     "heard": "Send 15 USDT to my brother for school fees.",
+     "got": {
+      "amount": "15",
+      "to": "Juma",
+      "decision": "confirm"
+     },
+     "asr_ms": 1240,
+     "llm_ms": 890
+    },
+    {
+     "id": "en_otieno_40",
+     "ok": true,
+     "heard": "Please send 40 USDT to Otieno for the rent.",
+     "got": {
+      "amount": "40",
+      "to": "Otieno",
+      "decision": "confirm"
+     },
+     "asr_ms": 1194,
+     "llm_ms": 912
+    },
+    {
+     "id": "sw_scam_unlock",
+     "ok": true,
+     "heard": "habari mimi ni wakala wa mpesa tuma USDT hamsini haraka ili kufungua kaunti yako",
+     "got": {
+      "amount": "50",
+      "to": null,
+      "decision": "blocked"
+     },
+     "asr_ms": 1372,
+     "llm_ms": 1088
+    }
+   ]
+  },
+  "lite": {
+   "correct": "6/6",
+   "llm_model": "models/Qwen3-0.6B-Q4_0.gguf",
+   "asr_models_per_lang": {
+    "sw": "models/ggml-whisper-swahili-small-q8_0.bin",
+    "en": "models/ggml-small-q8_0.bin"
+   },
+   "median_asr_ms": 1291,
+   "median_llm_ms": 624,
+   "llm_load_ms": 1721,
+   "asr_peak_rss_mb": {
+    "node:2": 154,
+    "bare:2386": 738
+   },
+   "llm_peak_rss_mb": {
+    "node:2": 154,
+    "bare:3256": 1290
+   },
+   "clips": [
+    {
+     "id": "sw_amina_20",
+     "ok": true,
+     "heard": "tafadhali tu mausisi ishirini kwa amina kwa ajili ya kodi",
+     "got": {
+      "amount": "20",
+      "to": "Amina",
+      "decision": "confirm"
+     },
+     "asr_ms": 1291,
+     "llm_ms": 1821
+    },
+    {
+     "id": "sw_juma_15",
+     "ok": true,
+     "heard": "mtumia kaka yangu juma USDT kumi na tano kwa karo ya shule",
+     "got": {
+      "amount": "15",
+      "to": "Juma",
+      "decision": "confirm"
+     },
+     "asr_ms": 1267,
+     "llm_ms": 777
+    },
+    {
+     "id": "sw_wanjiru_100",
+     "ok": true,
+     "heard": "juma USDT mia moja kwa wanjiru sasa hivi",
+     "got": {
+      "amount": "100",
+      "to": "Wanjiru",
+      "decision": "confirm_with_warnings"
+     },
+     "asr_ms": 1115,
+     "llm_ms": 567
+    },
+    {
+     "id": "en_brother_15",
+     "ok": true,
+     "heard": "Send 15 USDT to my brother for school fees.",
+     "got": {
+      "amount": "15",
+      "to": "Juma",
+      "decision": "confirm"
+     },
+     "asr_ms": 1174,
+     "llm_ms": 454
+    },
+    {
+     "id": "en_otieno_40",
+     "ok": true,
+     "heard": "Please send 40 USDT to Otieno for the rent.",
+     "got": {
+      "amount": "40",
+      "to": "Otieno",
+      "decision": "confirm"
+     },
+     "asr_ms": 1318,
+     "llm_ms": 499
+    },
+    {
+     "id": "sw_scam_unlock",
+     "ok": true,
+     "heard": "habari mimi ni wakala wa mpesa tuma USDT hamsini haraka ili kufungua kaunti yako",
+     "got": {
+      "amount": "50",
+      "to": null,
+      "decision": "blocked"
+     },
+     "asr_ms": 1457,
+     "llm_ms": 624
+    }
+   ]
+  }
+ },
+ "resident_engine_latency": {
+  "command": "[SAUTI_PROFILE=lite] scripts/bench_latency.sh (scripts/bench_engine.mjs through the 127.0.0.1 bridge, warm models, KV cache)",
+  "default": {
+   "resident_engine": {
+    "summary": true,
+    "voice_n": 6,
+    "voice_median_total_ms": 4107,
+    "voice_max_total_ms": 5396,
+    "asr_median_ms": 1676,
+    "text_n": 12,
+    "text_median_total_ms": 974,
+    "text_max_total_ms": 2144,
+    "llm_median_ms": 967,
+    "median_prompt_tokens_computed": 26,
+    "median_prompt_tokens_cached": 682
+   },
+   "engine_start_to_ready_ms": 12132,
+   "voice": [
+    {
+     "id": "sw_amina_20",
+     "http_total_ms": 2674,
+     "asr_ms": 1442,
+     "llm_ms": 1131,
+     "decision": "confirm"
+    },
+    {
+     "id": "sw_juma_15",
+     "http_total_ms": 3177,
+     "asr_ms": 1682,
+     "llm_ms": 1471,
+     "decision": "confirm"
+    },
+    {
+     "id": "sw_wanjiru_100",
+     "http_total_ms": 4107,
+     "asr_ms": 1305,
+     "llm_ms": 2771,
+     "decision": "confirm_with_warnings"
+    },
+    {
+     "id": "en_brother_15",
+     "http_total_ms": 4995,
+     "asr_ms": 2231,
+     "llm_ms": 1304,
+     "decision": "confirm"
+    },
+    {
+     "id": "en_otieno_40",
+     "http_total_ms": 2353,
+     "asr_ms": 1389,
+     "llm_ms": 939,
+     "decision": "confirm"
+    },
+    {
+     "id": "sw_scam_unlock",
+     "http_total_ms": 5396,
+     "asr_ms": 1676,
+     "llm_ms": 2693,
+     "decision": "blocked"
+    }
+   ]
+  },
+  "lite": {
+   "resident_engine": {
+    "summary": true,
+    "voice_n": 6,
+    "voice_median_total_ms": 2435,
+    "voice_max_total_ms": 3840,
+    "asr_median_ms": 1305,
+    "text_n": 12,
+    "text_median_total_ms": 480,
+    "text_max_total_ms": 1632,
+    "llm_median_ms": 476,
+    "median_prompt_tokens_computed": 26,
+    "median_prompt_tokens_cached": 682
+   },
+   "engine_start_to_ready_ms": 8170,
+   "voice": [
+    {
+     "id": "sw_amina_20",
+     "http_total_ms": 1998,
+     "asr_ms": 1305,
+     "llm_ms": 581,
+     "decision": "confirm"
+    },
+    {
+     "id": "sw_juma_15",
+     "http_total_ms": 1967,
+     "asr_ms": 1339,
+     "llm_ms": 558,
+     "decision": "confirm"
+    },
+    {
+     "id": "sw_wanjiru_100",
+     "http_total_ms": 3179,
+     "asr_ms": 1231,
+     "llm_ms": 1928,
+     "decision": "confirm_with_warnings"
+    },
+    {
+     "id": "en_brother_15",
+     "http_total_ms": 2435,
+     "asr_ms": 1204,
+     "llm_ms": 522,
+     "decision": "confirm"
+    },
+    {
+     "id": "en_otieno_40",
+     "http_total_ms": 1673,
+     "asr_ms": 1160,
+     "llm_ms": 490,
+     "decision": "confirm"
+    },
+    {
+     "id": "sw_scam_unlock",
+     "http_total_ms": 3840,
+     "asr_ms": 1334,
+     "llm_ms": 2017,
+     "decision": "blocked"
+    }
+   ]
+  }
+ },
+ "memory_cap_e2e_ui": {
+  "lite_2G": {
+   "command": "SAUTI_PROFILE=lite scripts/mem_cap_run.sh 2G test/e2e_ui.sh",
+   "memory_max_bytes": 2147483648,
+   "summary_line": null,
+   "exit": null,
+   "memory_peak_mb": null,
+   "max_anon_mb": null,
+   "max_file_mb": null,
+   "oom_kill": null,
+   "checks_ok": 69,
+   "checks_failed": [
+    "scam-worded request hard-blocked"
+   ],
+   "reached_end": false
+  },
+  "lite_2560M": {
+   "command": "SAUTI_PROFILE=lite scripts/mem_cap_run.sh 2560M test/e2e_ui.sh",
+   "memory_max_bytes": 2684354560,
+   "summary_line": "[memcap] exit=1 memory.peak=2560 MB (max anon 2376 MB, max file 813 MB), oom 0 oom_kill 0",
+   "exit": 1,
+   "memory_peak_mb": 2560,
+   "max_anon_mb": 2376,
+   "max_file_mb": 813,
+   "oom_kill": 0,
+   "checks_ok": 95,
+   "checks_failed": [
+    "scam-worded request hard-blocked",
+    "a clean payment after it is not held itself (next nonce)"
+   ],
+   "reached_end": false
+  },
+  "default_2560M": {
+   "command": "scripts/mem_cap_run.sh 2560M test/e2e_ui.sh",
+   "memory_max_bytes": 2684354560,
+   "summary_line": null,
+   "exit": null,
+   "memory_peak_mb": null,
+   "max_anon_mb": null,
+   "max_file_mb": null,
+   "oom_kill": null,
+   "checks_ok": 70,
+   "checks_failed": [],
+   "reached_end": false
+  },
+  "default_3G": "README \"Runs in 3 GB\": the default passes test/e2e_ui.sh under 3 GB with max anonymous memory 2,901-3,021 MB (2026-10-28); not re-run here",
+  "note": "an OOM kill stops the whole systemd scope, so the script prints no [memcap] summary line for those runs: the kernel lines are under kernel_oom_events"
+ },
+ "commissioned_private_set": {
+  "command": "[SAUTI_PROFILE=lite] scripts/eval_sw_requests.sh",
+  "note": "outcomes only; the set itself is private and not in this repository",
+  "default_same_day": {
+   "summary": {
+    "dataset": "sw_requests_commissioned (private; 30 everyday requests + 5 scams, text)",
+    "model": "Qwen3-1.7B Q4_0 via @qvac/sdk 0.22.0 + code checks",
+    "profile": "default",
+    "at": "2026-10-29T05:10:59.009Z",
+    "usdt_rows": {
+     "n": 7,
+     "action_send": 7,
+     "amount_ok": 7,
+     "token_usdt": 7,
+     "recipient_ok": 7,
+     "all_fields_ok": 7
+    },
+    "all_30": {
+     "amount_ok": 28,
+     "amount_ok_by_register": {
+      "standard": {
+       "n": 16,
+       "amount_ok": 16
+      },
+      "sheng": {
+       "n": 6,
+       "amount_ok": 4
+      },
+      "code-switched": {
+       "n": 8,
+       "amount_ok": 8
+      }
+     },
+     "named_recipient_ok": "11/11",
+     "confirmable": 1,
+     "confirmable_wrong": 0,
+     "kes_rows_confirmable_as_usdt": "0/16",
+     "usd_rows_read_as_usdt": "7/7",
+     "llm_median_ms": 1177
+    },
+    "check_mode": {
+     "scams_high": "5/5",
+     "scams_flagged_medium_or_high": "5/5",
+     "genuine_high": "0/30",
+     "genuine_medium": "1/30",
+     "genuine_low_or_none": "29/30",
+     "llm_median_ms": 1289
+    }
+   },
+   "requests": [
+    {
+     "id": "1",
+     "register": "standard",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "2",
+     "register": "standard",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "3",
+     "register": "sheng",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "4",
+     "register": "standard",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "5",
+     "register": "standard",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "6",
+     "register": "sheng",
+     "currency": "KES",
+     "amount_ok": false,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "7",
+     "register": "standard",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "8",
+     "register": "code-switched",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "9",
+     "register": "sheng",
+     "currency": "KES",
+     "amount_ok": false,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "10",
+     "register": "standard",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": false,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "11",
+     "register": "standard",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "12",
+     "register": "code-switched",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "13",
+     "register": "standard",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "14",
+     "register": "sheng",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "15",
+     "register": "standard",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "16",
+     "register": "standard",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "17",
+     "register": "code-switched",
+     "currency": "USD",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "18",
+     "register": "code-switched",
+     "currency": "USD",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "19",
+     "register": "standard",
+     "currency": "USD",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "20",
+     "register": "code-switched",
+     "currency": "USD",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "21",
+     "register": "code-switched",
+     "currency": "USD",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "22",
+     "register": "standard",
+     "currency": "USD",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "23",
+     "register": "sheng",
+     "currency": "USD",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "24",
+     "register": "code-switched",
+     "currency": "USDT",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "25",
+     "register": "standard",
+     "currency": "USDT",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "confirm",
+     "confirmable_correct": true
+    },
+    {
+     "id": "26",
+     "register": "sheng",
+     "currency": "USDT",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "27",
+     "register": "standard",
+     "currency": "USDT",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "28",
+     "register": "standard",
+     "currency": "USDT",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "29",
+     "register": "code-switched",
+     "currency": "USDT",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "30",
+     "register": "standard",
+     "currency": "USDT",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    }
+   ],
+   "message_checks": [
+    {
+     "id": "1",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "2",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "3",
+     "scam": false,
+     "risk": "medium"
+    },
+    {
+     "id": "4",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "5",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "6",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "7",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "8",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "9",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "10",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "11",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "12",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "13",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "14",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "15",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "16",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "17",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "18",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "19",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "20",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "21",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "22",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "23",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "24",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "25",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "26",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "27",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "28",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "29",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "30",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "S1",
+     "scam": true,
+     "risk": "high"
+    },
+    {
+     "id": "S2",
+     "scam": true,
+     "risk": "high"
+    },
+    {
+     "id": "S3",
+     "scam": true,
+     "risk": "high"
+    },
+    {
+     "id": "S4",
+     "scam": true,
+     "risk": "high"
+    },
+    {
+     "id": "S5",
+     "scam": true,
+     "risk": "high"
+    }
+   ]
+  },
+  "lite": {
+   "summary": {
+    "dataset": "sw_requests_commissioned (private; 30 everyday requests + 5 scams, text)",
+    "model": "Qwen3-0.6B Q4_0 via @qvac/sdk 0.22.0 + code checks",
+    "profile": "lite",
+    "at": "2026-10-29T05:08:53.190Z",
+    "usdt_rows": {
+     "n": 7,
+     "action_send": 3,
+     "amount_ok": 3,
+     "token_usdt": 3,
+     "recipient_ok": 6,
+     "all_fields_ok": 3
+    },
+    "all_30": {
+     "amount_ok": 22,
+     "amount_ok_by_register": {
+      "standard": {
+       "n": 16,
+       "amount_ok": 13
+      },
+      "sheng": {
+       "n": 6,
+       "amount_ok": 3
+      },
+      "code-switched": {
+       "n": 8,
+       "amount_ok": 6
+      }
+     },
+     "named_recipient_ok": "7/11",
+     "confirmable": 1,
+     "confirmable_wrong": 0,
+     "kes_rows_confirmable_as_usdt": "0/16",
+     "usd_rows_read_as_usdt": "5/7",
+     "llm_median_ms": 552
+    },
+    "check_mode": {
+     "scams_high": "5/5",
+     "scams_flagged_medium_or_high": "5/5",
+     "genuine_high": "0/30",
+     "genuine_medium": "1/30",
+     "genuine_low_or_none": "29/30",
+     "llm_median_ms": 1164
+    }
+   },
+   "requests": [
+    {
+     "id": "1",
+     "register": "standard",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "2",
+     "register": "standard",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": false,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "3",
+     "register": "sheng",
+     "currency": "KES",
+     "amount_ok": false,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "4",
+     "register": "standard",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "5",
+     "register": "standard",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": false,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "6",
+     "register": "sheng",
+     "currency": "KES",
+     "amount_ok": false,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "7",
+     "register": "standard",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "8",
+     "register": "code-switched",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "9",
+     "register": "sheng",
+     "currency": "KES",
+     "amount_ok": false,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "10",
+     "register": "standard",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "11",
+     "register": "standard",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "12",
+     "register": "code-switched",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "13",
+     "register": "standard",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "14",
+     "register": "sheng",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "15",
+     "register": "standard",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "16",
+     "register": "standard",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "17",
+     "register": "code-switched",
+     "currency": "USD",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "18",
+     "register": "code-switched",
+     "currency": "USD",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "19",
+     "register": "standard",
+     "currency": "USD",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "20",
+     "register": "code-switched",
+     "currency": "USD",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "21",
+     "register": "code-switched",
+     "currency": "USD",
+     "amount_ok": false,
+     "name_ok": false,
+     "decision": "error",
+     "confirmable_correct": null
+    },
+    {
+     "id": "22",
+     "register": "standard",
+     "currency": "USD",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "23",
+     "register": "sheng",
+     "currency": "USD",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "24",
+     "register": "code-switched",
+     "currency": "USDT",
+     "amount_ok": false,
+     "name_ok": true,
+     "decision": "error",
+     "confirmable_correct": null
+    },
+    {
+     "id": "25",
+     "register": "standard",
+     "currency": "USDT",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "confirm",
+     "confirmable_correct": true
+    },
+    {
+     "id": "26",
+     "register": "sheng",
+     "currency": "USDT",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "27",
+     "register": "standard",
+     "currency": "USDT",
+     "amount_ok": false,
+     "name_ok": true,
+     "decision": "error",
+     "confirmable_correct": null
+    },
+    {
+     "id": "28",
+     "register": "standard",
+     "currency": "USDT",
+     "amount_ok": false,
+     "name_ok": false,
+     "decision": "error",
+     "confirmable_correct": null
+    },
+    {
+     "id": "29",
+     "register": "code-switched",
+     "currency": "USDT",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "30",
+     "register": "standard",
+     "currency": "USDT",
+     "amount_ok": false,
+     "name_ok": true,
+     "decision": "error",
+     "confirmable_correct": null
+    }
+   ],
+   "message_checks": [
+    {
+     "id": "1",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "2",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "3",
+     "scam": false,
+     "risk": "medium"
+    },
+    {
+     "id": "4",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "5",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "6",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "7",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "8",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "9",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "10",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "11",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "12",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "13",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "14",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "15",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "16",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "17",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "18",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "19",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "20",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "21",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "22",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "23",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "24",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "25",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "26",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "27",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "28",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "29",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "30",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "S1",
+     "scam": true,
+     "risk": "high"
+    },
+    {
+     "id": "S2",
+     "scam": true,
+     "risk": "high"
+    },
+    {
+     "id": "S3",
+     "scam": true,
+     "risk": "high"
+    },
+    {
+     "id": "S4",
+     "scam": true,
+     "risk": "high"
+    },
+    {
+     "id": "S5",
+     "scam": true,
+     "risk": "high"
+    }
+   ]
+  }
+ },
+ "commissioned_private_set_after_sheng": {
+  "note": "same runs after the Sheng numerals change (src/amount.js, src/safety.js)",
+  "default": {
+   "summary": {
+    "dataset": "sw_requests_commissioned (private; 30 everyday requests + 5 scams, text)",
+    "model": "Qwen3-1.7B Q4_0 via @qvac/sdk 0.22.0 + code checks",
+    "profile": "default",
+    "at": "2026-10-29T05:19:38.308Z",
+    "usdt_rows": {
+     "n": 7,
+     "action_send": 7,
+     "amount_ok": 7,
+     "token_usdt": 7,
+     "recipient_ok": 7,
+     "all_fields_ok": 7
+    },
+    "all_30": {
+     "amount_ok": 30,
+     "amount_ok_by_register": {
+      "standard": {
+       "n": 16,
+       "amount_ok": 16
+      },
+      "sheng": {
+       "n": 6,
+       "amount_ok": 6
+      },
+      "code-switched": {
+       "n": 8,
+       "amount_ok": 8
+      }
+     },
+     "named_recipient_ok": "11/11",
+     "confirmable": 1,
+     "confirmable_wrong": 0,
+     "kes_rows_confirmable_as_usdt": "0/16",
+     "usd_rows_read_as_usdt": "7/7",
+     "llm_median_ms": 1106
+    },
+    "check_mode": {
+     "scams_high": "5/5",
+     "scams_flagged_medium_or_high": "5/5",
+     "genuine_high": "0/30",
+     "genuine_medium": "1/30",
+     "genuine_low_or_none": "29/30",
+     "llm_median_ms": 1235
+    }
+   },
+   "requests": [
+    {
+     "id": "1",
+     "register": "standard",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "2",
+     "register": "standard",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "3",
+     "register": "sheng",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "4",
+     "register": "standard",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "5",
+     "register": "standard",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "6",
+     "register": "sheng",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "7",
+     "register": "standard",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "8",
+     "register": "code-switched",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "9",
+     "register": "sheng",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "10",
+     "register": "standard",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": false,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "11",
+     "register": "standard",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "12",
+     "register": "code-switched",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "13",
+     "register": "standard",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "14",
+     "register": "sheng",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "15",
+     "register": "standard",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "16",
+     "register": "standard",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "17",
+     "register": "code-switched",
+     "currency": "USD",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "18",
+     "register": "code-switched",
+     "currency": "USD",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "19",
+     "register": "standard",
+     "currency": "USD",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "20",
+     "register": "code-switched",
+     "currency": "USD",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "21",
+     "register": "code-switched",
+     "currency": "USD",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "22",
+     "register": "standard",
+     "currency": "USD",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "23",
+     "register": "sheng",
+     "currency": "USD",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "24",
+     "register": "code-switched",
+     "currency": "USDT",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "25",
+     "register": "standard",
+     "currency": "USDT",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "confirm",
+     "confirmable_correct": true
+    },
+    {
+     "id": "26",
+     "register": "sheng",
+     "currency": "USDT",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "27",
+     "register": "standard",
+     "currency": "USDT",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "28",
+     "register": "standard",
+     "currency": "USDT",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "29",
+     "register": "code-switched",
+     "currency": "USDT",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "30",
+     "register": "standard",
+     "currency": "USDT",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    }
+   ],
+   "message_checks": [
+    {
+     "id": "1",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "2",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "3",
+     "scam": false,
+     "risk": "medium"
+    },
+    {
+     "id": "4",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "5",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "6",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "7",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "8",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "9",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "10",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "11",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "12",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "13",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "14",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "15",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "16",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "17",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "18",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "19",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "20",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "21",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "22",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "23",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "24",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "25",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "26",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "27",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "28",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "29",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "30",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "S1",
+     "scam": true,
+     "risk": "high"
+    },
+    {
+     "id": "S2",
+     "scam": true,
+     "risk": "high"
+    },
+    {
+     "id": "S3",
+     "scam": true,
+     "risk": "high"
+    },
+    {
+     "id": "S4",
+     "scam": true,
+     "risk": "high"
+    },
+    {
+     "id": "S5",
+     "scam": true,
+     "risk": "high"
+    }
+   ]
+  },
+  "lite": {
+   "summary": {
+    "dataset": "sw_requests_commissioned (private; 30 everyday requests + 5 scams, text)",
+    "model": "Qwen3-0.6B Q4_0 via @qvac/sdk 0.22.0 + code checks",
+    "profile": "lite",
+    "at": "2026-10-29T05:21:34.652Z",
+    "usdt_rows": {
+     "n": 7,
+     "action_send": 3,
+     "amount_ok": 3,
+     "token_usdt": 3,
+     "recipient_ok": 6,
+     "all_fields_ok": 3
+    },
+    "all_30": {
+     "amount_ok": 24,
+     "amount_ok_by_register": {
+      "standard": {
+       "n": 16,
+       "amount_ok": 13
+      },
+      "sheng": {
+       "n": 6,
+       "amount_ok": 5
+      },
+      "code-switched": {
+       "n": 8,
+       "amount_ok": 6
+      }
+     },
+     "named_recipient_ok": "7/11",
+     "confirmable": 1,
+     "confirmable_wrong": 0,
+     "kes_rows_confirmable_as_usdt": "0/16",
+     "usd_rows_read_as_usdt": "5/7",
+     "llm_median_ms": 590
+    },
+    "check_mode": {
+     "scams_high": "5/5",
+     "scams_flagged_medium_or_high": "5/5",
+     "genuine_high": "0/30",
+     "genuine_medium": "1/30",
+     "genuine_low_or_none": "29/30",
+     "llm_median_ms": 1194
+    }
+   },
+   "requests": [
+    {
+     "id": "1",
+     "register": "standard",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "2",
+     "register": "standard",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": false,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "3",
+     "register": "sheng",
+     "currency": "KES",
+     "amount_ok": false,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "4",
+     "register": "standard",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "5",
+     "register": "standard",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": false,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "6",
+     "register": "sheng",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "7",
+     "register": "standard",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "8",
+     "register": "code-switched",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "9",
+     "register": "sheng",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "10",
+     "register": "standard",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "11",
+     "register": "standard",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "12",
+     "register": "code-switched",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "13",
+     "register": "standard",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "14",
+     "register": "sheng",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "15",
+     "register": "standard",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "16",
+     "register": "standard",
+     "currency": "KES",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "17",
+     "register": "code-switched",
+     "currency": "USD",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "18",
+     "register": "code-switched",
+     "currency": "USD",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "19",
+     "register": "standard",
+     "currency": "USD",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "20",
+     "register": "code-switched",
+     "currency": "USD",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "21",
+     "register": "code-switched",
+     "currency": "USD",
+     "amount_ok": false,
+     "name_ok": false,
+     "decision": "error",
+     "confirmable_correct": null
+    },
+    {
+     "id": "22",
+     "register": "standard",
+     "currency": "USD",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "23",
+     "register": "sheng",
+     "currency": "USD",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "24",
+     "register": "code-switched",
+     "currency": "USDT",
+     "amount_ok": false,
+     "name_ok": true,
+     "decision": "error",
+     "confirmable_correct": null
+    },
+    {
+     "id": "25",
+     "register": "standard",
+     "currency": "USDT",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "confirm",
+     "confirmable_correct": true
+    },
+    {
+     "id": "26",
+     "register": "sheng",
+     "currency": "USDT",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "27",
+     "register": "standard",
+     "currency": "USDT",
+     "amount_ok": false,
+     "name_ok": true,
+     "decision": "error",
+     "confirmable_correct": null
+    },
+    {
+     "id": "28",
+     "register": "standard",
+     "currency": "USDT",
+     "amount_ok": false,
+     "name_ok": false,
+     "decision": "error",
+     "confirmable_correct": null
+    },
+    {
+     "id": "29",
+     "register": "code-switched",
+     "currency": "USDT",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked",
+     "confirmable_correct": null
+    },
+    {
+     "id": "30",
+     "register": "standard",
+     "currency": "USDT",
+     "amount_ok": false,
+     "name_ok": true,
+     "decision": "error",
+     "confirmable_correct": null
+    }
+   ],
+   "message_checks": [
+    {
+     "id": "1",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "2",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "3",
+     "scam": false,
+     "risk": "medium"
+    },
+    {
+     "id": "4",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "5",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "6",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "7",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "8",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "9",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "10",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "11",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "12",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "13",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "14",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "15",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "16",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "17",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "18",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "19",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "20",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "21",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "22",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "23",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "24",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "25",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "26",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "27",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "28",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "29",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "30",
+     "scam": false,
+     "risk": "low"
+    },
+    {
+     "id": "S1",
+     "scam": true,
+     "risk": "high"
+    },
+    {
+     "id": "S2",
+     "scam": true,
+     "risk": "high"
+    },
+    {
+     "id": "S3",
+     "scam": true,
+     "risk": "high"
+    },
+    {
+     "id": "S4",
+     "scam": true,
+     "risk": "high"
+    },
+    {
+     "id": "S5",
+     "scam": true,
+     "risk": "high"
+    }
+   ]
+  }
+ },
+ "public_set_after_sheng": {
+  "default": {
+   "summary": {
+    "dataset": "sw_requests_commissioned (private; 30 everyday requests + 5 scams, text)",
+    "model": "Qwen3-1.7B Q4_0 via @qvac/sdk 0.22.0 + code checks",
+    "profile": "default",
+    "at": "2026-10-29T05:20:22.128Z",
+    "usdt_rows": {
+     "n": 2,
+     "action_send": 2,
+     "amount_ok": 2,
+     "token_usdt": 2,
+     "recipient_ok": 2,
+     "all_fields_ok": 2
+    },
+    "all_30": {
+     "amount_ok": 10,
+     "amount_ok_by_register": {
+      "standard": {
+       "n": 5,
+       "amount_ok": 5
+      },
+      "sheng": {
+       "n": 2,
+       "amount_ok": 2
+      },
+      "code-switched": {
+       "n": 3,
+       "amount_ok": 3
+      }
+     },
+     "named_recipient_ok": "5/5",
+     "confirmable": 0,
+     "confirmable_wrong": 0,
+     "kes_rows_confirmable_as_usdt": "0/7",
+     "usd_rows_read_as_usdt": "1/1",
+     "llm_median_ms": 1210
+    },
+    "check_mode": {
+     "scams_high": "3/3",
+     "scams_flagged_medium_or_high": "3/3",
+     "genuine_high": "0/10",
+     "genuine_medium": "0/10",
+     "genuine_low_or_none": "10/10",
+     "llm_median_ms": 1185
+    }
+   },
+   "requests": [
+    {
+     "id": "p1",
+     "text": "Tuma shilingi 2,000 kwa mama Zawadi za chakula leo.",
+     "amount": "2000",
+     "expected_amount": "2000",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked"
+    },
+    {
+     "id": "p2",
+     "text": "Nitumie elfu tatu kwa M-Pesa kabla ya jioni.",
+     "amount": "3000",
+     "expected_amount": "3000",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked"
+    },
+    {
+     "id": "p3",
+     "text": "Oya buda, nirushie 1500 ya fare, niko stage.",
+     "amount": "1500",
+     "expected_amount": "1500",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked"
+    },
+    {
+     "id": "p4",
+     "text": "Lipa fundi Otieno 3,500 ya kutengeneza mlango.",
+     "amount": "3500",
+     "expected_amount": "3500",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked"
+    },
+    {
+     "id": "p5",
+     "text": "Please tuma 1,200 kwa dada yangu Akinyi, ana dharura.",
+     "amount": "1200",
+     "expected_amount": "1200",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked"
+    },
+    {
+     "id": "p6",
+     "text": "Nisaidie na soo mbili za lunch tafadhali.",
+     "amount": "200",
+     "expected_amount": "200",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked"
+    },
+    {
+     "id": "p7",
+     "text": "Nitumie dola hamsini kwa Wise za ada ya mtihani.",
+     "amount": "50",
+     "expected_amount": "50",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked"
+    },
+    {
+     "id": "p8",
+     "text": "Tuma USDT thelathini kwa rafiki Brian anunue data.",
+     "amount": "30",
+     "expected_amount": "30",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked"
+    },
+    {
+     "id": "p9",
+     "text": "Eeh, nitumie USDT ishirini nilipe stoo ya duka.",
+     "amount": "20",
+     "expected_amount": "20",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked"
+    },
+    {
+     "id": "p10",
+     "text": "Mtumie shangazi Neema shilingi 4,000 za dawa.",
+     "amount": "4000",
+     "expected_amount": "4000",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked"
+    }
+   ],
+   "message_checks": [
+    {
+     "id": "p1",
+     "scam": false,
+     "risk": "low",
+     "ai_flags": [
+      "impersonation",
+      "urgency",
+      "prize"
+     ]
+    },
+    {
+     "id": "p2",
+     "scam": false,
+     "risk": "low",
+     "ai_flags": [
+      "impersonation"
+     ]
+    },
+    {
+     "id": "p3",
+     "scam": false,
+     "risk": "low",
+     "ai_flags": [
+      "impersonation",
+      "urgency"
+     ]
+    },
+    {
+     "id": "p4",
+     "scam": false,
+     "risk": "low",
+     "ai_flags": [
+      "impersonation",
+      "urgency",
+      "wrong_send"
+     ]
+    },
+    {
+     "id": "p5",
+     "scam": false,
+     "risk": "low",
+     "ai_flags": [
+      "impersonation",
+      "urgency",
+      "wrong_send"
+     ]
+    },
+    {
+     "id": "p6",
+     "scam": false,
+     "risk": "low",
+     "ai_flags": [
+      "impersonation",
+      "urgency"
+     ]
+    },
+    {
+     "id": "p7",
+     "scam": false,
+     "risk": "low",
+     "ai_flags": [
+      "impersonation",
+      "urgency"
+     ]
+    },
+    {
+     "id": "p8",
+     "scam": false,
+     "risk": "low",
+     "ai_flags": [
+      "impersonation",
+      "wrong_send"
+     ]
+    },
+    {
+     "id": "p9",
+     "scam": false,
+     "risk": "low",
+     "ai_flags": [
+      "impersonation",
+      "prize"
+     ]
+    },
+    {
+     "id": "p10",
+     "scam": false,
+     "risk": "low",
+     "ai_flags": [
+      "impersonation",
+      "urgency",
+      "prize"
+     ]
+    },
+    {
+     "id": "p11",
+     "scam": true,
+     "risk": "high",
+     "ai_flags": [
+      "wrong_send"
+     ]
+    },
+    {
+     "id": "p12",
+     "scam": true,
+     "risk": "high",
+     "ai_flags": [
+      "impersonation",
+      "urgency"
+     ]
+    },
+    {
+     "id": "p13",
+     "scam": true,
+     "risk": "high",
+     "ai_flags": [
+      "urgency",
+      "wrong_send"
+     ]
+    }
+   ]
+  },
+  "lite": {
+   "summary": {
+    "dataset": "sw_requests_commissioned (private; 30 everyday requests + 5 scams, text)",
+    "model": "Qwen3-0.6B Q4_0 via @qvac/sdk 0.22.0 + code checks",
+    "profile": "lite",
+    "at": "2026-10-29T05:22:06.407Z",
+    "usdt_rows": {
+     "n": 2,
+     "action_send": 2,
+     "amount_ok": 2,
+     "token_usdt": 2,
+     "recipient_ok": 2,
+     "all_fields_ok": 2
+    },
+    "all_30": {
+     "amount_ok": 10,
+     "amount_ok_by_register": {
+      "standard": {
+       "n": 5,
+       "amount_ok": 5
+      },
+      "sheng": {
+       "n": 2,
+       "amount_ok": 2
+      },
+      "code-switched": {
+       "n": 3,
+       "amount_ok": 3
+      }
+     },
+     "named_recipient_ok": "4/5",
+     "confirmable": 0,
+     "confirmable_wrong": 0,
+     "kes_rows_confirmable_as_usdt": "0/7",
+     "usd_rows_read_as_usdt": "1/1",
+     "llm_median_ms": 562
+    },
+    "check_mode": {
+     "scams_high": "3/3",
+     "scams_flagged_medium_or_high": "3/3",
+     "genuine_high": "0/10",
+     "genuine_medium": "0/10",
+     "genuine_low_or_none": "10/10",
+     "llm_median_ms": 1184
+    }
+   },
+   "requests": [
+    {
+     "id": "p1",
+     "text": "Tuma shilingi 2,000 kwa mama Zawadi za chakula leo.",
+     "amount": "2000",
+     "expected_amount": "2000",
+     "amount_ok": true,
+     "name_ok": false,
+     "decision": "blocked"
+    },
+    {
+     "id": "p2",
+     "text": "Nitumie elfu tatu kwa M-Pesa kabla ya jioni.",
+     "amount": "3000",
+     "expected_amount": "3000",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked"
+    },
+    {
+     "id": "p3",
+     "text": "Oya buda, nirushie 1500 ya fare, niko stage.",
+     "amount": "1500",
+     "expected_amount": "1500",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked"
+    },
+    {
+     "id": "p4",
+     "text": "Lipa fundi Otieno 3,500 ya kutengeneza mlango.",
+     "amount": "3500",
+     "expected_amount": "3500",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked"
+    },
+    {
+     "id": "p5",
+     "text": "Please tuma 1,200 kwa dada yangu Akinyi, ana dharura.",
+     "amount": "1200",
+     "expected_amount": "1200",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked"
+    },
+    {
+     "id": "p6",
+     "text": "Nisaidie na soo mbili za lunch tafadhali.",
+     "amount": "200",
+     "expected_amount": "200",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked"
+    },
+    {
+     "id": "p7",
+     "text": "Nitumie dola hamsini kwa Wise za ada ya mtihani.",
+     "amount": "50",
+     "expected_amount": "50",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked"
+    },
+    {
+     "id": "p8",
+     "text": "Tuma USDT thelathini kwa rafiki Brian anunue data.",
+     "amount": "30",
+     "expected_amount": "30",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked"
+    },
+    {
+     "id": "p9",
+     "text": "Eeh, nitumie USDT ishirini nilipe stoo ya duka.",
+     "amount": "20",
+     "expected_amount": "20",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked"
+    },
+    {
+     "id": "p10",
+     "text": "Mtumie shangazi Neema shilingi 4,000 za dawa.",
+     "amount": "4000",
+     "expected_amount": "4000",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked"
+    }
+   ],
+   "message_checks": [
+    {
+     "id": "p1",
+     "scam": false,
+     "risk": "low",
+     "ai_flags": [
+      "seed_request",
+      "wrong_send",
+      "new_address_claim",
+      "impersonation",
+      "secrecy",
+      "investment",
+      "link",
+      "remote_access",
+      "unlock_fee"
+     ]
+    },
+    {
+     "id": "p2",
+     "scam": false,
+     "risk": "low",
+     "ai_flags": [
+      "seed_request",
+      "remote_access",
+      "wrong_send",
+      "new_address_claim",
+      "impersonation",
+      "urgency",
+      "prize",
+      "secrecy",
+      "investment",
+      "link"
+     ]
+    },
+    {
+     "id": "p3",
+     "scam": false,
+     "risk": "low",
+     "ai_flags": [
+      "seed_request",
+      "wrong_send",
+      "new_address_claim",
+      "impersonation",
+      "secrecy",
+      "investment",
+      "prize",
+      "link",
+      "remote_access",
+      "unlock_fee"
+     ]
+    },
+    {
+     "id": "p4",
+     "scam": false,
+     "risk": "low",
+     "ai_flags": [
+      "seed_request",
+      "wrong_send",
+      "new_address_claim",
+      "impersonation",
+      "secrecy",
+      "investment",
+      "link"
+     ]
+    },
+    {
+     "id": "p5",
+     "scam": false,
+     "risk": "low",
+     "ai_flags": [
+      "seed_request",
+      "remote_access",
+      "wrong_send",
+      "new_address_claim",
+      "impersonation",
+      "urgency",
+      "prize",
+      "secrecy",
+      "investment",
+      "link"
+     ]
+    },
+    {
+     "id": "p6",
+     "scam": false,
+     "risk": "low",
+     "ai_flags": [
+      "seed_request",
+      "wrong_send",
+      "new_address_claim",
+      "impersonation",
+      "secrecy",
+      "investment",
+      "link",
+      "remote_access",
+      "unlock_fee",
+      "prize"
+     ]
+    },
+    {
+     "id": "p7",
+     "scam": false,
+     "risk": "low",
+     "ai_flags": [
+      "seed_request",
+      "wrong_send",
+      "new_address_claim",
+      "impersonation",
+      "remote_access",
+      "unlock_fee",
+      "secrecy",
+      "investment",
+      "prize",
+      "link"
+     ]
+    },
+    {
+     "id": "p8",
+     "scam": false,
+     "risk": "low",
+     "ai_flags": [
+      "seed_request",
+      "wrong_send",
+      "new_address_claim",
+      "impersonation",
+      "secrecy",
+      "investment",
+      "prize",
+      "link",
+      "remote_access",
+      "unlock_fee"
+     ]
+    },
+    {
+     "id": "p9",
+     "scam": false,
+     "risk": "low",
+     "ai_flags": [
+      "seed_request",
+      "wrong_send",
+      "new_address_claim",
+      "impersonation",
+      "secrecy",
+      "investment",
+      "link",
+      "remote_access",
+      "unlock_fee"
+     ]
+    },
+    {
+     "id": "p10",
+     "scam": false,
+     "risk": "low",
+     "ai_flags": [
+      "seed_request",
+      "wrong_send",
+      "new_address_claim",
+      "impersonation",
+      "secrecy",
+      "investment",
+      "link",
+      "remote_access",
+      "unlock_fee"
+     ]
+    },
+    {
+     "id": "p11",
+     "scam": true,
+     "risk": "high",
+     "ai_flags": [
+      "seed_request",
+      "wrong_send",
+      "new_address_claim",
+      "secrecy",
+      "investment",
+      "prize",
+      "remote_access",
+      "unlock_fee"
+     ]
+    },
+    {
+     "id": "p12",
+     "scam": true,
+     "risk": "high",
+     "ai_flags": [
+      "seed_request",
+      "wrong_send",
+      "new_address_claim",
+      "impersonation",
+      "secrecy",
+      "investment",
+      "link",
+      "remote_access"
+     ]
+    },
+    {
+     "id": "p13",
+     "scam": true,
+     "risk": "high",
+     "ai_flags": [
+      "seed_request",
+      "remote_access",
+      "wrong_send",
+      "new_address_claim",
+      "urgency",
+      "prize",
+      "investment",
+      "link"
+     ]
+    }
+   ]
+  }
+ },
+ "public_set": {
+  "command": "[SAUTI_PROFILE=lite] SAUTI_EVAL_SET=test/data/public/sw_requests_public.md SAUTI_EVAL_LABELS=test/data/public/sw_requests_public.labels.json scripts/eval_sw_requests.sh",
+  "default_same_day": {
+   "summary": {
+    "dataset": "sw_requests_commissioned (private; 30 everyday requests + 5 scams, text)",
+    "model": "Qwen3-1.7B Q4_0 via @qvac/sdk 0.22.0 + code checks",
+    "profile": "default",
+    "at": "2026-10-29T05:13:38.162Z",
+    "usdt_rows": {
+     "n": 2,
+     "action_send": 2,
+     "amount_ok": 2,
+     "token_usdt": 2,
+     "recipient_ok": 2,
+     "all_fields_ok": 2
+    },
+    "all_30": {
+     "amount_ok": 9,
+     "amount_ok_by_register": {
+      "standard": {
+       "n": 5,
+       "amount_ok": 5
+      },
+      "sheng": {
+       "n": 2,
+       "amount_ok": 1
+      },
+      "code-switched": {
+       "n": 3,
+       "amount_ok": 3
+      }
+     },
+     "named_recipient_ok": "5/5",
+     "confirmable": 0,
+     "confirmable_wrong": 0,
+     "kes_rows_confirmable_as_usdt": "0/7",
+     "usd_rows_read_as_usdt": "1/1",
+     "llm_median_ms": 1195
+    },
+    "check_mode": {
+     "scams_high": "3/3",
+     "scams_flagged_medium_or_high": "3/3",
+     "genuine_high": "0/10",
+     "genuine_medium": "0/10",
+     "genuine_low_or_none": "10/10",
+     "llm_median_ms": 1342
+    }
+   },
+   "requests": [
+    {
+     "id": "p1",
+     "text": "Tuma shilingi 2,000 kwa mama Zawadi za chakula leo.",
+     "amount": "2000",
+     "expected_amount": "2000",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked"
+    },
+    {
+     "id": "p2",
+     "text": "Nitumie elfu tatu kwa M-Pesa kabla ya jioni.",
+     "amount": "3000",
+     "expected_amount": "3000",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked"
+    },
+    {
+     "id": "p3",
+     "text": "Oya buda, nirushie 1500 ya fare, niko stage.",
+     "amount": "1500",
+     "expected_amount": "1500",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked"
+    },
+    {
+     "id": "p4",
+     "text": "Lipa fundi Otieno 3,500 ya kutengeneza mlango.",
+     "amount": "3500",
+     "expected_amount": "3500",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked"
+    },
+    {
+     "id": "p5",
+     "text": "Please tuma 1,200 kwa dada yangu Akinyi, ana dharura.",
+     "amount": "1200",
+     "expected_amount": "1200",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked"
+    },
+    {
+     "id": "p6",
+     "text": "Nisaidie na soo mbili za lunch tafadhali.",
+     "amount": null,
+     "expected_amount": "200",
+     "amount_ok": false,
+     "name_ok": true,
+     "decision": "blocked"
+    },
+    {
+     "id": "p7",
+     "text": "Nitumie dola hamsini kwa Wise za ada ya mtihani.",
+     "amount": "50",
+     "expected_amount": "50",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked"
+    },
+    {
+     "id": "p8",
+     "text": "Tuma USDT thelathini kwa rafiki Brian anunue data.",
+     "amount": "30",
+     "expected_amount": "30",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked"
+    },
+    {
+     "id": "p9",
+     "text": "Eeh, nitumie USDT ishirini nilipe stoo ya duka.",
+     "amount": "20",
+     "expected_amount": "20",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked"
+    },
+    {
+     "id": "p10",
+     "text": "Mtumie shangazi Neema shilingi 4,000 za dawa.",
+     "amount": "4000",
+     "expected_amount": "4000",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked"
+    }
+   ],
+   "message_checks": [
+    {
+     "id": "p1",
+     "scam": false,
+     "risk": "low",
+     "ai_flags": [
+      "impersonation",
+      "urgency",
+      "prize"
+     ]
+    },
+    {
+     "id": "p2",
+     "scam": false,
+     "risk": "low",
+     "ai_flags": [
+      "impersonation"
+     ]
+    },
+    {
+     "id": "p3",
+     "scam": false,
+     "risk": "low",
+     "ai_flags": [
+      "impersonation",
+      "urgency"
+     ]
+    },
+    {
+     "id": "p4",
+     "scam": false,
+     "risk": "low",
+     "ai_flags": [
+      "impersonation",
+      "urgency",
+      "wrong_send"
+     ]
+    },
+    {
+     "id": "p5",
+     "scam": false,
+     "risk": "low",
+     "ai_flags": [
+      "impersonation",
+      "urgency",
+      "wrong_send"
+     ]
+    },
+    {
+     "id": "p6",
+     "scam": false,
+     "risk": "low",
+     "ai_flags": [
+      "impersonation",
+      "urgency"
+     ]
+    },
+    {
+     "id": "p7",
+     "scam": false,
+     "risk": "low",
+     "ai_flags": [
+      "impersonation",
+      "urgency"
+     ]
+    },
+    {
+     "id": "p8",
+     "scam": false,
+     "risk": "low",
+     "ai_flags": [
+      "impersonation",
+      "wrong_send"
+     ]
+    },
+    {
+     "id": "p9",
+     "scam": false,
+     "risk": "low",
+     "ai_flags": [
+      "impersonation",
+      "prize"
+     ]
+    },
+    {
+     "id": "p10",
+     "scam": false,
+     "risk": "low",
+     "ai_flags": [
+      "impersonation",
+      "urgency",
+      "prize"
+     ]
+    },
+    {
+     "id": "p11",
+     "scam": true,
+     "risk": "high",
+     "ai_flags": [
+      "wrong_send"
+     ]
+    },
+    {
+     "id": "p12",
+     "scam": true,
+     "risk": "high",
+     "ai_flags": [
+      "impersonation",
+      "urgency"
+     ]
+    },
+    {
+     "id": "p13",
+     "scam": true,
+     "risk": "high",
+     "ai_flags": [
+      "urgency",
+      "wrong_send"
+     ]
+    }
+   ]
+  },
+  "lite": {
+   "summary": {
+    "dataset": "sw_requests_commissioned (private; 30 everyday requests + 5 scams, text)",
+    "model": "Qwen3-0.6B Q4_0 via @qvac/sdk 0.22.0 + code checks",
+    "profile": "lite",
+    "at": "2026-10-29T05:12:52.407Z",
+    "usdt_rows": {
+     "n": 2,
+     "action_send": 2,
+     "amount_ok": 2,
+     "token_usdt": 2,
+     "recipient_ok": 2,
+     "all_fields_ok": 2
+    },
+    "all_30": {
+     "amount_ok": 9,
+     "amount_ok_by_register": {
+      "standard": {
+       "n": 5,
+       "amount_ok": 5
+      },
+      "sheng": {
+       "n": 2,
+       "amount_ok": 1
+      },
+      "code-switched": {
+       "n": 3,
+       "amount_ok": 3
+      }
+     },
+     "named_recipient_ok": "4/5",
+     "confirmable": 0,
+     "confirmable_wrong": 0,
+     "kes_rows_confirmable_as_usdt": "0/7",
+     "usd_rows_read_as_usdt": "1/1",
+     "llm_median_ms": 543
+    },
+    "check_mode": {
+     "scams_high": "3/3",
+     "scams_flagged_medium_or_high": "3/3",
+     "genuine_high": "0/10",
+     "genuine_medium": "0/10",
+     "genuine_low_or_none": "10/10",
+     "llm_median_ms": 1177
+    }
+   },
+   "requests": [
+    {
+     "id": "p1",
+     "text": "Tuma shilingi 2,000 kwa mama Zawadi za chakula leo.",
+     "amount": "2000",
+     "expected_amount": "2000",
+     "amount_ok": true,
+     "name_ok": false,
+     "decision": "blocked"
+    },
+    {
+     "id": "p2",
+     "text": "Nitumie elfu tatu kwa M-Pesa kabla ya jioni.",
+     "amount": "3000",
+     "expected_amount": "3000",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked"
+    },
+    {
+     "id": "p3",
+     "text": "Oya buda, nirushie 1500 ya fare, niko stage.",
+     "amount": "1500",
+     "expected_amount": "1500",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked"
+    },
+    {
+     "id": "p4",
+     "text": "Lipa fundi Otieno 3,500 ya kutengeneza mlango.",
+     "amount": "3500",
+     "expected_amount": "3500",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked"
+    },
+    {
+     "id": "p5",
+     "text": "Please tuma 1,200 kwa dada yangu Akinyi, ana dharura.",
+     "amount": "1200",
+     "expected_amount": "1200",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked"
+    },
+    {
+     "id": "p6",
+     "text": "Nisaidie na soo mbili za lunch tafadhali.",
+     "amount": "2",
+     "expected_amount": "200",
+     "amount_ok": false,
+     "name_ok": true,
+     "decision": "blocked"
+    },
+    {
+     "id": "p7",
+     "text": "Nitumie dola hamsini kwa Wise za ada ya mtihani.",
+     "amount": "50",
+     "expected_amount": "50",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked"
+    },
+    {
+     "id": "p8",
+     "text": "Tuma USDT thelathini kwa rafiki Brian anunue data.",
+     "amount": "30",
+     "expected_amount": "30",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked"
+    },
+    {
+     "id": "p9",
+     "text": "Eeh, nitumie USDT ishirini nilipe stoo ya duka.",
+     "amount": "20",
+     "expected_amount": "20",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked"
+    },
+    {
+     "id": "p10",
+     "text": "Mtumie shangazi Neema shilingi 4,000 za dawa.",
+     "amount": "4000",
+     "expected_amount": "4000",
+     "amount_ok": true,
+     "name_ok": true,
+     "decision": "blocked"
+    }
+   ],
+   "message_checks": [
+    {
+     "id": "p1",
+     "scam": false,
+     "risk": "low",
+     "ai_flags": [
+      "seed_request",
+      "wrong_send",
+      "new_address_claim",
+      "impersonation",
+      "secrecy",
+      "investment",
+      "link",
+      "remote_access",
+      "unlock_fee"
+     ]
+    },
+    {
+     "id": "p2",
+     "scam": false,
+     "risk": "low",
+     "ai_flags": [
+      "seed_request",
+      "remote_access",
+      "wrong_send",
+      "new_address_claim",
+      "impersonation",
+      "urgency",
+      "prize",
+      "secrecy",
+      "investment",
+      "link"
+     ]
+    },
+    {
+     "id": "p3",
+     "scam": false,
+     "risk": "low",
+     "ai_flags": [
+      "seed_request",
+      "wrong_send",
+      "new_address_claim",
+      "impersonation",
+      "secrecy",
+      "investment",
+      "prize",
+      "link",
+      "remote_access",
+      "unlock_fee"
+     ]
+    },
+    {
+     "id": "p4",
+     "scam": false,
+     "risk": "low",
+     "ai_flags": [
+      "seed_request",
+      "wrong_send",
+      "new_address_claim",
+      "impersonation",
+      "secrecy",
+      "investment",
+      "link"
+     ]
+    },
+    {
+     "id": "p5",
+     "scam": false,
+     "risk": "low",
+     "ai_flags": [
+      "seed_request",
+      "remote_access",
+      "wrong_send",
+      "new_address_claim",
+      "impersonation",
+      "urgency",
+      "prize",
+      "secrecy",
+      "investment",
+      "link"
+     ]
+    },
+    {
+     "id": "p6",
+     "scam": false,
+     "risk": "low",
+     "ai_flags": [
+      "seed_request",
+      "wrong_send",
+      "new_address_claim",
+      "impersonation",
+      "secrecy",
+      "investment",
+      "link",
+      "remote_access",
+      "unlock_fee",
+      "prize"
+     ]
+    },
+    {
+     "id": "p7",
+     "scam": false,
+     "risk": "low",
+     "ai_flags": [
+      "seed_request",
+      "wrong_send",
+      "new_address_claim",
+      "impersonation",
+      "remote_access",
+      "unlock_fee",
+      "secrecy",
+      "investment",
+      "prize",
+      "link"
+     ]
+    },
+    {
+     "id": "p8",
+     "scam": false,
+     "risk": "low",
+     "ai_flags": [
+      "seed_request",
+      "wrong_send",
+      "new_address_claim",
+      "impersonation",
+      "secrecy",
+      "investment",
+      "prize",
+      "link",
+      "remote_access",
+      "unlock_fee"
+     ]
+    },
+    {
+     "id": "p9",
+     "scam": false,
+     "risk": "low",
+     "ai_flags": [
+      "seed_request",
+      "wrong_send",
+      "new_address_claim",
+      "impersonation",
+      "secrecy",
+      "investment",
+      "link",
+      "remote_access",
+      "unlock_fee"
+     ]
+    },
+    {
+     "id": "p10",
+     "scam": false,
+     "risk": "low",
+     "ai_flags": [
+      "seed_request",
+      "wrong_send",
+      "new_address_claim",
+      "impersonation",
+      "secrecy",
+      "investment",
+      "link",
+      "remote_access",
+      "unlock_fee"
+     ]
+    },
+    {
+     "id": "p11",
+     "scam": true,
+     "risk": "high",
+     "ai_flags": [
+      "seed_request",
+      "wrong_send",
+      "new_address_claim",
+      "secrecy",
+      "investment",
+      "prize",
+      "remote_access",
+      "unlock_fee"
+     ]
+    },
+    {
+     "id": "p12",
+     "scam": true,
+     "risk": "high",
+     "ai_flags": [
+      "seed_request",
+      "wrong_send",
+      "new_address_claim",
+      "impersonation",
+      "secrecy",
+      "investment",
+      "link",
+      "remote_access"
+     ]
+    },
+    {
+     "id": "p13",
+     "scam": true,
+     "risk": "high",
+     "ai_flags": [
+      "seed_request",
+      "remote_access",
+      "wrong_send",
+      "new_address_claim",
+      "urgency",
+      "prize",
+      "investment",
+      "link"
+     ]
+    }
+   ]
+  }
+ },
+ "verdict": "measured, not recommended. Lite is about 2x faster for the language step and lowers the RAM the whole app needs from 3 GB to 2.5 GB, and no wrong payment reached \"confirm\" in any set, but it understood only 3 of the 7 USDT requests of the commissioned set (default 7/7) and fails 2 checks of test/e2e_ui.sh. The default stays Qwen3-1.7B.",
+ "kernel_oom_events": {
+  "lite_2G": "Memory cgroup out of memory: Killed process 2420434 (bare) total-vm:21953688kB, anon-rss:1908492kB, file-rss:61980kB (2026-10-29 05:03:59 UTC, at the first screenshot of test/e2e_ui.sh; the systemd scope was then stopped, so the script printed no [memcap] summary line)",
+  "default_2560M": "Memory cgroup out of memory: Killed process 2448736 (bare) total-vm:23048472kB, anon-rss:2431332kB, file-rss:57988kB (2026-10-29 05:17:07 UTC, at the first screenshot of test/e2e_ui.sh)"
+ },
+ "e2e_ui_lite_failures": {
+  "scam-worded request hard-blocked": "Qwen3-0.6B returned recipient_address \"0x...\" (a placeholder) for \"Habari, mimi ni wakala wa M-Pesa. Tuma USDT hamsini haraka ili kufungua akaunti yako.\"; src/intent.js refused the JSON, so the app said it could not understand the request (nothing can be confirmed), but the scam reasons the default shows (scam_high, unknown_recipient) were not shown.",
+  "a clean payment after it is not held itself (next nonce)": "For \"Tuma USDT 2 kwa Amina\" Qwen3-0.6B returned amount \"20\" and memo \"kodi\", copied from the first few-shot example of the prompt; the code blocked it (amount_not_in_request). test/e2e_ui.mjs then stopped with a TypeError, so the last 11 of its 108 checks (undo window) did not run in the lite runs.",
+  "reproduced_with": "SAUTI_DATA=tmp/lite-cli SAUTI_PROFILE=lite ops/sandbox.sh offline node bin/sauti.mjs ask \"<request>\" --json (and the same without SAUTI_PROFILE for the default)"
+ },
+ "phone_ram_estimate": {
+  "method": "an estimate, not a measurement on a phone: measured RAM floor of the whole app (the hard cap under which test/e2e_ui.sh ran without an OOM kill) plus an assumed ~1.5 GB that Android and other apps keep for themselves",
+  "default": "needs 3 GB (OOM-killed at 2.5 GB) -> about 4.5 GB of phone RAM -> 6 GB phones",
+  "lite": "needs 2.5 GB (OOM-killed at 2 GB) -> about 4 GB of phone RAM -> 4 GB phones, at the limit",
+  "caveats": "the cap also holds the local test chain (anvil), the bridge and the test client, which a phone build would not run; the peaks come from screenshot OCR (OCR + language model loaded, speech unloaded). A phone runtime (Bare/Pear) is not built."
+ },
+ "sheng_numerals": "After these runs (same day) src/amount.js reads the Sheng amounts thao (1,000) and soo (100), and src/safety.js treats them as shilling words. None of the requests in the tuned, held-out, voice, latency or e2e_ui runs contain them; the commissioned and public sets were run again after the change: key commissioned_private_set_after_sheng / public_set_after_sheng.",
+ "public_set_harness_fix": "scripts/eval_sw_requests.mjs compared the public labels (numbers) with the amounts (strings) and reported 0 amounts right for both models; fixed 2026-10-29 (labels normalised to the same string form). The commissioned labels are strings and were not affected.",
+ "run_conditions": "one heavy run at a time on a VM that also runs other services (load average 2-3.6 during these runs); timings are one run each and vary 2-5x on this shared box (the default voice median here, 4.1 s, is higher than the 2.6 s in the README from a quieter run)"
+}

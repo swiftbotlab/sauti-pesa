@@ -51,6 +51,8 @@ the local devnet, which needs no internet either. To see the undo window, pay a 
 *"Tuma USDT 5 kwa 0x2222222222222222222222222222222222222222"*): the outbox shows "sends after …" and a **Ghairi**
 (Cancel) button.
 
+**Lite profile (optional, measured, not recommended):** `scripts/fetch_models.sh --lite` once online, then `SAUTI_PROFILE=lite ops/ui.sh` (any laptop: `node bin/portable.mjs --lite ui`) runs Qwen3-0.6B instead of Qwen3-1.7B for intent: about 2x faster and the whole app fits a 2.5 GB cap instead of 3 GB, but it understood 3 of 7 real USDT requests (default 7/7). Numbers: [evidence](evidence/README.md#evidence-lite-phone-class-profile-2026-10-29).
+
 ## Any laptop (macOS / Windows / Linux without bubblewrap)
 
 Portable mode has **no sandbox**: you switch the network off, and the app proves it with the same live probe as the
@@ -151,11 +153,13 @@ downloader is Linux-only here, so on other systems typed and pasted messages are
 ## Known limits
 
 - The sandbox is Linux only (bubblewrap). Portable mode (no sandbox; network switched off and probed) was tested on
-  Linux arm64 only, not on macOS or Windows. Not run on a phone; the UI is a mobile-first local web page.
+  Linux arm64 only, not on macOS or Windows. Not run on a phone; the UI is a mobile-first local web page. The lite
+  profile's lower memory floor (2.5 GB vs 3 GB) is measured on this Linux box, not on a phone.
 - Payment voice clips in the tests are synthetic (neural TTS). Real voices are measured for speech to text only, on
   read speech (40 FLEURS clips): the Swahili fine-tune has WER 20.1% and CER 7.2% there (the multilingual Whisper
   small had 78.3% and 20.4%). Noisy street audio and phone microphones are not tested.
-- Sheng amounts (*thao*, *soo*) are not turned into numbers yet; the app then asks for the amount instead of guessing.
+- Sheng *thao* (1,000) and *soo* (100) are read (since 2026-10-29) and count as shillings, so such a payment is blocked
+  like every shilling amount; "2k"-style amounts are not read by the code's cross-check yet, so the app does not accept them.
 - The 1.7B model's own scam opinion is noisy, so it can only add a low-level hint; the rules decide.
 - Testnets only, not audited. The `online` sender shares the host's network namespace (it runs only our sender code).
 
@@ -163,7 +167,7 @@ downloader is Linux-only here, so on other systems typed and pasted messages are
 
 All code in this repository was written during the event (from 2026-10-26). Reused, with versions and licences in
 [`THIRD_PARTY.md`](THIRD_PARTY.md): the QVAC SDK and WDK packages, ethers, the model weights (Whisper small and its
-Swahili fine-tune, Silero VAD, Qwen3-1.7B, EasyOCR/CRAFT), bubblewrap, Foundry's anvil and the FLEURS test audio.
+Swahili fine-tune, Silero VAD, Qwen3-1.7B, Qwen3-0.6B for the lite profile, EasyOCR/CRAFT), bubblewrap, Foundry's anvil and the FLEURS test audio.
 
 ## DoraHacks form questions: where the answers are
 

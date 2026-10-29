@@ -12,6 +12,7 @@ not sure about. The AI runs **on your own device** with [QVAC](https://docs.qvac
 fine-tune for Swahili), Qwen3-1.7B for intent, OCR for screenshots. Plain code then checks the payment or the message, and
 [WDK](https://docs.wdk.tether.io) signs **offline**. Signed payments wait in an outbox until there is a network.
 The whole app passes its end-to-end tests under a hard [3 GB memory cap](#runs-in-3-gb) (measured on an ARM64 Linux box, not a phone).
+A [lite profile](#lite-profile-phone-class) with Qwen3-0.6B needs 2.5 GB, but understands fewer real requests: measured, not the default.
 
 Track: **Agentic finance with WDK** · AI Yako: Own Your AI (Tether QVAC) · built by Swift Bot Labs
 
@@ -54,7 +55,7 @@ the page needs that link; the payment flows in the video behave the same.
 
 **Supplementary 1-min clip: [check a scam screenshot offline](https://github.com/swiftbotlab/sauti-pesa/releases/download/v1.1/sauti-pesa-screenshot-check.mp4)** · QVAC OCR on the device, three Swahili test screenshots (two scams, one with a look-alike address, and one genuine message), English captions, 1:08.
 
-**Evidence:** [QVAC profiler run](evidence/README.md) (one offline run: load and unload, time to first token, tokens/s and memory for Whisper + VAD, Qwen3-1.7B and OCR; [`qvac-profile.json`](evidence/qvac-profile.json)) · [Swahili speech model comparison](evidence/README.md#evidence-swahili-speech-model-2026-10-28) (multilingual Whisper small vs a Swahili fine-tune: WER 78.3% → 20.1% on 40 real voices; [`asr-swahili-finetune.json`](evidence/asr-swahili-finetune.json)) · [Remote APIs](REMOTE_APIS.md) (every endpoint the code can contact; the AI path contacts none).
+**Evidence:** [QVAC profiler run](evidence/README.md) (one offline run: load and unload, time to first token, tokens/s and memory for Whisper + VAD, Qwen3-1.7B and OCR; [`qvac-profile.json`](evidence/qvac-profile.json)) · [Swahili speech model comparison](evidence/README.md#evidence-swahili-speech-model-2026-10-28) (multilingual Whisper small vs a Swahili fine-tune: WER 78.3% → 20.1% on 40 real voices; [`asr-swahili-finetune.json`](evidence/asr-swahili-finetune.json)) · [Lite profile](evidence/README.md#evidence-lite-phone-class-profile-2026-10-29) (Qwen3-0.6B instead of Qwen3-1.7B: accuracy, latency and the memory floor, default vs lite; [`lite-profile.json`](evidence/lite-profile.json)) · [Remote APIs](REMOTE_APIS.md) (every endpoint the code can contact; the AI path contacts none).
 
 > [!IMPORTANT]
 > Testnets only. There is no mainnet configuration in the code (`src/networks.js`). Use a fresh test wallet.
@@ -63,7 +64,7 @@ the page needs that link; the payment flows in the video behave the same.
 - **[JUDGES.md](JUDGES.md): run it offline in 5 commands**
 - [Why](#why) · [What it does](#what-it-does) · [How it works](#how-it-works) · [Offline vs network](#offline-vs-network)
 - [QVAC integration](#qvac-integration) · [WDK integration](#wdk-integration) · [Safety checks](#safety-checks) · [Undo window](#undo-window) · [Security model](#security-model)
-- [Run it](#run-it) · [Measurements](#measurements) · [Real voices](#real-voices-fleurs-swahili-native-speakers) · [Runs in 3 GB](#runs-in-3-gb) · [Limitations](#limitations) · [Built during the event](#built-during-the-event-and-third-party-work)
+- [Run it](#run-it) · [Measurements](#measurements) · [Real voices](#real-voices-fleurs-swahili-native-speakers) · [Runs in 3 GB](#runs-in-3-gb) · [Lite profile](#lite-profile-phone-class) · [Limitations](#limitations) · [Built during the event](#built-during-the-event-and-third-party-work)
 
 ## Why
 Many people in East Africa now keep savings and receive remittances in USDT, next to M-Pesa. Three problems come up
@@ -162,7 +163,7 @@ and OCR.
 | SDK | `@qvac/sdk` **0.22.0** (exact pin, lockfile committed) |
 | Speech to text | **Swahili:** a Swahili fine-tune of Whisper small, q8_0 (264 MB, Apache-2.0: [malinali-app/whisper-swahili-small-ggml](https://huggingface.co/malinali-app/whisper-swahili-small-ggml), a conversion of [PaschalK/whisper-swahili-small](https://huggingface.co/PaschalK/whisper-swahili-small); `WHISPER_SMALL_SW_Q8_0` in `models.json`, not a QVAC registry constant, loaded from a local path like every model here). **English:** Whisper small, q8_0 (`WHISPER_SMALL_Q8_0`, 264 MB). Engine `whispercpp-transcription`, greedy, temperature 0, contact names as the initial prompt. Real Swahili voices: WER 78.3% → **20.1%** with the fine-tune ([Real voices](#real-voices-fleurs-swahili-native-speakers)) |
 | Voice activity | Silero VAD 5.1.2 (`VAD_SILERO_5_1_2`, 0.9 MB), passed as `vadModelSrc` |
-| Language model | Qwen3-1.7B Q4_0 (`QWEN3_1_7B_INST_Q4`, 1.06 GB), engine `llamacpp-completion` |
+| Language model | Qwen3-1.7B Q4_0 (`QWEN3_1_7B_INST_Q4`, 1.06 GB), engine `llamacpp-completion`. Optional lite profile (`SAUTI_PROFILE=lite`): Qwen3-0.6B Q4_0 (`QWEN3_600M_INST_Q4`, 382 MB), measured, not the default ([Lite profile](#lite-profile-phone-class)) |
 | OCR (screenshots) | EasyOCR pipeline on GGUF: `OCR_CRAFT` text detector (83 MB) + `OCR_LATIN` recognizer (15 MB), engine `ggml-ocr`: `loadModel({ modelType: 'ggml-ocr', modelConfig: { detectorModelSrc, langList: ['en'], magRatio: 1.0, canvasSize: 1024 } })`, then `ocr({ modelId, image })`. The text goes into the same message checks as pasted text |
 | Structured output | `completion({ responseFormat: { type: 'json_schema', … } })` (QVAC turns it into a llama.cpp grammar), then every field is re-validated in code (`src/intent.js`) |
 | Speed | QVAC `kvCache` keys (`sauti-intent-v1`, `sauti-scam-v1`) keep the fixed system + few-shot prefix: about 680 of 700 prompt tokens come from the cache |
@@ -170,7 +171,7 @@ and OCR.
 | Model files | `models.json`: Hugging Face origin at the exact commit QVAC's registry pins, with QVAC's sha256 (the Swahili fine-tune: pinned to its Hugging Face commit, with the LFS sha256 Hugging Face publishes for that commit). `scripts/fetch_models.sh` downloads with curl and checks size + sha256. The OCR weights exist only in QVAC's own peer-to-peer registry: `scripts/fetch_registry_model.sh` gets them with QVAC's registry client inside a network fence (see [`SECURITY.md`](SECURITY.md)), then checks size + sha256 |
 | Device check | `getSystemResources()` and the advisory `assessModelFit()` for our models: `scripts/system_fit.mjs` (results under [Runs in 3 GB](#runs-in-3-gb)) |
 | Profiler | `profiler.enable({ mode: 'verbose', includeServerBreakdown: true, includeResourceGauges: true })` + `onRecord` + `exportJSON()` over one offline run of all four capabilities: `scripts/profile_qvac.sh` writes [`evidence/qvac-profile.json`](evidence/qvac-profile.json), read it with [`evidence/README.md`](evidence/README.md) |
-| Licences | Qwen3-1.7B Apache-2.0 · Whisper MIT · Swahili Whisper fine-tune Apache-2.0 · Silero VAD MIT · EasyOCR latin_g2 Apache-2.0 · CRAFT MIT |
+| Licences | Qwen3-1.7B and Qwen3-0.6B Apache-2.0 · Whisper MIT · Swahili Whisper fine-tune Apache-2.0 · Silero VAD MIT · EasyOCR latin_g2 Apache-2.0 · CRAFT MIT |
 
 Files that call QVAC: [`src/asr.js`](src/asr.js) (`loadModel`, `transcribe`, `unloadModel`),
 [`src/llm.js`](src/llm.js) (`loadModel`, `completion`, `deleteCache`, `unloadModel`),
@@ -183,7 +184,9 @@ Files that call QVAC: [`src/asr.js`](src/asr.js) (`loadModel`, `transcribe`, `un
 Adopted after measuring: the Swahili fine-tune of Whisper small, for Swahili only (on 40 real Swahili voices WER
 78.3% → 20.1%, CER 20.4% → 7.2%, same speed and size; it makes English worse, so English keeps the multilingual
 model). Rejected after measuring: Whisper base (fast, but it mangles Swahili names) and Qwen3.5-2B (about 5.2 s per request,
-2.9 GB, and 11/12 instead of 12/12 on our tuned intent set). Whisper large-v3-turbo q5_0 is available in the CLI as
+2.9 GB, and 11/12 instead of 12/12 on our tuned intent set). Measured, kept as an option, not the default:
+Qwen3-0.6B (the lite profile: about twice as fast, 2.5 GB instead of 3 GB, but 3/7 instead of 7/7 real USDT requests
+understood). Whisper large-v3-turbo q5_0 is available in the CLI as
 `say --accurate` (better Swahili, but 6-10 s per clip on this CPU).
 
 ## WDK integration
@@ -356,7 +359,7 @@ can also unplug the whole machine:
 **Tests:**
 
 ```bash
-ops/sandbox.sh offline node --test test/*.test.js   # 127 unit tests, no model (3 need the private test set, else skipped)
+ops/sandbox.sh offline node --test test/*.test.js   # 135 unit tests, no model (4 need the private test set, else skipped)
 test/sandbox.sh          # 22 sandbox checks with positive controls (read-only code, masks, lock, local.env)
 test/e2e_offline.sh      # CLI, internet off: Swahili text + English voice payments, blocks, hold + cancel, devnet broadcast
 test/e2e_ocr.sh          # CLI, internet off: 4 labelled screenshots -> QVAC OCR -> the same message checks
@@ -422,7 +425,7 @@ loads OCR for each screenshot and unloads it afterwards, and frees the speech mo
   | Measure | Result |
   |---|---|
   | USDT requests (7): action, amount, token and recipient all right | **7/7** |
-  | Amount read right, all 30 (amount as said, any currency) | **28/30** (standard 16/16, code-switched 8/8, Sheng 4/6: *thao moja* read as 1, *soo tano* as 5) |
+  | Amount read right, all 30 (amount as said, any currency) | **30/30** (standard 16/16, code-switched 8/8, Sheng 6/6). Before 2026-10-29: 28/30, *thao moja* read as 1 and *soo tano* as 5; now the code reads *thao* = 1,000 and *soo* = 100 before the model sees the words |
   | Named third-party recipient extracted | **11/11** |
   | Payments that reached "confirm" with a wrong amount or person | **0** |
   | Shilling requests that could be confirmed as USDT | **0/16** |
@@ -433,7 +436,8 @@ loads OCR for each screenshot and unloads it afterwards, and frees the speech mo
   "After" includes rules we added from this set, so the after numbers for scams are **not held out**. The set also
   led to two new checks: the recipient must be named in the person's words, and shillings/M-Pesa words block. Measured
   outcomes (no text from the set): `test/data/eval_sw_requests_results_before.json` and
-  `test/data/eval_sw_requests_results.json`.
+  `test/data/eval_sw_requests_results.json` (run again 2026-10-29 after the Sheng change: only the two Sheng rows
+  changed; the lite profile's run: `test/data/eval_sw_requests_results_lite.json`).
 
 **On-chain:** every payment below was parsed by the on-device AI, checked in code, signed offline by WDK and later
 broadcast by the keyless sender on Ethereum Sepolia (all status 1). Wallet
@@ -586,6 +590,29 @@ the test client.
   (`scripts/fetch_registry_model.sh --fit`, in the download fence) Whisper small becomes "likely-fits" (native fit);
   the other two stay "unknown". So the evidence for 3 GB is the measured run above, not the advisory check.
 
+### Lite profile (phone-class)
+Our answer to "what about phones?" without a phone: the same app with a smaller language model, measured with the
+same harnesses on the same ARM64 Linux box (2026-10-29, one session for both rows, except the default's 3 GB run from
+2026-10-28; not run on a phone). Only the intent and message model changes; speech, VAD, OCR and every code check
+stay the same.
+
+| Profile | Intent: tuned · held-out · real USDT requests (commissioned set) | Warm engine, median: text · voice to checked payment | RAM the whole app needs (hard cap, `test/e2e_ui.sh`) | Phone RAM it could fit (estimate) |
+|---|---|---|---|---|
+| **Default**: Qwen3-1.7B Q4_0 (1.06 GB) | 12/12 · 11/12 · **7/7** | 0.97 s · 4.1 s | **3 GB** (108/108, 2026-10-28; OOM-killed under 2.5 GB) | 6 GB phones |
+| **Lite** (`SAUTI_PROFILE=lite`): Qwen3-0.6B Q4_0 (382 MB) | 11/12 · 10/12 · **3/7** | 0.48 s · 2.4 s | **2.5 GB** (no OOM, but 2 checks fail; OOM-killed under 2 GB) | 4 GB phones, at the limit |
+
+- **Lite is measured, not recommended.** It is about twice as fast and needs 0.5 GB less, and no wrong payment
+  reached "confirm" with either model (the code checks catch its mistakes: an amount copied from the prompt's example,
+  a made-up amount, a placeholder address). But it refused 4 of the 7 real USDT requests and found 7 of 11 named
+  recipients (default 11/11), so the person would be asked again much more often. Both: 6/6 voice notes to the right
+  decision, every scam rated high by the rules.
+- "Phone RAM" is our estimate, not a test: the RAM floor plus about 1.5 GB that we assume Android and other apps keep.
+  The cap also holds the local test chain, the bridge and the test client, which a phone would not run.
+- Run it: `scripts/fetch_models.sh --lite` once (online), then `SAUTI_PROFILE=lite ops/ui.sh`, or
+  `node bin/portable.mjs --lite ui`. Unset, the app is exactly the default. Every number, the misses and the kernel's
+  OOM lines: [evidence](evidence/README.md#evidence-lite-phone-class-profile-2026-10-29),
+  [`evidence/lite-profile.json`](evidence/lite-profile.json).
+
 ## Limitations
 - **Payment voice clips are synthetic.** The voice-to-payment tests use neural TTS voices. Real speakers are measured
   for speech to text only, on read speech ([Real voices](#real-voices-fleurs-swahili-native-speakers)): the app's
@@ -596,7 +623,9 @@ the test client.
   empty; an input gain now raises them, but it does not make normal-level speech more accurate. Noisy street audio, phone microphones and heavy code-switching are not tested yet. The
   code catches many speech mistakes (amount and recipient must match the words) but it can ask more often than it
   should.
-- **Small-model Swahili numbers.** Sheng amounts like *thao* (thousand) and *soo* (hundred) are not normalized yet.
+- **Small-model Swahili numbers.** Sheng *thao* (thousand) and *soo* (hundred) are read since 2026-10-29 and count as
+  shillings (so the payment is blocked, like every shilling amount); "2k"-style amounts are read by the model but not
+  yet by the code's own cross-check, so the app does not accept them.
 - The 1.7B model's own scam opinion is noisy. That is why it can only add a low-level hint.
 - Message-check language detection is a keyword heuristic.
 - Screenshot OCR is tested only on our own clean, rendered screenshots (one font, light theme). Real phone
@@ -604,7 +633,8 @@ the test client.
   yet. The person sees the text that was read and can correct it before the check.
 - The web UI runs on a laptop or desktop (Linux). A phone build (Bare/Pear runtime) is not done; the UI is mobile-first
   so it can be wrapped later.
-  The whole app passes its end-to-end tests under a 3 GB memory cap, but it has not been run on a phone.
+  The whole app passes its end-to-end tests under a 3 GB memory cap, but it has not been run on a phone. The lite
+  profile (Qwen3-0.6B) needs 2.5 GB, but understood 3 of 7 real USDT requests (the default 7/7): not recommended.
 - The `online` sender shares the host's network namespace (it runs only our own sender code; see
   [`SECURITY.md`](SECURITY.md)).
 - Testnets only. Not audited.

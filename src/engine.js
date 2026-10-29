@@ -12,7 +12,7 @@
 // - refuses to start, and refuses to sign, when the internet is reachable (src/gate.js).
 // One request is processed at a time; bodies, text and audio are size-capped; sessions expire.
 import http from 'node:http'
-import { readFileSync, writeFileSync, existsSync, realpathSync, mkdirSync, chmodSync, unlinkSync, lstatSync, rmSync } from 'node:fs'
+import { writeFileSync, existsSync, realpathSync, mkdirSync, chmodSync, unlinkSync, lstatSync, rmSync } from 'node:fs'
 import { join, resolve, relative, sep } from 'node:path'
 import { randomBytes, randomUUID } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
@@ -30,14 +30,16 @@ import { cancelEntry, holdMinutesFrom } from './undo.js'
 import { proofSource } from './netcache.js'
 import { checkGate } from './gate.js'
 import { engineSocket } from './sockpath.js'
-import { missingModelMessage, fetchCommand } from './setup_hint.js'
+import { missingModelMessage, fetchCommand, modelKeyFor } from './setup_hint.js'
 import { reasonText } from './i18n.js'
 import { fromUnits } from './amount.js'
 import { currentRssMb } from './procmem.js'
+import { loadConfig, llmLabel } from './profile.js'
 import { clean, shortAddr } from './text.js'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url)) // project root (this file is in src/)
-const CFG = JSON.parse(readFileSync(join(ROOT, 'config.json'), 'utf8'))
+const CFG = loadConfigOrExit() // config.json + the model profile (SAUTI_PROFILE=lite: Qwen3-0.6B; src/profile.js)
+const LLM_NAME = llmLabel(CFG.models.llm) // e.g. "Qwen3-1.7B Q4_0"
 const DATA = dataRoot()
 const PRIV = join(DATA, 'private')
 const WALLET = join(PRIV, 'wallet.json')
@@ -53,6 +55,10 @@ const MAX_SESSIONS = 32
 const LIMITS = { perTx: '100', perDay: '300', newRecipientMax: '20', retypeAbove: '50', ...(CFG.limits || {}) }
 const HOLD_MINUTES = holdMinutesFrom(CFG) // undo window for flagged payments (src/undo.js); 0 = off
 const OCR_MISSING_PORTABLE = 'OCR model missing: the screenshot check needs OCR_LATIN + OCR_CRAFT, which QVAC publishes only in its own peer-to-peer registry; our fenced downloader for them is Linux-only (scripts/fetch_models.sh OCR_LATIN OCR_CRAFT). Typed and pasted messages are checked without it.'
+
+function loadConfigOrExit () {
+  try { return loadConfig(ROOT) } catch (e) { console.error(`engine failed: ${e.message}`); process.exit(2) }
+}
 
 function dataRoot () {
   const d = process.env.SAUTI_DATA
@@ -154,7 +160,7 @@ async function startAnalysis ({ text, netId, uiLang }) {
   const t0 = Date.now()
   const a = await analyzeRequest({ text, llm, ...ctx })
   const steps = []
-  steps.push({ id: 'llm', model: 'Qwen3-1.7B Q4_0 (QVAC, KV-cached prompt)', ms: a.llmMs, ...llmStep() })
+  steps.push({ id: 'llm', model: `${LLM_NAME} (QVAC, KV-cached prompt)`, ms: a.llmMs, ...llmStep() })
   steps.push({ id: 'checks', ms: Math.max(0, Date.now() - t0 - (a.llmMs || 0)), count: 6 })
   if (!a.ok) return { ok: false, transcript: a.transcript, errors: a.errors, steps }
   pruneSessions()
@@ -326,7 +332,7 @@ async function onCheck (body) {
       addresses,
       aiNote: r.aiNote
     },
-    steps: [{ id: 'llm', model: 'Qwen3-1.7B Q4_0 (QVAC, KV-cached prompt)', ms: r.llmMs, ...llmStep() }, { id: 'checks', ms: Math.max(0, Date.now() - t0 - r.llmMs), count: 11 }]
+    steps: [{ id: 'llm', model: `${LLM_NAME} (QVAC, KV-cached prompt)`, ms: r.llmMs, ...llmStep() }, { id: 'checks', ms: Math.max(0, Date.now() - t0 - r.llmMs), count: 11 }]
   }
 }
 
@@ -344,10 +350,11 @@ async function onStatus (q) {
       ready: engine.ready,
       stage: engine.stage,
       error: engine.error,
+      profile: CFG.profile,
       startedAt: engine.startedAt,
       loadMs: engine.loadMs,
       warmMs: engine.warmMs,
-      models: { asr: asrModelsText(), vad: 'Silero VAD 5.1.2 (VAD_SILERO_5_1_2)', llm: 'Qwen3-1.7B Q4_0 (QWEN3_1_7B_INST_Q4)', ocr: 'OCR_LATIN + OCR_CRAFT (loaded per screenshot)', sdk: '@qvac/sdk 0.22.0' },
+      models: { asr: asrModelsText(), vad: 'Silero VAD 5.1.2 (VAD_SILERO_5_1_2)', llm: `${LLM_NAME} (${modelKeyFor(ROOT, CFG.models.llm) || 'local file'})`, ocr: 'OCR_LATIN + OCR_CRAFT (loaded per screenshot)', sdk: '@qvac/sdk 0.22.0' },
       rssMb: Object.values(rss).reduce((x, y) => x + y, 0)
     },
     net: await probes.cached(5000), // the status pill only; never used to decide anything
@@ -493,6 +500,7 @@ async function start () {
     try { await asr.transcribe(warmClip, 'sw'); engine.loadMs.asrWarm = Date.now() - t } catch (e) { log(`speech warm-up skipped: ${String(e.message).slice(0, 80)}`) }
   }
   engine.stage = 'loading language model'
+  if (CFG.profile !== 'default') log(`model profile: ${CFG.profile} (language model ${CFG.models.llm})`)
   t = Date.now()
   llm = new LocalLLM({ modelPath: modelPath(CFG.models.llm), threads: CFG.llm_threads || undefined, cache: true })
   await llm.load()

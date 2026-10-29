@@ -4,10 +4,12 @@
 # The sha256 values come from QVAC's own model registry (@qvac/inference models.js), and the files are
 # fetched from their Hugging Face origin at the exact commit QVAC pins.
 #   scripts/fetch_models.sh QWEN3_1_7B_INST_Q4 WHISPER_SMALL_Q8_0 VAD_SILERO_5_1_2
+#   scripts/fetch_models.sh --lite      the lite (phone-class) profile's files: Qwen3-0.6B + the same speech + VAD models
 set -euo pipefail
 PROD="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$PROD"
 mkdir -p models
+[ "$#" = 1 ] && [ "$1" = --lite ] && set -- QWEN3_600M_INST_Q4 WHISPER_SMALL_Q8_0 WHISPER_SMALL_SW_Q8_0 VAD_SILERO_5_1_2
 for KEY in "$@"; do
   # OCR weights exist only in QVAC's own peer-to-peer registry (no Hugging Face origin): fenced fetch, same checks
   if python3 -I -c 'import json,sys; sys.exit(0 if "registry" in json.load(open("models.json"))[sys.argv[1]] else 1)' "$KEY"; then

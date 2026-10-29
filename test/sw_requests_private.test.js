@@ -43,3 +43,11 @@ test('private set: the code reads the amount in every standard-Swahili request',
   const missed = std.filter((r) => !amountsInText(normalizeNumbers(r.text)).has(labels.expected_amount[r.id])).map((r) => r.id)
   assert.deepEqual(missed, [])
 })
+
+test('private set: the code reads the Sheng amounts written with thao / soo', { skip }, () => {
+  const { rows, labels } = load()
+  const sheng = rows.filter((r) => !r.scam && /\b(thao|soo)\b/i.test(r.text))
+  assert.ok(sheng.length >= 2)
+  const missed = sheng.filter((r) => !amountsInText(normalizeNumbers(r.text)).has(labels.expected_amount[r.id])).map((r) => r.id)
+  assert.deepEqual(missed, [])
+})

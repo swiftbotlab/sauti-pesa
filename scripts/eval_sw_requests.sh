@@ -29,5 +29,7 @@ trap 'kill $BR $ENG 2>/dev/null; wait 2>/dev/null || true' EXIT
 until grep -q "ready:" tmp/eval-sw-requests/engine.log; do sleep 0.3; if grep -q "failed" tmp/eval-sw-requests/engine.log; then cat tmp/eval-sw-requests/engine.log; exit 1; fi; done
 RESULTS_OUT=test/data/eval_sw_requests_results.json
 [ "$EVAL_SET" != "test/data/private/sw_requests_commissioned.md" ] && RESULTS_OUT=test/data/public/eval_sw_requests_public_results.json
+# SAUTI_PROFILE=lite (Qwen3-0.6B for intent, src/profile.js): the same run, results in a separate *_lite.json
+case "${SAUTI_PROFILE:-}" in ''|default) ;; lite) RESULTS_OUT="${RESULTS_OUT%.json}_lite.json" ;; *) echo "SAUTI_PROFILE must be default or lite" >&2; exit 2 ;; esac
 node scripts/eval_sw_requests.mjs tmp/eval-sw-requests --public "$RESULTS_OUT" > tmp/eval-sw-requests/run.log
 python3 -I -c "import json; print(json.dumps(json.load(open('tmp/eval-sw-requests/results.json'))['summary'], indent=1))"

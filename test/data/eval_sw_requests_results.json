@@ -2,7 +2,8 @@
  "summary": {
   "dataset": "sw_requests_commissioned (private; 30 everyday requests + 5 scams, text)",
   "model": "Qwen3-1.7B Q4_0 via @qvac/sdk 0.22.0 + code checks",
-  "at": "2026-10-26T08:02:24.927Z",
+  "profile": "default",
+  "at": "2026-10-29T05:19:38.308Z",
   "usdt_rows": {
    "n": 7,
    "action_send": 7,
@@ -12,7 +13,7 @@
    "all_fields_ok": 7
   },
   "all_30": {
-   "amount_ok": 28,
+   "amount_ok": 30,
    "amount_ok_by_register": {
     "standard": {
      "n": 16,
@@ -20,7 +21,7 @@
     },
     "sheng": {
      "n": 6,
-     "amount_ok": 4
+     "amount_ok": 6
     },
     "code-switched": {
      "n": 8,
@@ -32,7 +33,7 @@
    "confirmable_wrong": 0,
    "kes_rows_confirmable_as_usdt": "0/16",
    "usd_rows_read_as_usdt": "7/7",
-   "llm_median_ms": 1364
+   "llm_median_ms": 1106
   },
   "check_mode": {
    "scams_high": "5/5",
@@ -40,7 +41,7 @@
    "genuine_high": "0/30",
    "genuine_medium": "1/30",
    "genuine_low_or_none": "29/30",
-   "llm_median_ms": 1603
+   "llm_median_ms": 1235
   }
  },
  "intents": [
@@ -63,7 +64,7 @@
    "amount_question": null,
    "confirmable": false,
    "confirmable_correct": null,
-   "llm_ms": 1533
+   "llm_ms": 1266
   },
   {
    "id": "2",
@@ -84,7 +85,7 @@
    "amount_question": null,
    "confirmable": false,
    "confirmable_correct": null,
-   "llm_ms": 1590
+   "llm_ms": 1138
   },
   {
    "id": "3",
@@ -106,7 +107,7 @@
    "amount_question": "ask",
    "confirmable": false,
    "confirmable_correct": null,
-   "llm_ms": 4336
+   "llm_ms": 2208
   },
   {
    "id": "4",
@@ -125,7 +126,7 @@
    "amount_question": null,
    "confirmable": false,
    "confirmable_correct": null,
-   "llm_ms": 1472
+   "llm_ms": 1050
   },
   {
    "id": "5",
@@ -146,25 +147,22 @@
    "amount_question": null,
    "confirmable": false,
    "confirmable_correct": null,
-   "llm_ms": 1346
+   "llm_ms": 1221
   },
   {
    "id": "6",
    "register": "sheng",
    "currency": "KES",
-   "action": "send",
-   "amount_ok": false,
+   "action": "balance",
+   "amount_ok": true,
    "token": "USDT",
    "name_ok": true,
    "decision": "blocked",
-   "codes": [
-    "unknown_recipient",
-    "amount_not_heard"
-   ],
-   "amount_question": "ask",
+   "codes": [],
+   "amount_question": null,
    "confirmable": false,
    "confirmable_correct": null,
-   "llm_ms": 2023
+   "llm_ms": 996
   },
   {
    "id": "7",
@@ -184,7 +182,7 @@
    "amount_question": null,
    "confirmable": false,
    "confirmable_correct": null,
-   "llm_ms": 1444
+   "llm_ms": 1106
   },
   {
    "id": "8",
@@ -204,24 +202,27 @@
    "amount_question": null,
    "confirmable": false,
    "confirmable_correct": null,
-   "llm_ms": 2040
+   "llm_ms": 1210
   },
   {
    "id": "9",
    "register": "sheng",
    "currency": "KES",
    "action": "send",
-   "amount_ok": false,
+   "amount_ok": true,
    "token": "USDT",
    "name_ok": true,
    "decision": "blocked",
    "codes": [
-    "unknown_recipient"
+    "unknown_recipient",
+    "unsupported_token",
+    "over_tx_limit",
+    "over_daily_limit"
    ],
    "amount_question": null,
    "confirmable": false,
    "confirmable_correct": null,
-   "llm_ms": 1524
+   "llm_ms": 972
   },
   {
    "id": "10",
@@ -242,7 +243,7 @@
    "amount_question": null,
    "confirmable": false,
    "confirmable_correct": null,
-   "llm_ms": 1351
+   "llm_ms": 994
   },
   {
    "id": "11",
@@ -262,7 +263,7 @@
    "amount_question": null,
    "confirmable": false,
    "confirmable_correct": null,
-   "llm_ms": 1763
+   "llm_ms": 1184
   },
   {
    "id": "12",
@@ -283,7 +284,7 @@
    "amount_question": "ask",
    "confirmable": false,
    "confirmable_correct": null,
-   "llm_ms": 1767
+   "llm_ms": 1306
   },
   {
    "id": "13",
@@ -304,7 +305,7 @@
    "amount_question": null,
    "confirmable": false,
    "confirmable_correct": null,
-   "llm_ms": 1344
+   "llm_ms": 1125
   },
   {
    "id": "14",
@@ -325,7 +326,7 @@
    "amount_question": "ask",
    "confirmable": false,
    "confirmable_correct": null,
-   "llm_ms": 1346
+   "llm_ms": 999
   },
   {
    "id": "15",
@@ -340,7 +341,7 @@
    "amount_question": null,
    "confirmable": false,
    "confirmable_correct": null,
-   "llm_ms": 1013
+   "llm_ms": 933
   },
   {
    "id": "16",
@@ -360,7 +361,7 @@
    "amount_question": null,
    "confirmable": false,
    "confirmable_correct": null,
-   "llm_ms": 1492
+   "llm_ms": 1252
   },
   {
    "id": "17",
@@ -377,7 +378,7 @@
    "amount_question": null,
    "confirmable": false,
    "confirmable_correct": null,
-   "llm_ms": 965
+   "llm_ms": 991
   },
   {
    "id": "18",
@@ -395,7 +396,7 @@
    "amount_question": null,
    "confirmable": false,
    "confirmable_correct": null,
-   "llm_ms": 1045
+   "llm_ms": 1005
   },
   {
    "id": "19",
@@ -413,7 +414,7 @@
    "amount_question": null,
    "confirmable": false,
    "confirmable_correct": null,
-   "llm_ms": 1523
+   "llm_ms": 1037
   },
   {
    "id": "20",
@@ -428,7 +429,7 @@
    "amount_question": null,
    "confirmable": false,
    "confirmable_correct": null,
-   "llm_ms": 1025
+   "llm_ms": 942
   },
   {
    "id": "21",
@@ -445,7 +446,7 @@
    "amount_question": null,
    "confirmable": false,
    "confirmable_correct": null,
-   "llm_ms": 1153
+   "llm_ms": 1016
   },
   {
    "id": "22",
@@ -462,7 +463,7 @@
    "amount_question": null,
    "confirmable": false,
    "confirmable_correct": null,
-   "llm_ms": 1144
+   "llm_ms": 1174
   },
   {
    "id": "23",
@@ -480,7 +481,7 @@
    "amount_question": null,
    "confirmable": false,
    "confirmable_correct": null,
-   "llm_ms": 1167
+   "llm_ms": 1086
   },
   {
    "id": "24",
@@ -497,7 +498,7 @@
    "amount_question": null,
    "confirmable": false,
    "confirmable_correct": null,
-   "llm_ms": 1179
+   "llm_ms": 1099
   },
   {
    "id": "25",
@@ -512,7 +513,7 @@
    "amount_question": null,
    "confirmable": true,
    "confirmable_correct": true,
-   "llm_ms": 1095
+   "llm_ms": 1213
   },
   {
    "id": "26",
@@ -529,7 +530,7 @@
    "amount_question": null,
    "confirmable": false,
    "confirmable_correct": null,
-   "llm_ms": 1364
+   "llm_ms": 991
   },
   {
    "id": "27",
@@ -548,7 +549,7 @@
    "amount_question": null,
    "confirmable": false,
    "confirmable_correct": null,
-   "llm_ms": 1653
+   "llm_ms": 1234
   },
   {
    "id": "28",
@@ -565,7 +566,7 @@
    "amount_question": null,
    "confirmable": false,
    "confirmable_correct": null,
-   "llm_ms": 1065
+   "llm_ms": 1189
   },
   {
    "id": "29",
@@ -582,7 +583,7 @@
    "amount_question": null,
    "confirmable": false,
    "confirmable_correct": null,
-   "llm_ms": 1316
+   "llm_ms": 1095
   },
   {
    "id": "30",
@@ -599,7 +600,7 @@
    "amount_question": null,
    "confirmable": false,
    "confirmable_correct": null,
-   "llm_ms": 1670
+   "llm_ms": 1246
   }
  ],
  "checks": [
@@ -611,7 +612,7 @@
    "ai_flags": [
     "impersonation"
    ],
-   "llm_ms": 1184
+   "llm_ms": 1066
   },
   {
    "id": "2",
@@ -623,7 +624,7 @@
     "urgency",
     "prize"
    ],
-   "llm_ms": 1444
+   "llm_ms": 1434
   },
   {
    "id": "3",
@@ -635,7 +636,7 @@
    "ai_flags": [
     "impersonation"
    ],
-   "llm_ms": 1356
+   "llm_ms": 1079
   },
   {
    "id": "4",
@@ -647,7 +648,7 @@
     "urgency",
     "prize"
    ],
-   "llm_ms": 1827
+   "llm_ms": 1235
   },
   {
    "id": "5",
@@ -659,7 +660,7 @@
     "urgency",
     "wrong_send"
    ],
-   "llm_ms": 1763
+   "llm_ms": 1080
   },
   {
    "id": "6",
@@ -670,7 +671,7 @@
     "impersonation",
     "urgency"
    ],
-   "llm_ms": 1306
+   "llm_ms": 1102
   },
   {
    "id": "7",
@@ -682,7 +683,7 @@
     "urgency",
     "wrong_send"
    ],
-   "llm_ms": 1431
+   "llm_ms": 1046
   },
   {
    "id": "8",
@@ -694,7 +695,7 @@
     "urgency",
     "prize"
    ],
-   "llm_ms": 1480
+   "llm_ms": 1245
   },
   {
    "id": "9",
@@ -705,7 +706,7 @@
     "impersonation",
     "urgency"
    ],
-   "llm_ms": 1311
+   "llm_ms": 1063
   },
   {
    "id": "10",
@@ -717,7 +718,7 @@
     "urgency",
     "wrong_send"
    ],
-   "llm_ms": 2433
+   "llm_ms": 1497
   },
   {
    "id": "11",
@@ -728,7 +729,7 @@
     "impersonation",
     "urgency"
    ],
-   "llm_ms": 1852
+   "llm_ms": 1210
   },
   {
    "id": "12",
@@ -739,7 +740,7 @@
     "urgency",
     "prize"
    ],
-   "llm_ms": 1723
+   "llm_ms": 1018
   },
   {
    "id": "13",
@@ -751,7 +752,7 @@
     "urgency",
     "prize"
    ],
-   "llm_ms": 2164
+   "llm_ms": 1484
   },
   {
    "id": "14",
@@ -762,7 +763,7 @@
     "urgency",
     "prize"
    ],
-   "llm_ms": 2234
+   "llm_ms": 1110
   },
   {
    "id": "15",
@@ -773,7 +774,7 @@
     "impersonation",
     "urgency"
    ],
-   "llm_ms": 1486
+   "llm_ms": 1272
   },
   {
    "id": "16",
@@ -784,7 +785,7 @@
     "urgency",
     "prize"
    ],
-   "llm_ms": 1475
+   "llm_ms": 1065
   },
   {
    "id": "17",
@@ -795,7 +796,7 @@
     "impersonation",
     "urgency"
    ],
-   "llm_ms": 1365
+   "llm_ms": 1089
   },
   {
    "id": "18",
@@ -807,7 +808,7 @@
     "urgency",
     "wrong_send"
    ],
-   "llm_ms": 1905
+   "llm_ms": 1280
   },
   {
    "id": "19",
@@ -818,7 +819,7 @@
     "impersonation",
     "urgency"
    ],
-   "llm_ms": 1363
+   "llm_ms": 1117
   },
   {
    "id": "20",
@@ -829,7 +830,7 @@
     "impersonation",
     "urgency"
    ],
-   "llm_ms": 1177
+   "llm_ms": 1237
   },
   {
    "id": "21",
@@ -841,7 +842,7 @@
     "prize",
     "urgency"
    ],
-   "llm_ms": 1640
+   "llm_ms": 1900
   },
   {
    "id": "22",
@@ -852,7 +853,7 @@
     "impersonation",
     "urgency"
    ],
-   "llm_ms": 1402
+   "llm_ms": 1546
   },
   {
    "id": "23",
@@ -864,7 +865,7 @@
     "urgency",
     "wrong_send"
    ],
-   "llm_ms": 1650
+   "llm_ms": 1333
   },
   {
    "id": "24",
@@ -875,7 +876,7 @@
     "impersonation",
     "prize"
    ],
-   "llm_ms": 2425
+   "llm_ms": 1153
   },
   {
    "id": "25",
@@ -886,7 +887,7 @@
     "impersonation",
     "urgency"
    ],
-   "llm_ms": 2616
+   "llm_ms": 1161
   },
   {
    "id": "26",
@@ -897,7 +898,7 @@
     "impersonation",
     "urgency"
    ],
-   "llm_ms": 1603
+   "llm_ms": 1270
   },
   {
    "id": "27",
@@ -908,7 +909,7 @@
     "impersonation",
     "wrong_send"
    ],
-   "llm_ms": 3214
+   "llm_ms": 1288
   },
   {
    "id": "28",
@@ -920,7 +921,7 @@
     "wrong_send",
     "secrecy"
    ],
-   "llm_ms": 1531
+   "llm_ms": 1269
   },
   {
    "id": "29",
@@ -932,7 +933,7 @@
     "wrong_send",
     "urgency"
    ],
-   "llm_ms": 1372
+   "llm_ms": 1191
   },
   {
    "id": "30",
@@ -943,7 +944,7 @@
     "impersonation",
     "urgency"
    ],
-   "llm_ms": 1172
+   "llm_ms": 1116
   },
   {
    "id": "S1",
@@ -956,7 +957,7 @@
    "ai_flags": [
     "wrong_send"
    ],
-   "llm_ms": 1461
+   "llm_ms": 1232
   },
   {
    "id": "S2",
@@ -970,7 +971,7 @@
     "urgency",
     "prize"
    ],
-   "llm_ms": 1765
+   "llm_ms": 1371
   },
   {
    "id": "S3",
@@ -984,7 +985,7 @@
     "impersonation",
     "urgency"
    ],
-   "llm_ms": 1619
+   "llm_ms": 1278
   },
   {
    "id": "S4",
@@ -997,7 +998,7 @@
    "ai_flags": [
     "impersonation"
    ],
-   "llm_ms": 1629
+   "llm_ms": 1427
   },
   {
    "id": "S5",
@@ -1011,7 +1012,7 @@
     "urgency",
     "wrong_send"
    ],
-   "llm_ms": 1616
+   "llm_ms": 1712
   }
  ]
 }

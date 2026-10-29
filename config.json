@@ -20,5 +20,13 @@
  },
  "hold_minutes": 10,
  "asr_warmup": "test/audio/sw_amina_20.wav",
- "ocr_threads": 4
+ "ocr_threads": 4,
+ "profiles": {
+  "lite": {
+   "note": "SAUTI_PROFILE=lite: phone-class profile. Only the intent/message model changes (Qwen3-0.6B, QVAC QWEN3_600M_INST_Q4); speech, VAD and OCR stay the same. Measured: evidence/lite-profile.json",
+   "models": {
+    "llm": "models/Qwen3-0.6B-Q4_0.gguf"
+   }
+  }
+ }
 }

@@ -21,7 +21,8 @@ const reason = (code, severity, data = {}) => ({ code, severity, ...data })
 // Saying "USDT" somewhere is not enough: "Tuma USDT kwa Juma, sawa na shilingi 50" names no USDT amount, so the 50
 // is shillings. A shilling mention is only accepted next to an EXPLICIT USDT amount ("USDT 20 ... ni kama shilingi
 // 2,600"), and then the payment must be that USDT amount, never the shilling one.
-const FIAT_WORDS = /\b(shilingi|shillings?|kshs?|kes|tshs?|tzs|ugx|m-?pesa)\b|\bsh\.? ?\d|\d[\d,.]* ?bob\b/i
+// Sheng amounts (thao = 1,000, soo = 100: src/amount.js) are shilling slang, so they count as a shilling word too.
+const FIAT_WORDS = /\b(shilingi|shillings?|kshs?|kes|tshs?|tzs|ugx|m-?pesa|thao|soo)\b|\bsh\.? ?\d|\d[\d,.]* ?bob\b/i
 const NUM = '(\\d{1,3}(?:,\\d{3})+(?:\\.\\d+)?|\\d+(?:\\.\\d+)?)'
 const USDT_THEN_NUM = new RegExp(`\\b(?:usdt0?|tether)\\s*[:=]?\\s*${NUM}(?![\\w])`, 'gi')
 const NUM_THEN_USDT = new RegExp(`(?<![\\w.,])${NUM}\\s*(?:usdt0?|tether)\\b`, 'gi')

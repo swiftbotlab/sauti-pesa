@@ -38,7 +38,9 @@ export function fromUnits (units, decimals = TOKEN_DECIMALS) {
 // ---- number words -------------------------------------------------------------------------
 const SW_UNITS = { sifuri: 0, moja: 1, mbili: 2, tatu: 3, nne: 4, tano: 5, sita: 6, saba: 7, nane: 8, tisa: 9 }
 const SW_TENS = { kumi: 10, ishirini: 20, thelathini: 30, arobaini: 40, hamsini: 50, sitini: 60, sabini: 70, themanini: 80, tisini: 90 }
-const SW_ALIAS = { miya: 'mia', thalathini: 'thelathini', arubaini: 'arobaini', thamanini: 'themanini', tissini: 'tisini', hamsin: 'hamsini', ishrini: 'ishirini', elf: 'elfu' }
+// Sheng (Nairobi street Swahili) money words, read like their Swahili twins: thao = elfu (1,000), soo = mia (100), so
+// "thao moja" = 1000 and "soo tano" = 500 (they mean shillings: src/safety.js treats them as a local-currency word).
+const SW_ALIAS = { miya: 'mia', thalathini: 'thelathini', arubaini: 'arobaini', thamanini: 'themanini', tissini: 'tisini', hamsin: 'hamsini', ishrini: 'ishirini', elf: 'elfu', thao: 'elfu', soo: 'mia' }
 const EN_SMALL = {
   zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
   eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19,

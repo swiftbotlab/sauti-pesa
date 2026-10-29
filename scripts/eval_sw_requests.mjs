@@ -11,6 +11,7 @@
 // beyond the single request text that the app would receive from a person anyway.
 // Writes OUT/results.json (full, stays local) and, with --public FILE, a copy without any text from the set.
 import { readFileSync, writeFileSync, existsSync } from 'node:fs'
+import { loadConfig, llmLabel } from '../src/profile.js'
 
 // Default: the private commissioned set (35 rows). Point SAUTI_EVAL_SET / SAUTI_EVAL_LABELS at the public set
 // (test/data/public/sw_requests_public.md) to reproduce our checks on a freely-redistributable set.
@@ -19,6 +20,7 @@ const SET = process.env.SAUTI_EVAL_SET || DEFAULT_SET
 const LABELS = process.env.SAUTI_EVAL_LABELS || 'test/data/private/sw_requests_commissioned.labels.json'
 if (!existsSync(SET) || !existsSync(LABELS)) { console.error(`skipped: test set not found (${SET} / ${LABELS})`); process.exit(3) }
 const KEY = process.env.SAUTI_UI_TOKEN || ''
+const PROFILE_CFG = loadConfig(process.cwd()) // the engine runs with the same SAUTI_PROFILE (scripts/eval_sw_requests.sh)
 const B = `http://127.0.0.1:${Number(process.env.SAUTI_UI_PORT || 8787)}`
 const H = { 'x-sauti-key': KEY, origin: B, 'content-type': 'application/json' }
 const OUT = process.argv[2] || 'tmp/eval-sw-requests'
@@ -55,7 +57,7 @@ for (const r of rows.filter((x) => !x.scam)) {
   const a = await post('/api/ask?network=devnet', { text: r.swahili, lang: 'sw' })
   const v = a.j.view || {}
   const intent = v.intent || {}
-  const exp = EXPECTED[r.id]
+  const exp = EXPECTED[r.id] === undefined ? undefined : num(String(EXPECTED[r.id])) // labels may hold numbers (public set) or strings
   const name = intent.recipient_name || null
   const row = {
     id: r.id, register: r.register, currency: r.currency, text: r.swahili,
@@ -101,7 +103,8 @@ const sorted = (xs) => [...xs].sort((a, b) => a - b)
 const median = (xs) => sorted(xs)[Math.floor(xs.length / 2)]
 const summary = {
   dataset: 'sw_requests_commissioned (private; 30 everyday requests + 5 scams, text)',
-  model: 'Qwen3-1.7B Q4_0 via @qvac/sdk 0.22.0 + code checks',
+  model: `${llmLabel(PROFILE_CFG.models.llm)} via @qvac/sdk 0.22.0 + code checks`,
+  profile: PROFILE_CFG.profile,
   at: new Date().toISOString(),
   usdt_rows: {
     n: usdt.length,

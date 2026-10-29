@@ -21,6 +21,7 @@ No earlier code was reused.
 | File | QVAC constant | Origin | Licence |
 |---|---|---|---|
 | Qwen3-1.7B-Q4_0.gguf | QWEN3_1_7B_INST_Q4 | unsloth/Qwen3-1.7B-GGUF (Qwen3-1.7B by Alibaba Qwen) | Apache-2.0 |
+| Qwen3-0.6B-Q4_0.gguf (lite profile only, `SAUTI_PROFILE=lite`) | QWEN3_600M_INST_Q4 | unsloth/Qwen3-0.6B-GGUF at commit `50968a4468ef4233ed78cd7c3de230dd1d61a56b` (Qwen3-0.6B by Alibaba Qwen), sha256 `33bcc570…8f75cb` = QVAC's pin = the Hugging Face LFS oid | Apache-2.0 |
 | ggml-small-q8_0.bin | WHISPER_SMALL_Q8_0 | ggerganov/whisper.cpp (OpenAI Whisper); English speech | MIT |
 | ggml-whisper-swahili-small-q8_0.bin (Swahili speech) | none (`WHISPER_SMALL_SW_Q8_0` in models.json; loaded from a local path) | [malinali-app/whisper-swahili-small-ggml](https://huggingface.co/malinali-app/whisper-swahili-small-ggml) at commit `403b03e660aa3635823c42e4589c57a9b2c26fe5`, file `ggml-model-q8_0.bin`, sha256 `5d89c6ee07592a0c43fa560d592949635e7154cd716debda8d40919a772381a6` (Hugging Face LFS oid): a ggml q8_0 conversion by malinali-app of [PaschalK/whisper-swahili-small](https://huggingface.co/PaschalK/whisper-swahili-small), a Swahili fine-tune of OpenAI Whisper small on Common Voice 11. Weights only: no code from either repository is used | Apache-2.0 |
 | ggml-silero-v5.1.2.bin | VAD_SILERO_5_1_2 | ggml-org/whisper-vad (Silero VAD) | MIT |

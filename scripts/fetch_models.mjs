@@ -5,6 +5,7 @@
 // and the files from their Hugging Face origin at the exact commit QVAC pins.
 //   npm run fetch-models                       the four models the app needs (~1.6 GB)
 //   npm run fetch-models -- WHISPER_SMALL_Q8_0 one or more models.json keys
+//   npm run fetch-models -- --lite             the lite (phone-class) profile: Qwen3-0.6B instead of Qwen3-1.7B (~1.0 GB)
 // Rules: https only (also for every redirect, at most 5), the start URL must be https://huggingface.co/, the file is
 // written to models/<file>.part and only renamed into place when the size AND the sha256 match the pin; more bytes
 // than the pin aborts at once; an interrupted download resumes (HTTP Range) on the next run. The .part file is never
@@ -20,6 +21,8 @@ import { fileURLToPath } from 'node:url'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
 export const DEFAULT_KEYS = ['QWEN3_1_7B_INST_Q4', 'WHISPER_SMALL_Q8_0', 'WHISPER_SMALL_SW_Q8_0', 'VAD_SILERO_5_1_2']
+// SAUTI_PROFILE=lite (src/profile.js): the same speech + VAD files, QVAC's QWEN3_600M_INST_Q4 for intent
+export const LITE_KEYS = ['QWEN3_600M_INST_Q4', 'WHISPER_SMALL_Q8_0', 'WHISPER_SMALL_SW_Q8_0', 'VAD_SILERO_5_1_2']
 const MAX_REDIRECTS = 5
 const IDLE_MS = 60000
 const NOFOLLOW = FS.O_NOFOLLOW || 0 // not defined on Windows
@@ -156,8 +159,9 @@ export async function fetchOne ({ key, entry, dir, fetchImpl = fetch, log = cons
 }
 
 async function main () {
-  const keys = process.argv.slice(2)
-  if (keys.some((k) => k.startsWith('-'))) { console.error('usage: npm run fetch-models [-- KEY ...]   (keys from models.json)'); process.exit(2) }
+  const argv = process.argv.slice(2)
+  const keys = argv.length === 1 && argv[0] === '--lite' ? LITE_KEYS : argv
+  if (keys.some((k) => k.startsWith('-'))) { console.error('usage: npm run fetch-models [-- KEY ... | -- --lite]   (keys from models.json)'); process.exit(2) }
   const models = JSON.parse(readFileSync(join(ROOT, 'models.json'), 'utf8'))
   const dir = join(ROOT, 'models')
   if (existsSync(dir) && !lstatSync(dir).isDirectory()) { console.error('models/ is not a directory; refusing'); process.exit(2) }

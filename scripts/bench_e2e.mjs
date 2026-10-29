@@ -1,5 +1,6 @@
 // Voice -> decision benchmark with the app's own modules, fully offline.
 //   ops/sandbox.sh offline node scripts/bench_e2e.mjs [--accurate | --generic]
+//   SAUTI_PROFILE=lite ops/sandbox.sh offline node scripts/bench_e2e.mjs     the lite profile (Qwen3-0.6B for intent)
 // Default: the speech models the app uses per language (config.models.asr_sw for Swahili when present, else
 // config.models.asr). --generic: config.models.asr (multilingual Whisper small) for every language, for comparison.
 // Speech model first (all clips), unloaded, then the language model: the same order the CLI uses (RAM).
@@ -11,8 +12,9 @@ import { normalizeNumbers, toUnits } from '../src/amount.js'
 import { validateContact } from '../src/contacts.js'
 import { checkSend } from '../src/safety.js'
 import { peakRssMb } from '../src/procmem.js'
+import { loadConfig } from '../src/profile.js'
 
-const cfg = JSON.parse(readFileSync('config.json', 'utf8'))
+const cfg = loadConfig(process.cwd()) // config.json + SAUTI_PROFILE (src/profile.js)
 const accurate = process.argv.includes('--accurate')
 const generic = process.argv.includes('--generic')
 const root = process.cwd()
@@ -38,6 +40,6 @@ for (const h of heard) {
   if (ok) correct++
   console.log(JSON.stringify({ id: h.p.id, ok, asr_model: h.model, asr_ms: h.ms, audio_s: h.seconds, llm_ms: r.ms, heard: h.text, got, codes: c?.reasons.map((x) => x.code) }))
 }
-console.log(JSON.stringify({ summary: true, asr_model: accurate ? cfg.models.asr_accurate : cfg.models.asr, asr_models_per_lang: Object.fromEntries(['sw', 'en'].map((l) => [l, asr.pathFor(l).slice(root.length + 1)])), asr_load_ms: asr.loadMs, asr_swap_ms: asr.swapMs, asr_switch_ms: asr.switchMs, llm_load_ms: llmLoad, correct: `${correct}/${heard.length}`, mean_asr_ms: Math.round(heard.reduce((a, h) => a + h.ms, 0) / heard.length), mean_llm_ms: Math.round(llm.stats.reduce((a, s) => a + s.ms, 0) / llm.stats.length), asr_peak_rss_mb: asrRss, llm_peak_rss_mb: peakRssMb() }))
+console.log(JSON.stringify({ summary: true, profile: cfg.profile, llm_model: cfg.models.llm, asr_model: accurate ? cfg.models.asr_accurate : cfg.models.asr, asr_models_per_lang: Object.fromEntries(['sw', 'en'].map((l) => [l, asr.pathFor(l).slice(root.length + 1)])), asr_load_ms: asr.loadMs, asr_swap_ms: asr.swapMs, asr_switch_ms: asr.switchMs, llm_load_ms: llmLoad, correct: `${correct}/${heard.length}`, mean_asr_ms: Math.round(heard.reduce((a, h) => a + h.ms, 0) / heard.length), mean_llm_ms: Math.round(llm.stats.reduce((a, s) => a + s.ms, 0) / llm.stats.length), asr_peak_rss_mb: asrRss, llm_peak_rss_mb: peakRssMb() }))
 await llm.unload()
 await close()

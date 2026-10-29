@@ -111,7 +111,7 @@ test('gate: the default probe is the live one from src/offline.js (same legs the
 })
 
 test('launchers: before the gate they load Node built-ins and our own gate files only (no third-party code)', () => {
-  const allowed = new Set(['bin/sauti.mjs', 'bin/serve.mjs', 'bin/portable.mjs', 'bin/bridge.mjs', 'src/gate.js', 'src/offline.js', 'src/sockpath.js', 'src/setup_hint.js', 'src/launch_env.js'])
+  const allowed = new Set(['bin/sauti.mjs', 'bin/serve.mjs', 'bin/portable.mjs', 'bin/bridge.mjs', 'src/gate.js', 'src/offline.js', 'src/sockpath.js', 'src/setup_hint.js', 'src/launch_env.js', 'src/profile.js'])
   const seen = new Set()
   const walk = (rel) => {
     if (seen.has(rel)) return

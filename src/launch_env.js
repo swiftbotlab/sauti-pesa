@@ -4,6 +4,7 @@ import { mkdirSync, lstatSync, chmodSync, realpathSync } from 'node:fs'
 import { join, resolve, relative, sep } from 'node:path'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
+import { PROFILES } from './profile.js'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url)) // project root (this file is in src/)
 
@@ -81,6 +82,7 @@ export function childEnvFrom (src, { home, tmp = null, data = null, extra = {} }
   env.NODE_ENV = 'production'
   if (data) env.SAUTI_DATA = data
   for (const [k, v] of Object.entries(extra)) if (['SAUTI_DATA', 'SAUTI_ENGINE_PIPE', 'SAUTI_UI_TOKEN', 'SAUTI_UI_PORT'].includes(k)) env[k] = String(v)
+  if (PROFILES.includes(extra.SAUTI_PROFILE) && extra.SAUTI_PROFILE !== 'default') env.SAUTI_PROFILE = extra.SAUTI_PROFILE // the model profile (src/profile.js), known names only
   env.SAUTI_SANDBOX = 'portable'
   return env
 }

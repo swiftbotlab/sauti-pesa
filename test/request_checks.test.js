@@ -161,3 +161,24 @@ test('model-only flags stay low, even "high" kinds', () => {
   // positive control: a rule hit plus the model still reaches high
   assert.equal(riskFromFlags(mergeFlags(ruleFlags('Lipa ada ya usajili kwanza'), ['wrong_send'])), 'high')
 })
+
+test('Sheng amounts: thao = 1,000 and soo = 100 are read, and they are shillings, never USDT', () => {
+  // the code's own number reader (used to cross-check the model) and the rewrite the model sees
+  assert.deepEqual([...amountsInText('si unitumie thao moja tu')], ['1000'])
+  assert.deepEqual([...amountsInText('nitumie soo tano za lunch')], ['500'])
+  assert.deepEqual([...amountsInText('nipe thao mbili soo tano')], ['2500'])
+  assert.deepEqual([...amountsInText('nipe thao')], ['1000'])
+  assert.equal(normalizeNumbers('nitumie soo tano za lunch'), 'nitumie 500 za lunch')
+  assert.equal(normalizeNumbers('si unitumie thao moja tu.'), 'si unitumie 1000 tu.')
+  // negative controls: words that only contain the letters are not amounts
+  for (const t of ['see you soon', 'nitakuona baadaye, sooo happy', 'thaonyesha picha']) assert.equal(amountsInText(t).size, 0, t)
+  // a Sheng amount is a shilling amount: the payment is blocked as a local currency, never sent as USDT
+  assert.equal(fiatInText('nitumie soo tano za lunch'), 'soo')
+  const r = checkSend({ ...base, intent: intent({ amount: '500', token: null }), transcript: 'Juma nitumie soo tano za lunch' })
+  assert.equal(r.decision, 'blocked')
+  assert.ok(codes(r).includes('unsupported_token'))
+  assert.ok(!codes(r).some((c) => c.startsWith('amount_')), 'the amount itself was heard (500)')
+  // control: an explicit USDT amount next to a Sheng word is a USDT payment (and only that amount)
+  assert.equal(fiatInText('Tuma USDT 20 kwa Juma, ni kama soo tano hivi', '20'), null)
+  assert.notEqual(fiatInText('Tuma USDT 20 kwa Juma, ni kama soo tano hivi', '500'), null)
+})

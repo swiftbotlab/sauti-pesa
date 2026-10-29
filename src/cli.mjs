@@ -31,14 +31,19 @@ import { reasonText } from './i18n.js'
 import { analysisView } from './view.js'
 import { peakRssMb } from './procmem.js'
 import { shortAddr } from './text.js'
+import { loadConfig, llmLabel } from './profile.js'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url)) // project root (this file is in src/)
-const CFG = JSON.parse(readFileSync(join(ROOT, 'config.json'), 'utf8'))
+const CFG = configOrExit() // config.json + the model profile (SAUTI_PROFILE=lite: Qwen3-0.6B; src/profile.js)
 // SAUTI_DATA (tests only) moves private/ and queue/ under tmp/ so a test run never touches the real wallet
 const DATA = dataRoot()
 const PRIV = join(DATA, 'private')
 const WALLET = join(PRIV, 'wallet.json')
 const CONTACTS = join(PRIV, 'contacts.json')
+
+function configOrExit () {
+  try { return loadConfig(ROOT) } catch (e) { console.error(e.message); process.exit(2) }
+}
 
 function dataRoot () {
   const d = process.env.SAUTI_DATA
@@ -79,7 +84,7 @@ function tokenAddressFor (netId, store) {
 async function header (o) {
   const s = await networkState()
   if (o['require-offline'] && s.online) throw new Error('refusing to run: the internet is reachable (use ops/sandbox.sh offline)')
-  say(o, `[network: ${s.online ? 'ON' : 'OFF (verified: no route, no DNS)'} | sandbox: ${s.sandbox}${PORTABLE ? ' (no bubblewrap: the network is switched off; checked again before every signature)' : ''}]`)
+  say(o, `[network: ${s.online ? 'ON' : 'OFF (verified: no route, no DNS)'} | sandbox: ${s.sandbox}${PORTABLE ? ' (no bubblewrap: the network is switched off; checked again before every signature)' : ''}${CFG.profile !== 'default' ? ` | profile: ${CFG.profile} (${llmLabel(CFG.models.llm)})` : ''}]`)
   return s
 }
 

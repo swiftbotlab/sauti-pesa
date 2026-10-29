@@ -1,0 +1,1254 @@
+{
+ "summary": {
+  "dataset": "sw_requests_commissioned (private; 30 everyday requests + 5 scams, text)",
+  "model": "Qwen3-0.6B Q4_0 via @qvac/sdk 0.22.0 + code checks",
+  "profile": "lite",
+  "at": "2026-10-29T05:21:34.652Z",
+  "usdt_rows": {
+   "n": 7,
+   "action_send": 3,
+   "amount_ok": 3,
+   "token_usdt": 3,
+   "recipient_ok": 6,
+   "all_fields_ok": 3
+  },
+  "all_30": {
+   "amount_ok": 24,
+   "amount_ok_by_register": {
+    "standard": {
+     "n": 16,
+     "amount_ok": 13
+    },
+    "sheng": {
+     "n": 6,
+     "amount_ok": 5
+    },
+    "code-switched": {
+     "n": 8,
+     "amount_ok": 6
+    }
+   },
+   "named_recipient_ok": "7/11",
+   "confirmable": 1,
+   "confirmable_wrong": 0,
+   "kes_rows_confirmable_as_usdt": "0/16",
+   "usd_rows_read_as_usdt": "5/7",
+   "llm_median_ms": 590
+  },
+  "check_mode": {
+   "scams_high": "5/5",
+   "scams_flagged_medium_or_high": "5/5",
+   "genuine_high": "0/30",
+   "genuine_medium": "1/30",
+   "genuine_low_or_none": "29/30",
+   "llm_median_ms": 1194
+  }
+ },
+ "intents": [
+  {
+   "id": "1",
+   "register": "standard",
+   "currency": "KES",
+   "action": "send",
+   "amount_ok": true,
+   "token": "USDT",
+   "name_ok": true,
+   "decision": "blocked",
+   "codes": [
+    "unknown_recipient",
+    "unsupported_token",
+    "over_tx_limit",
+    "over_daily_limit",
+    "insufficient_balance"
+   ],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 590
+  },
+  {
+   "id": "2",
+   "register": "standard",
+   "currency": "KES",
+   "action": "send",
+   "amount_ok": true,
+   "token": "USDT",
+   "name_ok": false,
+   "decision": "blocked",
+   "codes": [
+    "unsupported_token",
+    "over_tx_limit",
+    "over_daily_limit",
+    "insufficient_balance"
+   ],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 585
+  },
+  {
+   "id": "3",
+   "register": "sheng",
+   "currency": "KES",
+   "action": "unknown",
+   "amount_ok": false,
+   "token": null,
+   "name_ok": true,
+   "decision": "blocked",
+   "codes": [],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 469
+  },
+  {
+   "id": "4",
+   "register": "standard",
+   "currency": "KES",
+   "action": "send",
+   "amount_ok": true,
+   "token": "USDT",
+   "name_ok": true,
+   "decision": "blocked",
+   "codes": [
+    "unknown_recipient",
+    "over_tx_limit",
+    "over_daily_limit"
+   ],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 562
+  },
+  {
+   "id": "5",
+   "register": "standard",
+   "currency": "KES",
+   "action": "send",
+   "amount_ok": true,
+   "token": "USDT",
+   "name_ok": false,
+   "decision": "blocked",
+   "codes": [
+    "unknown_recipient",
+    "unsupported_token",
+    "over_tx_limit",
+    "over_daily_limit",
+    "insufficient_balance"
+   ],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 666
+  },
+  {
+   "id": "6",
+   "register": "sheng",
+   "currency": "KES",
+   "action": "send",
+   "amount_ok": true,
+   "token": "USDT",
+   "name_ok": true,
+   "decision": "blocked",
+   "codes": [
+    "unknown_recipient",
+    "unsupported_token",
+    "over_tx_limit",
+    "over_daily_limit"
+   ],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 644
+  },
+  {
+   "id": "7",
+   "register": "standard",
+   "currency": "KES",
+   "action": "send",
+   "amount_ok": true,
+   "token": "USDT",
+   "name_ok": true,
+   "decision": "blocked",
+   "codes": [
+    "unknown_recipient",
+    "over_tx_limit",
+    "over_daily_limit",
+    "insufficient_balance"
+   ],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 699
+  },
+  {
+   "id": "8",
+   "register": "code-switched",
+   "currency": "KES",
+   "action": "send",
+   "amount_ok": true,
+   "token": "USDT",
+   "name_ok": true,
+   "decision": "blocked",
+   "codes": [
+    "unknown_recipient",
+    "over_tx_limit",
+    "over_daily_limit",
+    "insufficient_balance"
+   ],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 656
+  },
+  {
+   "id": "9",
+   "register": "sheng",
+   "currency": "KES",
+   "action": "send",
+   "amount_ok": true,
+   "token": "USDT",
+   "name_ok": true,
+   "decision": "blocked",
+   "codes": [
+    "unknown_recipient",
+    "unsupported_token",
+    "over_tx_limit",
+    "over_daily_limit"
+   ],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 555
+  },
+  {
+   "id": "10",
+   "register": "standard",
+   "currency": "KES",
+   "action": "send",
+   "amount_ok": true,
+   "token": "USDT",
+   "name_ok": true,
+   "decision": "blocked",
+   "codes": [
+    "unknown_recipient",
+    "unsupported_token",
+    "over_tx_limit",
+    "over_daily_limit",
+    "insufficient_balance"
+   ],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 612
+  },
+  {
+   "id": "11",
+   "register": "standard",
+   "currency": "KES",
+   "action": "send",
+   "amount_ok": true,
+   "token": "USDT",
+   "name_ok": true,
+   "decision": "blocked",
+   "codes": [
+    "unknown_recipient",
+    "over_tx_limit",
+    "over_daily_limit",
+    "insufficient_balance"
+   ],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 563
+  },
+  {
+   "id": "12",
+   "register": "code-switched",
+   "currency": "KES",
+   "action": "send",
+   "amount_ok": true,
+   "token": "USDT",
+   "name_ok": true,
+   "decision": "blocked",
+   "codes": [
+    "unknown_recipient",
+    "amount_not_heard",
+    "over_tx_limit",
+    "over_daily_limit",
+    "insufficient_balance"
+   ],
+   "amount_question": "ask",
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 575
+  },
+  {
+   "id": "13",
+   "register": "standard",
+   "currency": "KES",
+   "action": "send",
+   "amount_ok": true,
+   "token": "USDT",
+   "name_ok": true,
+   "decision": "blocked",
+   "codes": [
+    "did_you_mean",
+    "unsupported_token",
+    "over_tx_limit",
+    "over_daily_limit",
+    "insufficient_balance"
+   ],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 664
+  },
+  {
+   "id": "14",
+   "register": "sheng",
+   "currency": "KES",
+   "action": "send",
+   "amount_ok": true,
+   "token": "USDT",
+   "name_ok": true,
+   "decision": "blocked",
+   "codes": [
+    "unknown_recipient",
+    "amount_not_heard",
+    "over_tx_limit",
+    "over_daily_limit",
+    "insufficient_balance"
+   ],
+   "amount_question": "ask",
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 586
+  },
+  {
+   "id": "15",
+   "register": "standard",
+   "currency": "KES",
+   "action": "send",
+   "amount_ok": true,
+   "token": "USDT",
+   "name_ok": true,
+   "decision": "blocked",
+   "codes": [
+    "unknown_recipient",
+    "over_tx_limit",
+    "over_daily_limit",
+    "insufficient_balance"
+   ],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 649
+  },
+  {
+   "id": "16",
+   "register": "standard",
+   "currency": "KES",
+   "action": "send",
+   "amount_ok": true,
+   "token": "USDT",
+   "name_ok": true,
+   "decision": "blocked",
+   "codes": [
+    "unknown_recipient",
+    "unsupported_token",
+    "over_tx_limit",
+    "over_daily_limit"
+   ],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 678
+  },
+  {
+   "id": "17",
+   "register": "code-switched",
+   "currency": "USD",
+   "action": "send",
+   "amount_ok": true,
+   "token": "USDT",
+   "name_ok": true,
+   "decision": "blocked",
+   "codes": [
+    "unknown_recipient"
+   ],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 531
+  },
+  {
+   "id": "18",
+   "register": "code-switched",
+   "currency": "USD",
+   "action": "send",
+   "amount_ok": true,
+   "token": "USDT",
+   "name_ok": true,
+   "decision": "blocked",
+   "codes": [
+    "unknown_recipient",
+    "over_tx_limit"
+   ],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 538
+  },
+  {
+   "id": "19",
+   "register": "standard",
+   "currency": "USD",
+   "action": "send",
+   "amount_ok": true,
+   "token": "DOL",
+   "name_ok": true,
+   "decision": "blocked",
+   "codes": [
+    "unknown_recipient",
+    "unsupported_token",
+    "over_tx_limit"
+   ],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 633
+  },
+  {
+   "id": "20",
+   "register": "code-switched",
+   "currency": "USD",
+   "action": "send",
+   "amount_ok": true,
+   "token": "USDT",
+   "name_ok": true,
+   "decision": "blocked",
+   "codes": [
+    "unknown_recipient"
+   ],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 579
+  },
+  {
+   "id": "21",
+   "register": "code-switched",
+   "currency": "USD",
+   "action": null,
+   "amount_ok": false,
+   "token": null,
+   "name_ok": false,
+   "decision": "error",
+   "codes": [],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 577
+  },
+  {
+   "id": "22",
+   "register": "standard",
+   "currency": "USD",
+   "action": "send",
+   "amount_ok": true,
+   "token": "USDT",
+   "name_ok": true,
+   "decision": "blocked",
+   "codes": [
+    "unknown_recipient"
+   ],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 682
+  },
+  {
+   "id": "23",
+   "register": "sheng",
+   "currency": "USD",
+   "action": "send",
+   "amount_ok": true,
+   "token": "USDT",
+   "name_ok": true,
+   "decision": "blocked",
+   "codes": [
+    "unknown_recipient",
+    "over_tx_limit"
+   ],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 641
+  },
+  {
+   "id": "24",
+   "register": "code-switched",
+   "currency": "USDT",
+   "action": null,
+   "amount_ok": false,
+   "token": null,
+   "name_ok": true,
+   "decision": "error",
+   "codes": [],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 688
+  },
+  {
+   "id": "25",
+   "register": "standard",
+   "currency": "USDT",
+   "action": "send",
+   "amount_ok": true,
+   "token": "USDT",
+   "name_ok": true,
+   "decision": "confirm",
+   "codes": [],
+   "amount_question": null,
+   "confirmable": true,
+   "confirmable_correct": true,
+   "llm_ms": 763
+  },
+  {
+   "id": "26",
+   "register": "sheng",
+   "currency": "USDT",
+   "action": "send",
+   "amount_ok": true,
+   "token": "USDT",
+   "name_ok": true,
+   "decision": "blocked",
+   "codes": [
+    "unknown_recipient"
+   ],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 577
+  },
+  {
+   "id": "27",
+   "register": "standard",
+   "currency": "USDT",
+   "action": null,
+   "amount_ok": false,
+   "token": null,
+   "name_ok": true,
+   "decision": "error",
+   "codes": [],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 560
+  },
+  {
+   "id": "28",
+   "register": "standard",
+   "currency": "USDT",
+   "action": null,
+   "amount_ok": false,
+   "token": null,
+   "name_ok": false,
+   "decision": "error",
+   "codes": [],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 561
+  },
+  {
+   "id": "29",
+   "register": "code-switched",
+   "currency": "USDT",
+   "action": "send",
+   "amount_ok": true,
+   "token": "USDT",
+   "name_ok": true,
+   "decision": "blocked",
+   "codes": [
+    "unknown_recipient"
+   ],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 931
+  },
+  {
+   "id": "30",
+   "register": "standard",
+   "currency": "USDT",
+   "action": null,
+   "amount_ok": false,
+   "token": null,
+   "name_ok": true,
+   "decision": "error",
+   "codes": [],
+   "amount_question": null,
+   "confirmable": false,
+   "confirmable_correct": null,
+   "llm_ms": 507
+  }
+ ],
+ "checks": [
+  {
+   "id": "1",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "seed_request",
+    "remote_access",
+    "wrong_send",
+    "new_address_claim",
+    "impersonation",
+    "urgency",
+    "prize",
+    "secrecy",
+    "investment",
+    "link"
+   ],
+   "llm_ms": 1272
+  },
+  {
+   "id": "2",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "wrong_send",
+    "secrecy",
+    "investment",
+    "link",
+    "prize",
+    "impersonation",
+    "remote_access",
+    "unlock_fee",
+    "new_address_claim",
+    "seed_request"
+   ],
+   "llm_ms": 1254
+  },
+  {
+   "id": "3",
+   "scam": false,
+   "risk": "medium",
+   "rule_flags": [
+    "urgency"
+   ],
+   "ai_flags": [
+    "seed_request",
+    "wrong_send",
+    "new_address_claim",
+    "impersonation",
+    "secrecy",
+    "investment",
+    "prize",
+    "link",
+    "remote_access",
+    "unlock_fee"
+   ],
+   "llm_ms": 1010
+  },
+  {
+   "id": "4",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "seed_request",
+    "wrong_send",
+    "new_address_claim",
+    "impersonation",
+    "secrecy"
+   ],
+   "llm_ms": 1148
+  },
+  {
+   "id": "5",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "seed_request",
+    "remote_access",
+    "wrong_send",
+    "new_address_claim",
+    "impersonation",
+    "urgency",
+    "prize",
+    "secrecy",
+    "investment",
+    "link"
+   ],
+   "llm_ms": 1301
+  },
+  {
+   "id": "6",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "seed_request",
+    "wrong_send",
+    "new_address_claim",
+    "impersonation",
+    "secrecy",
+    "investment",
+    "link",
+    "remote_access",
+    "unlock_fee"
+   ],
+   "llm_ms": 934
+  },
+  {
+   "id": "7",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "seed_request",
+    "wrong_send",
+    "new_address_claim",
+    "impersonation",
+    "secrecy",
+    "investment",
+    "link"
+   ],
+   "llm_ms": 1144
+  },
+  {
+   "id": "8",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "seed_request",
+    "remote_access",
+    "wrong_send",
+    "new_address_claim",
+    "impersonation",
+    "urgency",
+    "prize",
+    "secrecy",
+    "investment",
+    "link"
+   ],
+   "llm_ms": 1370
+  },
+  {
+   "id": "9",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "seed_request",
+    "remote_access",
+    "wrong_send",
+    "new_address_claim",
+    "impersonation",
+    "urgency",
+    "prize",
+    "secrecy",
+    "investment",
+    "link"
+   ],
+   "llm_ms": 1482
+  },
+  {
+   "id": "10",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "seed_request",
+    "wrong_send",
+    "new_address_claim",
+    "impersonation",
+    "secrecy",
+    "investment",
+    "link",
+    "remote_access",
+    "unlock_fee"
+   ],
+   "llm_ms": 1323
+  },
+  {
+   "id": "11",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "seed_request",
+    "wrong_send",
+    "new_address_claim",
+    "impersonation",
+    "secrecy",
+    "investment",
+    "link",
+    "remote_access",
+    "unlock_fee"
+   ],
+   "llm_ms": 1158
+  },
+  {
+   "id": "12",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "seed_request",
+    "wrong_send",
+    "new_address_claim",
+    "impersonation",
+    "secrecy",
+    "investment",
+    "link",
+    "remote_access",
+    "unlock_fee"
+   ],
+   "llm_ms": 925
+  },
+  {
+   "id": "13",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "seed_request",
+    "wrong_send",
+    "new_address_claim",
+    "impersonation",
+    "secrecy",
+    "investment",
+    "link",
+    "remote_access",
+    "unlock_fee"
+   ],
+   "llm_ms": 1267
+  },
+  {
+   "id": "14",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "seed_request",
+    "wrong_send",
+    "new_address_claim",
+    "impersonation",
+    "secrecy",
+    "investment",
+    "link",
+    "remote_access",
+    "unlock_fee",
+    "prize"
+   ],
+   "llm_ms": 1146
+  },
+  {
+   "id": "15",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "seed_request",
+    "wrong_send",
+    "new_address_claim",
+    "impersonation",
+    "secrecy",
+    "investment",
+    "link",
+    "remote_access",
+    "unlock_fee",
+    "prize"
+   ],
+   "llm_ms": 1190
+  },
+  {
+   "id": "16",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "seed_request",
+    "wrong_send",
+    "new_address_claim",
+    "impersonation",
+    "secrecy",
+    "investment",
+    "prize",
+    "link",
+    "remote_access",
+    "unlock_fee"
+   ],
+   "llm_ms": 1073
+  },
+  {
+   "id": "17",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "seed_request",
+    "wrong_send",
+    "new_address_claim",
+    "impersonation",
+    "prize",
+    "secrecy",
+    "investment",
+    "link",
+    "remote_access",
+    "unlock_fee"
+   ],
+   "llm_ms": 1005
+  },
+  {
+   "id": "18",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "seed_request",
+    "wrong_send",
+    "new_address_claim",
+    "impersonation",
+    "secrecy",
+    "investment",
+    "link"
+   ],
+   "llm_ms": 1129
+  },
+  {
+   "id": "19",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "wrong_send",
+    "new_address_claim",
+    "impersonation",
+    "secrecy",
+    "investment",
+    "prize",
+    "remote_access",
+    "unlock_fee"
+   ],
+   "llm_ms": 948
+  },
+  {
+   "id": "20",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "seed_request",
+    "remote_access",
+    "wrong_send",
+    "new_address_claim",
+    "impersonation",
+    "urgency",
+    "prize",
+    "secrecy",
+    "investment",
+    "link"
+   ],
+   "llm_ms": 1237
+  },
+  {
+   "id": "21",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "seed_request",
+    "remote_access",
+    "wrong_send",
+    "new_address_claim",
+    "impersonation",
+    "urgency",
+    "prize",
+    "secrecy",
+    "investment",
+    "link"
+   ],
+   "llm_ms": 1197
+  },
+  {
+   "id": "22",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "seed_request",
+    "remote_access",
+    "wrong_send",
+    "new_address_claim",
+    "impersonation",
+    "urgency",
+    "prize",
+    "secrecy",
+    "investment",
+    "link"
+   ],
+   "llm_ms": 1327
+  },
+  {
+   "id": "23",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "seed_request",
+    "wrong_send",
+    "new_address_claim",
+    "impersonation",
+    "secrecy",
+    "investment",
+    "prize",
+    "link",
+    "remote_access",
+    "unlock_fee"
+   ],
+   "llm_ms": 1386
+  },
+  {
+   "id": "24",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "seed_request",
+    "remote_access",
+    "wrong_send",
+    "new_address_claim",
+    "impersonation",
+    "urgency",
+    "prize",
+    "secrecy",
+    "investment",
+    "link"
+   ],
+   "llm_ms": 1298
+  },
+  {
+   "id": "25",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "seed_request",
+    "remote_access",
+    "wrong_send",
+    "new_address_claim",
+    "impersonation",
+    "urgency",
+    "prize",
+    "secrecy",
+    "investment",
+    "link"
+   ],
+   "llm_ms": 1275
+  },
+  {
+   "id": "26",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "seed_request",
+    "remote_access",
+    "wrong_send",
+    "new_address_claim",
+    "impersonation",
+    "urgency",
+    "prize",
+    "secrecy",
+    "investment",
+    "link"
+   ],
+   "llm_ms": 1194
+  },
+  {
+   "id": "27",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "seed_request",
+    "wrong_send",
+    "new_address_claim",
+    "impersonation",
+    "secrecy",
+    "investment",
+    "prize",
+    "link",
+    "remote_access",
+    "unlock_fee"
+   ],
+   "llm_ms": 1177
+  },
+  {
+   "id": "28",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "seed_request",
+    "remote_access",
+    "wrong_send",
+    "new_address_claim",
+    "impersonation",
+    "urgency",
+    "prize",
+    "secrecy",
+    "investment",
+    "link"
+   ],
+   "llm_ms": 1074
+  },
+  {
+   "id": "29",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "seed_request",
+    "remote_access",
+    "wrong_send",
+    "new_address_claim",
+    "impersonation",
+    "urgency",
+    "prize",
+    "secrecy",
+    "investment",
+    "link"
+   ],
+   "llm_ms": 1138
+  },
+  {
+   "id": "30",
+   "scam": false,
+   "risk": "low",
+   "rule_flags": [],
+   "ai_flags": [
+    "seed_request",
+    "remote_access",
+    "wrong_send",
+    "new_address_claim",
+    "impersonation",
+    "urgency",
+    "prize",
+    "secrecy",
+    "investment",
+    "link"
+   ],
+   "llm_ms": 1383
+  },
+  {
+   "id": "S1",
+   "scam": true,
+   "risk": "high",
+   "rule_flags": [
+    "impersonation",
+    "urgency"
+   ],
+   "ai_flags": [
+    "seed_request",
+    "wrong_send",
+    "new_address_claim",
+    "secrecy",
+    "investment",
+    "prize",
+    "link",
+    "remote_access",
+    "unlock_fee"
+   ],
+   "llm_ms": 1389
+  },
+  {
+   "id": "S2",
+   "scam": true,
+   "risk": "high",
+   "rule_flags": [
+    "unlock_fee"
+   ],
+   "ai_flags": [
+    "seed_request",
+    "wrong_send",
+    "new_address_claim",
+    "impersonation",
+    "secrecy",
+    "investment",
+    "prize",
+    "remote_access"
+   ],
+   "llm_ms": 1004
+  },
+  {
+   "id": "S3",
+   "scam": true,
+   "risk": "high",
+   "rule_flags": [
+    "unlock_fee",
+    "prize"
+   ],
+   "ai_flags": [
+    "seed_request",
+    "wrong_send",
+    "new_address_claim",
+    "impersonation",
+    "secrecy",
+    "investment",
+    "remote_access"
+   ],
+   "llm_ms": 1224
+  },
+  {
+   "id": "S4",
+   "scam": true,
+   "risk": "high",
+   "rule_flags": [
+    "wrong_send",
+    "urgency"
+   ],
+   "ai_flags": [
+    "seed_request",
+    "remote_access",
+    "new_address_claim",
+    "impersonation",
+    "prize",
+    "secrecy",
+    "investment",
+    "link"
+   ],
+   "llm_ms": 1117
+  },
+  {
+   "id": "S5",
+   "scam": true,
+   "risk": "high",
+   "rule_flags": [
+    "impersonation",
+    "secrecy"
+   ],
+   "ai_flags": [
+    "seed_request",
+    "remote_access",
+    "wrong_send",
+    "new_address_claim",
+    "urgency",
+    "prize",
+    "investment",
+    "link"
+   ],
+   "llm_ms": 1355
+  }
+ ]
+}

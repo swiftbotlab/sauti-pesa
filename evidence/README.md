@@ -138,3 +138,87 @@ other model here, `loadModel({ modelSrc: <local file>, modelType: 'whispercpp-tr
 
 Reproduce: `scripts/eval_fleurs_asr.sh all`, `ops/sandbox.sh offline node scripts/bench_e2e.mjs` and
 `... bench_e2e.mjs --generic`, `scripts/mem_cap_run.sh 3G test/e2e_ui.sh`.
+
+# Evidence: lite ("phone-class") profile (2026-10-29)
+
+[`lite-profile.json`](lite-profile.json): the app's default profile against a **lite** one that swaps only the
+intent and message model: **Qwen3-0.6B Q4_0** (QVAC registry constant `QWEN3_600M_INST_Q4`, 382 MB, sha256
+`33bcc570…8f75cb` = QVAC's pin = the Hugging Face LFS oid at commit `50968a44…`) instead of Qwen3-1.7B Q4_0
+(1.06 GB). Speech to text (Swahili fine-tune + Whisper small), Silero VAD, OCR and every code check are the same
+files and the same code. Same Linux arm64 VM as above (6 vCPUs, 7.9 GB RAM, no GPU), offline sandbox, the
+repository's own harnesses, one heavy run at a time, 2026-10-29 05:01-05:22 UTC. **Not run on a phone**: we have
+no device, so the memory rows say what the whole app needs on this box under a hard cgroup cap.
+
+**Verdict: measured, not recommended.** Lite halves the language step's time and lowers the memory the whole app
+needs from 3 GB to 2.5 GB, and it stayed safe (no wrong payment reached "confirm" in any set), but on the
+commissioned set of real requests it understood only **3 of the 7 USDT requests** (default 7/7). The default stays
+Qwen3-1.7B; lite is there to answer "what about smaller phones?" with numbers.
+
+```bash
+scripts/fetch_models.sh --lite                 # once, online: Qwen3-0.6B (+ the same speech and VAD files), size + sha256 checked
+SAUTI_PROFILE=lite ops/ui.sh                   # the app with the lite profile (default: unset = Qwen3-1.7B)
+SAUTI_PROFILE=lite ops/sandbox.sh offline node bin/sauti.mjs ask "Tuma USDT ishirini kwa Amina"
+node bin/portable.mjs --lite ui                # portable mode (any laptop); npm run fetch-models -- --lite
+```
+
+| Measure (same box, same day) | Default: Qwen3-1.7B | Lite: Qwen3-0.6B |
+|---|---|---|
+| Intent, tuned set (12 requests, `scripts/bench_llm.mjs`) | 12/12 | 11/12 |
+| Intent, held-out set (12) | 11/12 | 10/12 |
+| Model mistakes the code would still let reach "confirm" (both sets) | 0 | 0 |
+| Commissioned set (private): USDT requests with action, amount, token and payee right (7) | 7/7 | **3/7** (4 came back as JSON the validator refused: "could not understand") |
+| Commissioned: amounts read right (30) | 30/30 (28/30 before the Sheng change below) | 24/30 (22/30 before) |
+| Commissioned: named recipient found (11) | 11/11 | 7/11 |
+| Commissioned: payments that reached "confirm" with a wrong amount or person | 0 | 0 |
+| Commissioned: message check, scams high / everyday requests high (rules decide) | 5/5 / 0/30 | 5/5 / 0/30 |
+| Public set in this repo (10 requests + 3 scams): amounts / named recipients / scams high | 10/10 / 5/5 / 3/3 (amounts 9/10 before the Sheng change) | 10/10 / 4/5 / 3/3 (9/10 before) |
+| 6 voice notes to the right decision (`scripts/bench_e2e.mjs`) | 6/6 | 6/6 |
+| Warm engine, text request to checked payment, median of 12 (`scripts/bench_latency.sh`) | 974 ms | **480 ms** |
+| Warm engine, voice note to checked payment, median of 6 | 4.1 s | **2.4 s** |
+| Language step alone, median (bench_llm, tuned set) | 987 ms | 536 ms |
+| Engine start to ready (load + warm-up) | 12.1 s | 8.2 s |
+| QVAC worker RSS with only the language model loaded (bench_llm peak) | 2,612 MB | 1,379 MB |
+| `test/e2e_ui.sh` under a hard **2.5 GB** cap (`scripts/mem_cap_run.sh 2560M`) | **OOM-killed** at the first screenshot (QVAC worker 2.43 GB anonymous); the 70 checks before it passed | **no OOM**: max anonymous 2,376 MB; 95 checks passed, 2 failed (below), then the test stopped (11 checks not run) |
+| `test/e2e_ui.sh` under a hard **2 GB** cap | not run | **OOM-killed** at the first screenshot (QVAC worker 1.91 GB anonymous); 69 passed, 1 failed before it |
+| `test/e2e_ui.sh` under 3 GB ([Runs in 3 GB](../README.md#runs-in-3-gb), 2026-10-28) | 108/108, max anonymous 2.90-3.02 GB | not run |
+
+Timings are one run each on a shared VM (load average 2-3.6 during these runs; the default's 4.1 s voice median is
+higher than the 2.6 s in the main README from a quieter run). An OOM kill stops the whole systemd scope, so for those
+runs the kernel's own lines are in the JSON (`kernel_oom_events`) instead of the script's summary line.
+
+**What went wrong with lite** (each reproduced with the CLI, `bin/sauti.mjs ask … --json`):
+- It copies the prompt's first example: for *"Tuma USDT 2 kwa Amina"* it answered amount 20 and memo "kodi". The code
+  blocked it (the amount 20 was never said), so it is a refusal, not a wrong payment; it is one of the two
+  `test/e2e_ui.sh` failures.
+- It invents placeholders: for the M-Pesa "wakala" scam request it wrote `"recipient_address": "0x..."`, so the
+  validator refused the answer and the app said it could not understand (nothing to confirm), without the scam
+  reasons the default shows. The second `test/e2e_ui.sh` failure.
+- It invents amounts: *"nitumie Juma pesa"* (no amount) became 100; blocked by the code ("no amount was heard").
+- As a scam second opinion it ticks 7-11 of the 11 warning signs on every message, also on a harmless one (the
+  default: 2-4). The rules decide the risk, so the final risk was right 8/8 in both sets, but the hint is noise.
+
+**Which phones** (an estimate, not a measurement): the RAM floor above (the cap under which `test/e2e_ui.sh` ran
+without an OOM kill) plus about 1.5 GB that we assume Android and other apps keep for themselves. Default: 3 GB →
+about 4.5 GB → 6 GB phones. Lite: 2.5 GB → about 4 GB → 4 GB phones, at the limit. The cap also held the local test
+chain, the bridge and the test client, which a phone build would not run; the peaks come from reading a screenshot
+(OCR + language model in memory, speech unloaded). A phone runtime (Bare/Pear) is not built.
+
+**Sheng numbers (same day, after the runs above).** `src/amount.js` now reads the Sheng amounts *thao* (1,000) and
+*soo* (100) like *elfu* and *mia* ("thao moja" = 1000, "soo tano" = 500), and `src/safety.js` treats them as
+shilling words, so such a request is blocked as a local-currency amount like every shilling request (the app sends
+USDT only). Only the commissioned and public sets contain them; both were run again with both profiles:
+commissioned amounts 28/30 → **30/30** (default) and 22/30 → 24/30 (lite), Sheng rows 4/6 → 6/6 (default); every
+other row and the message checks unchanged; public set 9/10 → 10/10 with both. All of these rows stay blocked:
+they are shilling amounts (on one of them the default model now answers "balance" instead of "send"). "2k"-style amounts are still not read by the code's own cross-check. Outcomes only (no text from the
+private set): [`test/data/eval_sw_requests_results.json`](../test/data/eval_sw_requests_results.json) and
+[`…_lite.json`](../test/data/eval_sw_requests_results_lite.json).
+
+**Harness fix found on the way:** `scripts/eval_sw_requests.mjs` compared the public set's numeric labels with string
+amounts and so reported 0 amounts right for both models on the public set; it now normalises both (the commissioned
+labels are strings and were not affected).
+
+Reproduce: `LLM_CASES=test/llm_heldout.json ops/sandbox.sh offline node scripts/bench_llm.mjs models/Qwen3-0.6B-Q4_0.gguf`
+(and `test/llm_cases.json`, and the 1.7B file), `SAUTI_PROFILE=lite ops/sandbox.sh offline node scripts/bench_e2e.mjs`,
+`SAUTI_PROFILE=lite scripts/bench_latency.sh` (after `test/e2e_ui.sh`), `SAUTI_PROFILE=lite scripts/eval_sw_requests.sh`
+(private set; the public one with the `SAUTI_EVAL_SET`/`SAUTI_EVAL_LABELS` line from the README),
+`SAUTI_PROFILE=lite scripts/mem_cap_run.sh 2560M test/e2e_ui.sh`; each without `SAUTI_PROFILE` for the default.

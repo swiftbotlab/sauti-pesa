@@ -31,9 +31,14 @@ import { networkProof } from '../src/offline.js'
 import { uiPort } from '../src/sockpath.js'
 import { childEnvFrom, startProblem, dataFromEnv, privateTmp } from '../src/launch_env.js'
 import { modelKeyFor, fetchCommand } from '../src/setup_hint.js'
+import { loadConfig } from '../src/profile.js'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
-const CFG = JSON.parse(readFileSync(join(ROOT, 'config.json'), 'utf8'))
+// `--lite` before the command (or SAUTI_PROFILE=lite): the phone-class model profile, Qwen3-0.6B for intent (src/profile.js)
+const ARGV = process.argv.slice(2)
+const LITE = ARGV[0] === '--lite'
+if (LITE) ARGV.shift()
+const CFG = configOrExit()
 const CLI_COMMANDS = ['wallet', 'contacts', 'ask', 'say', 'check', 'queue', 'cancel', 'resign']
 const DEMO_DATA = 'tmp/portable-demo'
 
@@ -41,17 +46,22 @@ const USAGE = `Sauti Pesa, portable mode (no bubblewrap; switch the network OFF 
   npm run portable -- probe            show the live network check (must say OFF)
   npm run portable -- demo             the whole offline flow, ~1 min, throwaway test wallet (tmp/portable-demo)
   npm run portable -- ui               start the app, then open the printed http://127.0.0.1:8787/#k=... link
+  npm run portable -- --lite ui        the same with the phone-class profile (Qwen3-0.6B for intent; npm run fetch-models -- --lite)
   npm run portable -- wallet init      then: contacts demo | ask "Tuma USDT ishirini kwa Amina" | say <file.wav>
                                        | check "<message>" | queue | cancel <id> | resign <id>
 One-time setup, with the internet ON:  npm ci   and   npm run fetch-models
 Portable mode never broadcasts; on Linux the bubblewrap sandbox (ops/sandbox.sh offline ...) is the default.`
+
+function configOrExit () {
+  try { return loadConfig(ROOT, { SAUTI_PROFILE: LITE ? 'lite' : (process.env.SAUTI_PROFILE || '') }) } catch (e) { console.error(`refusing to start: ${e.message}`); process.exit(2) }
+}
 
 let tmpCache = null
 function childEnv (extra = {}) {
   const home = join(ROOT, 'home')
   mkdirSync(home, { recursive: true, mode: 0o700 })
   const tmp = process.platform === 'win32' ? null : (tmpCache || (tmpCache = privateTmp()))
-  return childEnvFrom(process.env, { home, tmp, data: dataFromEnv(), extra })
+  return childEnvFrom(process.env, { home, tmp, data: dataFromEnv(), extra: CFG.profile === 'default' ? extra : { ...extra, SAUTI_PROFILE: CFG.profile } })
 }
 
 function run (script, args, env, { capture = false } = {}) {
@@ -208,7 +218,7 @@ async function cmdDemo () {
 }
 
 async function main () {
-  const [cmd, ...args] = process.argv.slice(2)
+  const [cmd, ...args] = ARGV
   if (!cmd || ['help', '--help', '-h'].includes(cmd)) { console.log(USAGE); return }
   const bad = startProblem()
   if (bad) { console.error(`refusing to start: ${bad}`); process.exit(2) }

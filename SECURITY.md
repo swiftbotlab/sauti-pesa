@@ -211,6 +211,11 @@ passes through the same gate). It is a weaker guarantee than the sandbox, and do
   (`scripts/verify_sigs.mjs`). Reports are in `vetting/`.
 - Models are verified by sha256 against QVAC's registry values (`models.json`). The OCR weights also arrive as
   Hypercore blocks, which the registry client verifies against the registry core key.
+- The lite profile (`SAUTI_PROFILE=lite`, `src/profile.js`) only swaps the language-model file for Qwen3-0.6B
+  (`QWEN3_600M_INST_Q4`, pinned size + sha256 like the others, same download paths). `SAUTI_PROFILE` accepts only
+  `default` or `lite` (anything else stops the app), a profile can only point a model slot at `models/<file>`, and
+  the portable launcher passes only these two names to its children. The checks that decide are the same code in
+  both profiles.
 
 ## Known gaps
 - `online` mode shares the host network namespace (see above).
