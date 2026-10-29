@@ -28,3 +28,16 @@ export function engineSocket ({ root, data, env = process.env, platform = proces
   }
   return { path, pipe: false }
 }
+
+/**
+ * The UI port from SAUTI_UI_PORT (default 8787): plain decimal digits only, 1024-65535. One rule for the bridge, which
+ * listens on it, and the portable launcher, which prints the link (so "0x2000" or " 8787" can never make the two disagree).
+ * @returns {number}
+ */
+export function uiPort (env = process.env) {
+  const raw = env.SAUTI_UI_PORT
+  const s = raw === undefined || raw === '' ? '8787' : String(raw)
+  const n = /^[0-9]{4,5}$/.test(s) ? Number(s) : NaN
+  if (!Number.isInteger(n) || n < 1024 || n > 65535) throw new Error('SAUTI_UI_PORT must be a number from 1024 to 65535')
+  return n
+}

@@ -4,9 +4,10 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
-import { mkdtempSync, rmSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, rmSync, existsSync, readFileSync, writeFileSync, symlinkSync, linkSync, mkdirSync, lstatSync } from 'node:fs'
 import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
+import { spawnSync } from 'node:child_process'
 import { entryFor, fetchOne, getFollowing, DEFAULT_KEYS } from '../scripts/fetch_models.mjs'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
@@ -92,4 +93,77 @@ test('fetch-models: every redirect must stay https, without credentials, at most
   await assert.rejects(getFollowing('https://huggingface.co/x', {}, loop), /more than 5 redirects/)
   const r = await getFollowing('https://huggingface.co/x', {}, server())
   assert.equal(r.status, 200)
+})
+
+// ---- the .part file is never reached through a link (security review 2026-10-29, L4)
+// the reviewed commit's downloader, from git history (null without git): the positive control
+function reviewedFetchOne () {
+  const r = spawnSync('git', ['show', '47ad420:scripts/fetch_models.mjs'], { cwd: ROOT, encoding: 'utf8' })
+  if (r.status !== 0) return null
+  const dir = mkdtempSync(join(ROOT, 'tmp', 'fm-old-'))
+  writeFileSync(join(dir, 'fetch_models.mjs'), r.stdout)
+  return { dir, load: () => import(pathToFileURL(join(dir, 'fetch_models.mjs')).href) }
+}
+
+test('fetch-models L4 control: the reviewed downloader follows a dangling .part link and writes outside models/', async (t) => {
+  const old = reviewedFetchOne()
+  if (!old) return t.skip('git history not available')
+  const base = mkdtempSync(join(ROOT, 'tmp', 'fm-test-'))
+  try {
+    const dir = join(base, 'models'); mkdirSync(dir)
+    symlinkSync('../outside-target.bin', join(dir, 'm.bin.part'))
+    const { fetchOne: oldFetchOne } = await old.load()
+    assert.match(await oldFetchOne({ key: 'A', entry: ENTRY, dir, fetchImpl: server(), log: quiet }), /^A: ok/)
+    assert.equal(existsSync(join(base, 'outside-target.bin')), true, 'the reviewed code created a file outside models/')
+    assert.equal(lstatSync(join(dir, 'm.bin')).isSymbolicLink(), true, 'and models/m.bin is now that link')
+  } finally { rmSync(base, { recursive: true, force: true }); rmSync(old.dir, { recursive: true, force: true }) }
+})
+
+test('fetch-models L4: a .part that is a link (dangling or not), a hard link or a folder is refused; nothing is written through it', async () => {
+  const base = mkdtempSync(join(ROOT, 'tmp', 'fm-test-'))
+  try {
+    const dir = join(base, 'models'); mkdirSync(dir)
+    const part = join(dir, 'm.bin.part')
+    const refused = /m\.bin\.part is not a regular file .*refusing/
+    // dangling symlink
+    symlinkSync('../outside-target.bin', part)
+    await assert.rejects(fetchOne({ key: 'A', entry: ENTRY, dir, fetchImpl: server(), log: quiet }), refused)
+    assert.equal(existsSync(join(base, 'outside-target.bin')), false)
+    assert.equal(existsSync(join(dir, 'm.bin')), false)
+    rmSync(part)
+    // symlink to an existing file (would be appended to on a resume)
+    writeFileSync(join(base, 'victim.txt'), 'keep me')
+    symlinkSync('../victim.txt', part)
+    await assert.rejects(fetchOne({ key: 'A', entry: ENTRY, dir, fetchImpl: server(), log: quiet }), refused)
+    assert.equal(readFileSync(join(base, 'victim.txt'), 'utf8'), 'keep me')
+    rmSync(part)
+    // hard link: the same file under a second name
+    linkSync(join(base, 'victim.txt'), part)
+    await assert.rejects(fetchOne({ key: 'A', entry: ENTRY, dir, fetchImpl: server(), log: quiet }), refused)
+    assert.equal(readFileSync(join(base, 'victim.txt'), 'utf8'), 'keep me')
+    rmSync(part)
+    // a folder
+    mkdirSync(part)
+    await assert.rejects(fetchOne({ key: 'A', entry: ENTRY, dir, fetchImpl: server(), log: quiet }), refused)
+    rmSync(part, { recursive: true })
+    // a dangling link where the model goes is not "missing": it is refused, never followed
+    symlinkSync('../outside-model.bin', join(dir, 'm.bin'))
+    await assert.rejects(fetchOne({ key: 'A', entry: ENTRY, dir, fetchImpl: server(), log: quiet }), /exists but does not match the pin/)
+    assert.equal(existsSync(join(base, 'outside-model.bin')), false)
+    rmSync(join(dir, 'm.bin'))
+    // and with nothing in the way, the same folder downloads normally (fresh, then resume after a cut)
+    writeFileSync(part, BODY.subarray(0, 777))
+    assert.match(await fetchOne({ key: 'A', entry: ENTRY, dir, fetchImpl: server(), log: quiet }), /^A: ok/)
+    assert.deepEqual(readFileSync(join(dir, 'm.bin')), BODY)
+    assert.equal(lstatSync(join(dir, 'm.bin')).isFile(), true)
+  } finally { rmSync(base, { recursive: true, force: true }) }
+})
+
+test('fetch-models L4: a fresh download creates the .part exclusively (O_EXCL), and the source opens without following links', () => {
+  const src = readFileSync(join(ROOT, 'scripts/fetch_models.mjs'), 'utf8')
+  assert.match(src, /const NOFOLLOW = FS\.O_NOFOLLOW \|\| 0/)
+  assert.match(src, /const CREATE_NEW = FS\.O_CREAT \| FS\.O_EXCL \| FS\.O_WRONLY \| NOFOLLOW/)
+  assert.match(src, /const APPEND_ONLY = FS\.O_APPEND \| FS\.O_WRONLY \| NOFOLLOW/)
+  assert.ok(!/openSync\(part, done \? 'a' : 'w'/.test(src), 'no flag strings that follow links')
+  assert.ok(!/createReadStream\(part\)/.test(src))
 })

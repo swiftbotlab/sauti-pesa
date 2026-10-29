@@ -6,20 +6,31 @@
 //   portable  set by the portable launcher (bin/portable.mjs: `npm run portable -- <command>`), for a laptop without
 //             bubblewrap (macOS, Windows, Linux). There is no sandbox: the person switches the network off, and the
 //             probe proves it at startup and again right before every signature.
-// Any other value (or none) is refused, as before. The probe fails closed: an error or a malformed answer refuses.
-import { networkProof } from './offline.js'
+// Any other value (or none) is refused, as before. The probe fails closed: an error or a malformed answer refuses,
+// and so does any leg whose failure is not one of the "no network" codes in src/offline.js (a refused or reset TCP
+// connection means something on the network answered).
+import { networkProof, legOffline, PROBE_LEGS } from './offline.js'
 
 export const RUN_MODES = Object.freeze(['offline', 'portable'])
 export const PORTABLE_HINT = 'Turn Wi-Fi/Ethernet off, then run again.'
 
-/** The probe legs that reached something, as short labels (empty when everything failed). */
+const LABEL = { tcp_ipv4: (l) => `tcp ${l.target || 'IPv4'}`, tcp_ipv6: () => 'tcp IPv6', dns: (l) => `dns ${l.target || 'lookup'}`, dns2: (l) => `dns ${l.target || 'lookup'}` }
+const clip = (v) => String(v).replace(/[^A-Za-z0-9_.:-]/g, '').slice(0, 24) || '?'
+
+/** The probe legs that reached something (or did not prove "no network"), as short labels; empty = all offline. */
 export function reachable (p) {
   const out = []
   if (!p || typeof p !== 'object') return ['probe gave no answer']
-  if (p.tcp_ipv4?.ok === true) out.push(`tcp ${p.tcp_ipv4.target || 'IPv4'} connected`)
-  if (p.tcp_ipv6?.ok === true) out.push('tcp IPv6 connected')
-  if (p.dns?.ok === true) out.push(`dns ${p.dns.target || 'lookup'} resolved`)
-  // a probe that says online without saying why, or does not say "offline" at all, still counts as online
+  for (const name of PROBE_LEGS) {
+    const l = p[name]
+    if (legOffline(name, l)) continue
+    const what = LABEL[name](l && typeof l === 'object' ? l : {})
+    if (!l || typeof l !== 'object') out.push(`${what} gave no answer`)
+    else if (l.ok === true) out.push(name.startsWith('dns') ? `${what} resolved` : `${what} connected`)
+    else if (['ECONNREFUSED', 'ECONNRESET'].includes(l.error)) out.push(`${what} answered (${l.error})`)
+    else out.push(`${what} failed with ${clip(l.error)}, which does not mean "no network"`)
+  }
+  // a probe that does not say "offline" at all still counts as online
   if (!out.length && p.online !== false) out.push('network state unknown')
   return out
 }

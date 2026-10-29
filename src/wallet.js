@@ -5,7 +5,9 @@
 //   USDT transfer the person confirmed (token, recipient, amount, fee cap). Defence in depth on top of
 //   the code checks in safety.js.
 import { readFileSync, writeFileSync, existsSync, statSync, mkdirSync } from 'node:fs'
-import { dirname } from 'node:path'
+import { dirname, win32 } from 'node:path'
+import { spawnSync } from 'node:child_process'
+import { userInfo } from 'node:os'
 import WDK, { PolicyViolationError } from '@tetherto/wdk'
 import WalletManagerEvm from '@tetherto/wdk-wallet-evm'
 import { Interface, keccak256, getAddress } from 'ethers'
@@ -16,10 +18,45 @@ const WRITE_OPS = ['sendTransaction', 'transfer', 'approve', 'sign', 'signTypedD
 
 export function walletExists (file) { return existsSync(file) }
 
+/**
+ * Windows has no POSIX file modes (a 0700 folder / 0600 file means nothing there), so before the seed is written the
+ * private folder gets an ACL of its own: inherited entries removed, full control for this account only (icacls, by
+ * absolute path from %SystemRoot%; inherited by the files created in it). The account is named by its SID (whoami
+ * /user), or by its user name if that fails. If icacls fails, no seed is written.
+ * Elsewhere nothing changes: the folder is created 0700 and readSeed() insists on 0600.
+ * @param {string} dir  @param {{platform?: string, run?: typeof spawnSync, env?: object, user?: () => string}} o (stubs for tests)
+ * @returns {{method: string, argv?: string[]}}
+ */
+export function restrictPrivateDir (dir, { platform = process.platform, run = spawnSync, env = process.env, user = () => userInfo().username } = {}) {
+  if (platform !== 'win32') return { method: 'posix-modes' }
+  const sysRoot = /^[A-Za-z]:\\[^\0"]{1,200}$/.test(String(env.SystemRoot || '')) ? env.SystemRoot : 'C:\\Windows'
+  const opts = { windowsHide: true, encoding: 'utf8', timeout: 20000, shell: false }
+  let grantee = null
+  try {
+    const w = run(win32.join(sysRoot, 'System32', 'whoami.exe'), ['/user', '/fo', 'csv', '/nh'], opts)
+    const m = w && w.status === 0 && /"(S-1-5-[0-9]+(?:-[0-9]+){0,14})"$/.exec(String(w.stdout || '').trim())
+    if (m) grantee = `*${m[1]}`
+  } catch {}
+  if (!grantee) {
+    const name = String(user() || '')
+    if (!/^[^\0\r\n"*?<>|:]{1,104}$/.test(name)) throw new Error('could not tell which Windows account this is; refusing to write the seed')
+    grantee = name
+  }
+  const exe = win32.join(sysRoot, 'System32', 'icacls.exe')
+  const argv = [dir, '/inheritance:r', '/grant:r', `${grantee}:(OI)(CI)F`]
+  const r = run(exe, argv, opts)
+  if (!r || r.error || r.status !== 0) {
+    const why = r?.error ? String(r.error.code || r.error.message).slice(0, 40) : `exit ${r?.status}`
+    throw new Error(`could not restrict ${dir} to this Windows account (icacls ${why}); refusing to write the seed`)
+  }
+  return { method: 'icacls', argv: [exe, ...argv] }
+}
+
 /** Create a new test wallet. Returns the address only. Refuses to overwrite. */
-export async function createWallet (file) {
+export async function createWallet (file, opts = {}) {
   if (existsSync(file)) throw new Error('a wallet already exists; refusing to overwrite it')
   mkdirSync(dirname(file), { recursive: true, mode: 0o700 })
+  restrictPrivateDir(dirname(file), opts) // Windows: this account only, or no seed at all
   const seed = WDK.getRandomSeedPhrase(12)
   writeFileSync(file, JSON.stringify({ seed, created: new Date().toISOString(), purpose: 'TEST NETWORKS ONLY' }), { mode: 0o600, flag: 'wx' })
   const w = await openWallet(file, { chainId: 1 })
@@ -31,7 +68,7 @@ export async function createWallet (file) {
 function readSeed (file) {
   const st = statSync(file)
   // POSIX permission bits. Windows has no such bits (Node reports 0666/0444 there; access is set by the folder's
-  // ACLs), so this check cannot apply on Windows: SECURITY.md, "Portable mode".
+  // ACL, which createWallet() restricts to this account): SECURITY.md, "Portable mode".
   if (process.platform !== 'win32' && (st.mode & 0o077) !== 0) throw new Error(`${file} must not be readable by others (chmod 600)`)
   // Never let a parse error quote the file: JSON.parse messages include a piece of the input (here: seed words).
   let seed

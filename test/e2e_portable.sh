@@ -9,7 +9,9 @@
 #      and the signatures are checked from the outbox alone (scripts/verify_outbox.mjs, plus a tampered copy).
 #   3. The network "comes back" mid-run: a hosts entry makes the probe's DNS leg succeed, as a real network would.
 #      The CLI must refuse to sign after it had started; the engine must refuse to sign and to run AI requests, and
-#      its bridge must refuse every network action in portable mode.
+#      its bridge must refuse every network action in portable mode. Also checked there: the engine and the bridge
+#      got the launcher's allowlisted environment (injection variables set on the launcher never reach them), a private
+#      0700 TMPDIR holding QVAC's worker socket, and the UI link is printed only after the bridge listens.
 #   test/e2e_portable.sh        (~3 min; the engine part needs ~3 GB RAM: stop ops/ui.sh and other engines first)
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -46,7 +48,9 @@ if [ "${1:-}" = --inside-engine ]; then
   export SAUTI_DATA=$DEMO SAUTI_UI_PORT=8789
   S=$DEMO/run/engine.sock
   TOKEN="$(new_ui_token)"
-  SAUTI_UI_TOKEN="$TOKEN" node bin/portable.mjs ui > "$OUT/ui.log" 2>&1 &
+  # variables that must NOT reach the engine or the bridge (the launcher's children get an allowlist)
+  SAUTI_UI_TOKEN="$TOKEN" QVAC_WORKER_PATH="$PROD/$OUT/no-such-worker.js" DYLD_INSERT_LIBRARIES=/no/such.dylib \
+    NODE_TLS_REJECT_UNAUTHORIZED=0 SAUTI_E2E_CANARY=leak HTTPS_PROXY=http://127.0.0.1:9 node bin/portable.mjs ui > "$OUT/ui.log" 2>&1 &
   L=$!
   KIDS=""
   # stop the launcher (it stops the engine and the bridge); anything of ours still alive after 30 s is killed
@@ -71,6 +75,24 @@ if [ "${1:-}" = --inside-engine ]; then
     tr '\0' '\n' < "/proc/$p/environ" 2>/dev/null | grep -qF "$TOKEN" && fail "inside: UI key in the engine's environment"
   done
   grep -qF "$TOKEN" "$OUT/ui.log" && fail "inside: UI key in the log"
+  n=0
+  for p in $(pgrep -f '[b]in/serve.mjs' || true) $(pgrep -f '[b]in/bridge.mjs' || true); do
+    tr '\0' '\n' < "/proc/$p/environ" > "$OUT/environ.txt" 2>/dev/null || continue
+    grep -qE '^(QVAC_WORKER_PATH|DYLD_INSERT_LIBRARIES|NODE_TLS_REJECT_UNAUTHORIZED|SAUTI_E2E_CANARY|HTTPS_PROXY|NODE_OPTIONS|LD_PRELOAD)=' "$OUT/environ.txt" \
+      && { grep -E '^(QVAC|DYLD|NODE_TLS|SAUTI_E2E|HTTPS|NODE_OPT|LD_PRE)' "$OUT/environ.txt"; fail "inside: a dropped variable reached pid $p"; }
+    grep -qxF "TMPDIR=$PROD/tmp/pt" "$OUT/environ.txt" && grep -qxF "HOME=$PROD/home" "$OUT/environ.txt" && grep -qxF "USERPROFILE=$PROD/home" "$OUT/environ.txt" \
+      && grep -qxF 'SAUTI_SANDBOX=portable' "$OUT/environ.txt" || fail "inside: child environment of pid $p"
+    n=$((n + 1))
+  done
+  rm -f "$OUT/environ.txt"
+  [ "$n" -ge 2 ] || fail "inside: engine and bridge not found ($n)"
+  [ "$(stat -c %a "$PROD/tmp/pt")" = 700 ] || fail "inside: tmp/pt is not 0700"
+  EP="$(pgrep -f '[b]in/serve.mjs' | head -1)"
+  ls "$PROD/tmp/pt/qvac-worker-$EP-"*.sock > /dev/null 2>&1 || fail "inside: QVAC's worker socket is not in tmp/pt"
+  ls /tmp/qvac-worker-"$EP"-* > /dev/null 2>&1 && fail "inside: QVAC's worker socket in the shared /tmp"
+  b=$(grep -n 'Sauti Pesa UI: http://127.0.0.1:8789' "$OUT/ui.log" | head -1 | cut -d: -f1)
+  u=$(grep -n '^UI: http://127.0.0.1:8789/ (key from SAUTI_UI_TOKEN)' "$OUT/ui.log" | head -1 | cut -d: -f1)
+  [ -n "$b" ] && [ -n "$u" ] && [ "$b" -lt "$u" ] || fail "inside: the UI link was printed before the bridge listened (bridge line ${b:-none}, link line ${u:-none})"
   echo "$FLIP" >> /etc/hosts # the network "comes back"
   [ "$(post e4 "{\"sid\":\"$SID2\"}" /v1/confirm)" = 423 ] && grep -qF "refusing to sign: $REFUSE_FLIP" "$OUT/e4.json" || { cat "$OUT/e4.json"; fail "inside: engine signed with the network back"; }
   [ "$(post e5 '{"text":"Tuma USDT 8 kwa Juma","lang":"sw"}' /v1/ask)" = 423 ] && grep -qF "refusing to run this request: $REFUSE_FLIP" "$OUT/e5.json" || fail "inside: engine ran an AI request with the network back"
@@ -105,6 +127,11 @@ expect_refusal "ops/portable.sh say" n5.txt env SAUTI_DATA=$OUT/data ops/portabl
 expect_refusal "CLI with SAUTI_SANDBOX=portable set by hand" n6.txt env SAUTI_SANDBOX=portable SAUTI_DATA=$OUT/data node bin/sauti.mjs ask "Tuma USDT ishirini kwa Amina" --yes
 expect_refusal "engine with SAUTI_SANDBOX=portable set by hand" n7.txt env SAUTI_SANDBOX=portable SAUTI_DATA=$OUT/data node bin/serve.mjs
 [ ! -e "$OUT/data/private/wallet.json" ] && [ ! -e "$OUT/data/run/engine.sock" ] || fail "something was created while online"
+rc=0; NODE_OPTIONS=--no-warnings node bin/portable.mjs probe > "$OUT/n9.txt" 2>&1 || rc=$?
+[ $rc = 2 ] && grep -q '^refusing to start: NODE_OPTIONS is set' "$OUT/n9.txt" || { cat "$OUT/n9.txt"; fail "launcher with NODE_OPTIONS (rc $rc)"; }
+rc=0; node --no-warnings bin/portable.mjs demo > "$OUT/n10.txt" 2>&1 || rc=$?
+[ $rc = 2 ] && grep -q '^refusing to start: node was started with extra flags' "$OUT/n10.txt" || { cat "$OUT/n10.txt"; fail "launcher with node flags (rc $rc)"; }
+ok "launcher refuses NODE_OPTIONS and node flags (they would run code before its checks)"
 rc=0; node bin/sauti.mjs queue > "$OUT/n8.txt" 2>&1 || rc=$?
 [ $rc = 2 ] && grep -q '^refusing to start: run it inside the offline sandbox' "$OUT/n8.txt" || fail "CLI without a mode"
 ok "CLI without a mode refuses as before: $(head -c 100 "$OUT/n8.txt")…"
@@ -139,6 +166,8 @@ ok "CLI: nothing signed; probe control after the flip: $(tail -1 "$OUT/c2.txt" |
 nonet_hosts engine /bin/bash test/e2e_portable.sh --inside-engine || { tail -30 "$OUT/ui.log"; fail "engine part"; }
 ok "engine (portable, real models): text request -> checks -> signed offline over its socket"
 ok "bridge (portable): broadcast and sync refused with 409; UI key not in the engine's environment or the log"
+ok "engine + bridge: allowlisted environment (QVAC_WORKER_PATH, DYLD_*, NODE_TLS_REJECT_UNAUTHORIZED, HTTPS_PROXY, a canary: all dropped), HOME/USERPROFILE = home/"
+ok "QVAC's worker socket is in the private 0700 tmp/pt, not in /tmp; the UI link was printed after the bridge listened"
 ok "engine: network back -> confirm refused (423: $(python3 -I -c 'import json,sys;print(json.load(open(sys.argv[1]))["error"][:60])' "$OUT/e4.json")…), AI request refused, status shows network ON"
 SAUTI_DATA=$DEMO node scripts/verify_outbox.mjs --network devnet --expect 3 > "$OUT/p4.txt" || { cat "$OUT/p4.txt"; fail "after part 3"; }
 ok "outbox after part 3: $(tail -1 "$OUT/p4.txt") (2 demo + 1 engine; the refused ones never signed)"

@@ -54,6 +54,11 @@ function h (tag, props, ...kids) {
   return el
 }
 
+// A probe leg proves "no network" only when the engine says so (src/offline.js: e.g. ENETUNREACH, EAI_AGAIN); a refused
+// connection or an unknown error is not proof. Engines without the flag: a failed leg, as before.
+const legOff = (x) => (typeof x?.offline === 'boolean' ? x.offline : x?.ok === false)
+const legRow = (row, k, x) => row(k, legOff(x) ? `${t('failed')} · ${x.error}` : x?.ok ? t('reachable') : `${t('reachable')}? · ${x?.error || '?'}`, legOff(x))
+
 const ICONS = {
   mic: '<path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z"/><path d="M19 11a7 7 0 0 1-14 0"/><path d="M12 18v3"/>',
   stop: '<rect x="7" y="7" width="10" height="10" rx="2" fill="currentColor"/>',
@@ -256,7 +261,7 @@ function renderSide () {
   const total = steps.reduce((a, s) => a + (s.ms || 0), 0)
   const st = S.status
   const n = st?.net
-  const err = (x) => (x?.ok ? h('span', { text: t('reachable') }) : h('span', { class: 'ok', text: `${t('failed')} · ${x?.error || '?'}` }))
+  const err = (x) => (legOff(x) ? h('span', { class: 'ok', text: `${t('failed')} · ${x?.error || '?'}` }) : h('span', { text: x?.ok ? t('reachable') : `${t('reachable')}? · ${x?.error || '?'}` }))
   side.replaceChildren(
     h('section', { class: 'panel' },
       h('h2', null, icon('chip'), t('panelTitle')),
@@ -279,6 +284,7 @@ function renderSide () {
         h('dt', { text: `${t('tcp')} ${n.tcp_ipv4.target}` }), h('dd', null, err(n.tcp_ipv4)),
         h('dt', { text: `${t('tcp')} IPv6` }), h('dd', null, err(n.tcp_ipv6)),
         h('dt', { text: `${t('dns')} ${n.dns.target}` }), h('dd', null, err(n.dns)),
+        n.dns2 ? h('dt', { text: `${t('dns')} ${n.dns2.target}` }) : null, n.dns2 ? h('dd', null, err(n.dns2)) : null,
         h('dt', { text: t('checkedAt') }), h('dd', { text: new Date(n.at).toLocaleTimeString('en-GB', { hourCycle: 'h23' }) })) : null
     ),
     h('section', { class: 'panel' },
@@ -960,9 +966,10 @@ function openProof () {
     n ? [
       row('sandbox', sandboxLabel(n.sandbox)),
       row(t('ifaces'), (n.interfaces || []).join(', ') === 'lo' ? t('onlyLo') : (n.interfaces || []).join(', '), (n.interfaces || []).join(',') === 'lo'),
-      row(`${t('tcp')} ${n.tcp_ipv4.target}`, n.tcp_ipv4.ok ? t('reachable') : `${t('failed')} · ${n.tcp_ipv4.error}`, !n.tcp_ipv4.ok),
-      row(`${t('tcp')} IPv6`, n.tcp_ipv6.ok ? t('reachable') : `${t('failed')} · ${n.tcp_ipv6.error}`, !n.tcp_ipv6.ok),
-      row(`${t('dns')} ${n.dns.target}`, n.dns.ok ? t('reachable') : `${t('failed')} · ${n.dns.error}`, !n.dns.ok),
+      legRow(row, `${t('tcp')} ${n.tcp_ipv4.target}`, n.tcp_ipv4),
+      legRow(row, `${t('tcp')} IPv6`, n.tcp_ipv6),
+      legRow(row, `${t('dns')} ${n.dns.target}`, n.dns),
+      n.dns2 ? legRow(row, `${t('dns')} ${n.dns2.target}`, n.dns2) : null,
       row(t('checkedAt'), new Date(n.at).toLocaleTimeString('en-GB', { hourCycle: 'h23' }))
     ] : null,
     h('h3', { class: 'section-title', style: 'margin:14px 0 4px', text: t('models') }),

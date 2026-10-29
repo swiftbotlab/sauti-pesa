@@ -150,31 +150,60 @@ For judging on a laptop without bubblewrap (macOS, Windows, Linux without bwrap)
 sets `SAUTI_SANDBOX=portable` for the CLI, engine and bridge it starts (setting it by hand is equally explicit and
 passes through the same gate). It is a weaker guarantee than the sandbox, and documented as one.
 - **What holds.** The gate (`src/gate.js`, Node built-ins only, before any third-party package loads) accepts only
-  `offline` or `portable`, and in both the live probe (TCP 1.1.1.1:443, TCP [2606:4700:4700::1111]:443, DNS lookup of
-  huggingface.co) must fail. It runs at startup, right before every signature (CLI and engine), and in portable mode
-  before every engine request. A probe error or a malformed or contradictory answer counts as online (fail closed).
-  Tested both ways in `test/gate.test.js`, and end to end in `test/e2e_portable.sh`: refusals with the network on,
-  the full flow with it off, and the network coming back mid-run (CLI and engine then refuse to sign; the engine
-  refuses AI requests). Nothing is downloaded at runtime: models are local files, and a missing one stops with the
-  exact download command. The bridge refuses both network actions (sync, broadcast) in portable mode, so signed
-  payments stay in the outbox. The per-launch UI key, the 127.0.0.1 binding, Host/Origin checks, caps and the
-  test-network-only build are unchanged.
+  `offline` or `portable`, and in both the live probe must show no network: TCP 1.1.1.1:443, TCP
+  [2606:4700:4700::1111]:443, and DNS lookups of huggingface.co and example.com. A leg counts as "no network" only
+  when it fails with a code that means nothing answered (`src/offline.js`): TCP `ENETUNREACH`, `ENETDOWN`,
+  `EHOSTUNREACH`, `EADDRNOTAVAIL` or our 1.5 s `TIMEOUT` (IPv6 also `EAFNOSUPPORT`, no IPv6 stack); DNS `EAI_AGAIN`
+  (no server reachable, Linux) or `ENOTFOUND` (how macOS and Windows report a lookup with no network). Anything else
+  counts as online: a refused or reset connection (`ECONNREFUSED`, `ECONNRESET`: something on the network answered),
+  any other or unknown code, a missing leg, a probe error, a malformed or contradictory answer (fail closed). The
+  probe runs at startup, right before every signature (CLI and engine), and in portable mode before every engine
+  request; the engine's gate always probes fresh (`src/netcache.js`; only the UI's status pill reuses an answer, for
+  at most 5 s on a monotonic clock, never to decide anything). Tested both ways in `test/gate.test.js` and
+  `test/portable_hardening.test.js` (with controls showing the reviewed commit let a refused connection and a
+  wall-clock step back through), and end to end in `test/e2e_portable.sh`: refusals with the network on, the full
+  flow with it off, and the network coming back mid-run (CLI and engine then refuse to sign; the engine refuses AI
+  requests). Nothing is downloaded at runtime: models are local files, and a missing one stops with the exact
+  download command. The bridge refuses both network actions (sync, broadcast) in portable mode, so signed payments
+  stay in the outbox. The per-launch UI key, the 127.0.0.1 binding, Host/Origin checks, caps and the
+  test-network-only build are unchanged; the link with the key is printed only after the bridge reports it is
+  listening, and `SAUTI_UI_PORT` follows one strict rule (decimal 1024-65535) in the launcher and the bridge.
+- **The launcher's own surface.** It refuses to start when `NODE_OPTIONS` is set or node was started with extra
+  flags (both run code before its checks). Its children get a rebuilt environment from an allowlist (`PATH`, `LANG`,
+  `TERM`, `TEMP`/`TMP` and the Windows basics `SystemRoot`, `windir`, `ComSpec`, `PATHEXT`, `APPDATA`,
+  `LOCALAPPDATA`), plus `HOME` and `USERPROFILE` = the project's `home/`, a checked `SAUTI_DATA` (`tmp/<name>`), and
+  the mode; everything else is dropped, e.g. `QVAC_WORKER_PATH`, `LD_PRELOAD`, `DYLD_*`,
+  `NODE_TLS_REJECT_UNAUTHORIZED`, proxies and other tools' tokens (unit test + `/proc/<pid>/environ` of the running
+  engine and bridge in `test/e2e_portable.sh`). On Linux and macOS the children's `TMPDIR` is `tmp/pt` in the
+  project (0700, ours, not a link), so QVAC's worker socket (`qvac-worker-<pid>-...sock`) is never in a temp folder
+  shared with other accounts; if the project path is too long for that socket (104/108-byte limit), the system temp
+  folder is used only when it is already private to this account (macOS), otherwise it stops and says to move the
+  project to a shorter path.
 - **What does not hold.** No network namespace: if the network comes back while one request runs, that request
-  finishes (the next signature or request is refused). The probe has fixed targets: a network that blocks exactly
-  1.1.1.1, its IPv6 twin and DNS for huggingface.co, but lets other traffic through, would pass it. No read-only project and no masked `private/`/`tmp/`; the
-  environment is passed through (with `SAUTI_SANDBOX`, `SAUTI_UI_TOKEN`, `SAUTI_ENGINE_PIPE` and
-  `SAUTI_QUEUE_LOCKED` replaced), HOME is the project's `home/`. Outside the sandbox's PID namespace the memory report
-  reads only this process tree, never other programs.
-- **Windows (untested).** Node has no Unix sockets there, so the engine and the bridge use a named pipe with a random
-  name per launch (`\\.\pipe\sauti-pesa-<32 hex>`, only that exact shape is accepted). Its default ACL may let other
-  local users open it for reading; the random name is the protection, and only the launcher's two processes know it.
-  Windows has no POSIX file modes, so the 0600 check on `private/wallet.json` cannot apply: the file is protected by
-  the folder's ACLs only. Test wallet only, as everywhere.
+  finishes (the next signature or request is refused). The probe has fixed targets, and a silent drop reads as "no
+  network" (`TIMEOUT`): a network that drops exactly 1.1.1.1 and its IPv6 twin without an answer and fails DNS for
+  both names (no server, or "no such name" for both) but lets other traffic through would pass it. No read-only
+  project and no masked `private/`/`tmp/`. Outside the sandbox's PID namespace the memory report reads only this
+  process tree, never other programs.
+- **Windows (untested; assumes a single-user machine).** Node has no Unix sockets there, so the engine and the
+  bridge use a named pipe with a random name per launch (`\\.\pipe\sauti-pesa-<32 hex>`, only that exact shape is
+  accepted), and QVAC's worker uses its own pipe. The default pipe ACL lets other local accounts open such a pipe for
+  reading (not writing); we do not set our own ACL on it, so other people's accounts on the same machine are out of
+  scope. Windows has no POSIX file modes, so the 0600 check on `private/wallet.json` cannot apply there; instead
+  `wallet init` restricts `private/` with `%SystemRoot%\System32\icacls.exe <dir> /inheritance:r /grant:r
+  <you>:(OI)(CI)F` (inherited entries removed, full control for this account only, inherited by the seed file) and
+  writes no seed if that fails (decision logic unit-tested with a stubbed platform; not run on Windows). Test
+  wallet only, as everywhere.
 - **Downloads on that path** (`scripts/fetch_models.mjs`, `npm run fetch-models`, Node built-ins): the start URL must
   be https://huggingface.co/, every redirect https without credentials (at most 5); the file is written as
-  `models/<file>.part`, aborted beyond the pinned size, and renamed only after size AND sha256 match (tested with a
-  scripted server: tampered bytes, oversize, http and credential redirects, Range resume). The OCR weights keep their
-  Linux-only fenced downloader. `npm ci` runs with install scripts off (`.npmrc`).
+  `models/<file>.part`, aborted beyond the pinned size, and renamed only after size AND sha256 match. The `.part`
+  is never reached through a link: anything at that path that is not a plain file with one name (a symlink, even a
+  dangling one, a hard link, a folder) is refused; a fresh download creates it with `O_CREAT|O_EXCL|O_NOFOLLOW`, a
+  resume appends with `O_NOFOLLOW` and checks it is still the same file, and after the rename the model must be that
+  same file (tested with a scripted server: tampered bytes, oversize, http and credential redirects, Range resume,
+  dangling/real symlinks, hard links; plus a control showing the reviewed commit wrote through a dangling link). The
+  OCR weights keep their Linux-only fenced downloader. `npm ci` runs with install scripts off (`.npmrc`, which also
+  turns off npm's update check).
 
 ## Supply chain
 - Exact pins and a committed lockfile. `--ignore-scripts` is set (no package in the tree has install scripts).
@@ -186,7 +215,8 @@ passes through the same gate). It is a weaker guarantee than the sandbox, and do
 ## Known gaps
 - `online` mode shares the host network namespace (see above).
 - Portable mode has no sandbox at all: its guarantee is "the network is off, proven by a live probe", not "this
-  process cannot reach a network" (see above). It was tested on Linux arm64 only.
+  process cannot reach a network" (see above); a silent drop of the probe's exact targets reads as "off". It was
+  tested on Linux arm64 only; on Windows it assumes a single-user machine.
 - The devnet anvil state file and the outbox (signed transactions, public once broadcast) are stored unencrypted.
 - Processes of the same user can still read the engine socket (file permissions only, 0600), the bridge's memory
   and the link in the terminal's scrollback. The UI key protects against other users and against programs that

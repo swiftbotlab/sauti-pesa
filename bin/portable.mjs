@@ -10,8 +10,12 @@
 //
 // What portable mode is, and is not:
 // - It sets SAUTI_SANDBOX=portable for the CLI / engine / bridge it starts. They run the SAME live probe as the
-//   sandboxed path (src/offline.js: TCP to 1.1.1.1:443 and to its IPv6 twin, DNS for huggingface.co) at startup, again
-//   before every signature, and (the engine) before every AI request, and refuse while any of them gets through.
+//   sandboxed path (src/offline.js: TCP to 1.1.1.1:443 and to its IPv6 twin, DNS for huggingface.co and example.com)
+//   at startup, again before every signature, and (the engine) before every AI request, and refuse while any of them
+//   gets through or fails in a way that does not mean "no network".
+// - The children get a SHORT, rebuilt environment (an allowlist, below), HOME/USERPROFILE = the project's home/, and on
+//   Linux/macOS a private 0700 temp folder in the project (tmp/pt) for QVAC's worker socket. The launcher refuses to
+//   start when NODE_OPTIONS is set or node was started with extra flags (both would run code before our checks).
 // - It is NOT a sandbox: no namespace, no read-only project, no masked directories. The guarantee is "the network
 //   is off, proven by a probe", not "this process cannot reach a network". On Linux the bubblewrap path
 //   (ops/sandbox.sh offline, ops/ui.sh) stays the default and the stronger one.
@@ -24,6 +28,8 @@ import { randomBytes } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { checkGate } from '../src/gate.js'
 import { networkProof } from '../src/offline.js'
+import { uiPort } from '../src/sockpath.js'
+import { childEnvFrom, startProblem, dataFromEnv, privateTmp } from '../src/launch_env.js'
 import { modelKeyFor, fetchCommand } from '../src/setup_hint.js'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
@@ -40,12 +46,12 @@ const USAGE = `Sauti Pesa, portable mode (no bubblewrap; switch the network OFF 
 One-time setup, with the internet ON:  npm ci   and   npm run fetch-models
 Portable mode never broadcasts; on Linux the bubblewrap sandbox (ops/sandbox.sh offline ...) is the default.`
 
+let tmpCache = null
 function childEnv (extra = {}) {
-  const env = { ...process.env }
-  for (const k of ['SAUTI_SANDBOX', 'SAUTI_UI_TOKEN', 'SAUTI_ENGINE_PIPE', 'SAUTI_QUEUE_LOCKED']) delete env[k]
-  mkdirSync(join(ROOT, 'home'), { recursive: true, mode: 0o700 })
-  // like the sandbox: QVAC's caches (~/.qvac) go to the project's own home/ (on Windows QVAC follows USERPROFILE)
-  return { ...env, HOME: join(ROOT, 'home'), NODE_ENV: 'production', ...extra, SAUTI_SANDBOX: 'portable' }
+  const home = join(ROOT, 'home')
+  mkdirSync(home, { recursive: true, mode: 0o700 })
+  const tmp = process.platform === 'win32' ? null : (tmpCache || (tmpCache = privateTmp()))
+  return childEnvFrom(process.env, { home, tmp, data: dataFromEnv(), extra })
 }
 
 function run (script, args, env, { capture = false } = {}) {
@@ -101,7 +107,7 @@ async function gateOrExit () {
   console.log(`[portable mode | network: OFF (verified: ${proofLine(g.proof)}) | no bubblewrap: keep the network off while it runs]`)
 }
 
-const proofLine = (p) => `tcp 1.1.1.1:443 ${p.tcp_ipv4?.error || 'failed'}, IPv6 ${p.tcp_ipv6?.error || 'failed'}, dns ${p.dns?.error || 'failed'}`
+const proofLine = (p) => `tcp 1.1.1.1:443 ${p.tcp_ipv4?.error || 'failed'}, IPv6 ${p.tcp_ipv6?.error || 'failed'}, dns ${p.dns?.error || 'failed'} / ${p.dns2?.error || 'failed'}`
 
 async function cmdProbe () {
   const p = await networkProof()
@@ -115,8 +121,9 @@ async function cmdProbe () {
 async function cmdUi () {
   const given = process.env.SAUTI_UI_TOKEN || ''
   if (given && !/^[A-Za-z0-9_-]{32,128}$/.test(given)) { console.error('SAUTI_UI_TOKEN must be 32-128 URL-safe characters'); process.exit(2) }
+  let port
+  try { port = uiPort(process.env) } catch (e) { console.error(e.message); process.exit(2) }
   const token = given || randomBytes(32).toString('base64url')
-  const port = process.env.SAUTI_UI_PORT || '8787'
   const pipe = process.platform === 'win32' ? { SAUTI_ENGINE_PIPE: `\\\\.\\pipe\\sauti-pesa-${randomBytes(16).toString('hex')}` } : {}
   const kids = []
   let stopping = false
@@ -126,18 +133,33 @@ async function cmdUi () {
     for (const k of kids) { try { k.kill('SIGTERM') } catch {} }
     setTimeout(() => process.exit(code), 1500).unref()
   }
-  const start = (script, env) => {
-    const p = spawn(process.execPath, [join(ROOT, script)], { cwd: ROOT, env, stdio: 'inherit', windowsHide: true })
+  const start = (script, env, stdout = 'inherit') => {
+    const p = spawn(process.execPath, [join(ROOT, script)], { cwd: ROOT, env, stdio: ['inherit', stdout, 'inherit'], windowsHide: true })
     p.on('exit', (code) => stop(code ?? 1))
     kids.push(p)
+    return p
   }
   process.on('SIGINT', () => stop(0))
   process.on('SIGTERM', () => stop(0))
   start('bin/serve.mjs', childEnv(pipe)) // the engine never gets the UI key
-  start('bin/bridge.mjs', childEnv({ ...pipe, SAUTI_UI_TOKEN: token }))
-  if (given) console.log(`UI: http://127.0.0.1:${port}/ (key from SAUTI_UI_TOKEN)`)
-  else console.log(`Open this link (it holds this session's key; it changes at every start): http://127.0.0.1:${port}/#k=${token}`)
-  console.log('Portable mode: payments are signed and kept in the outbox on this device; "Go online and send" is not available here.')
+  const bridge = start('bin/bridge.mjs', childEnv({ ...pipe, SAUTI_UI_TOKEN: token, SAUTI_UI_PORT: String(port) }), 'pipe')
+  // the link (with the key) is printed only once the bridge says it is listening on 127.0.0.1:<port>
+  const ready = new RegExp(`Sauti Pesa UI: http://127\\.0\\.0\\.1:${port}(\\s|$)`, 'm')
+  let seen = ''
+  let shown = false
+  const late = setTimeout(() => { if (!shown && !stopping) console.error(`the UI bridge has not started listening on 127.0.0.1:${port} after 60 s`) }, 60000)
+  late.unref()
+  bridge.stdout.on('data', (d) => {
+    process.stdout.write(d)
+    if (shown) return
+    seen = (seen + d.toString('utf8')).slice(-4096)
+    if (!ready.test(seen)) return
+    shown = true
+    clearTimeout(late)
+    if (given) console.log(`UI: http://127.0.0.1:${port}/ (key from SAUTI_UI_TOKEN)`)
+    else console.log(`Open this link (it holds this session's key; it changes at every start): http://127.0.0.1:${port}/#k=${token}`)
+    console.log('Portable mode: payments are signed and kept in the outbox on this device; "Go online and send" is not available here.')
+  })
 }
 
 // The offline flow end to end, as test/e2e_offline.sh does it in the sandbox (minus the devnet broadcast): throwaway
@@ -188,15 +210,22 @@ async function cmdDemo () {
 async function main () {
   const [cmd, ...args] = process.argv.slice(2)
   if (!cmd || ['help', '--help', '-h'].includes(cmd)) { console.log(USAGE); return }
+  const bad = startProblem()
+  if (bad) { console.error(`refusing to start: ${bad}`); process.exit(2) }
   if (cmd === 'probe') return cmdProbe()
   if (!['ui', 'demo', ...CLI_COMMANDS].includes(cmd)) { console.error(`unknown command "${String(cmd).slice(0, 40)}"\n\n${USAGE}`); process.exit(2) }
   await gateOrExit()
-  const problem = preflight(cmd, args)
+  const problem = preflight(cmd, args) || envProblem()
   if (problem) { console.error(`cannot run: ${problem}`); process.exit(2) }
   if (cmd === 'ui') return cmdUi()
   if (cmd === 'demo') return cmdDemo()
   const r = await run('bin/sauti.mjs', [cmd, ...args], childEnv())
   process.exit(r.code)
+}
+
+// SAUTI_DATA and the private temp folder, checked once before any child starts (a clear message instead of a crash)
+function envProblem () {
+  try { dataFromEnv(); if (process.platform !== 'win32') tmpCache = privateTmp(); return null } catch (e) { return e.message }
 }
 
 main().catch((e) => { console.error(`portable: ${e.message}`); process.exit(1) })

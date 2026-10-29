@@ -24,7 +24,7 @@ import { join, resolve, relative, sep } from 'node:path'
 import { spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { createHash, timingSafeEqual } from 'node:crypto'
-import { engineSocket } from '../src/sockpath.js'
+import { engineSocket, uiPort } from '../src/sockpath.js'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
 const KEY = uiKey()
@@ -45,9 +45,7 @@ const ALLOWED_HOSTS = new Set([`127.0.0.1:${PORT}`, `localhost:${PORT}`])
 const ALLOWED_ORIGINS = new Set([`http://127.0.0.1:${PORT}`, `http://localhost:${PORT}`])
 
 function portFromEnv () {
-  const p = Number(process.env.SAUTI_UI_PORT || 8787)
-  if (!Number.isInteger(p) || p < 1024 || p > 65535) throw new Error('SAUTI_UI_PORT must be 1024-65535')
-  return p
+  try { return uiPort(process.env) } catch (e) { console.error(`refusing to start: ${e.message}`); process.exit(2) }
 }
 // The per-launch UI key. Kept only as a hash in memory, and removed from the environment, so child processes
 // (the network job) never inherit it.

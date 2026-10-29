@@ -15,14 +15,16 @@ import { engineSocket, PIPE_RE } from '../src/sockpath.js'
 import { modelKeyFor, fetchCommand, missingModelMessage } from '../src/setup_hint.js'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
-const leg = (ok, extra = {}) => ({ ok, ...(ok ? {} : { error: 'ENETUNREACH' }), ...extra })
-const proof = ({ ip4 = false, ip6 = false, dns = false } = {}) => ({
-  online: ip4 || ip6 || dns,
+// a failed leg carries the code the bubblewrap sandbox gives (TCP: no route; DNS: no server reachable)
+const leg = (ok, extra = {}, error = 'ENETUNREACH') => ({ ok, ...(ok ? {} : { error }), ...extra })
+const proof = ({ ip4 = false, ip6 = false, dns = false, dns2 = false } = {}) => ({
+  online: ip4 || ip6 || dns || dns2,
   sandbox: 'x',
   interfaces: ['lo'],
   tcp_ipv4: leg(ip4, { target: '1.1.1.1:443' }),
   tcp_ipv6: leg(ip6, { target: '[2606:4700:4700::1111]:443' }),
-  dns: { target: 'huggingface.co', ...leg(dns) },
+  dns: { target: 'huggingface.co', ...leg(dns, {}, 'EAI_AGAIN') },
+  dns2: { target: 'example.com', ...leg(dns2, {}, 'EAI_AGAIN') },
   at: new Date().toISOString()
 })
 const probeOf = (p) => { const f = async () => { f.calls++; return p }; f.calls = 0; return f }
@@ -39,7 +41,7 @@ test('gate: offline probe -> allowed, in both modes', async () => {
 })
 
 test('gate: any reachable leg (IPv4, IPv6, DNS) -> refused, portable message says to switch the network off', async () => {
-  for (const legs of [{ ip4: true }, { ip6: true }, { dns: true }, { ip4: true, dns: true }, { ip4: true, ip6: true, dns: true }]) {
+  for (const legs of [{ ip4: true }, { ip6: true }, { dns: true }, { dns2: true }, { ip4: true, dns: true }, { ip4: true, ip6: true, dns: true, dns2: true }]) {
     const g = await checkGate({ env: { SAUTI_SANDBOX: 'portable' }, probe: probeOf(proof(legs)) })
     assert.equal(g.ok, false, JSON.stringify(legs))
     assert.equal(g.code, 'online')
@@ -49,6 +51,7 @@ test('gate: any reachable leg (IPv4, IPv6, DNS) -> refused, portable message say
     if (legs.ip4) assert.match(g.message, /tcp 1\.1\.1\.1:443 connected/)
     if (legs.ip6) assert.match(g.message, /tcp IPv6 connected/)
     if (legs.dns) assert.match(g.message, /dns huggingface\.co resolved/)
+    if (legs.dns2) assert.match(g.message, /dns example\.com resolved/)
   }
   // the sandboxed mode keeps its own wording (test/e2e_ui.sh greps "internet is reachable")
   const g = await checkGate({ env: { SAUTI_SANDBOX: 'offline' }, probe: probeOf(proof({ dns: true })) })
@@ -108,7 +111,7 @@ test('gate: the default probe is the live one from src/offline.js (same legs the
 })
 
 test('launchers: before the gate they load Node built-ins and our own gate files only (no third-party code)', () => {
-  const allowed = new Set(['bin/sauti.mjs', 'bin/serve.mjs', 'bin/portable.mjs', 'bin/bridge.mjs', 'src/gate.js', 'src/offline.js', 'src/sockpath.js', 'src/setup_hint.js'])
+  const allowed = new Set(['bin/sauti.mjs', 'bin/serve.mjs', 'bin/portable.mjs', 'bin/bridge.mjs', 'src/gate.js', 'src/offline.js', 'src/sockpath.js', 'src/setup_hint.js', 'src/launch_env.js'])
   const seen = new Set()
   const walk = (rel) => {
     if (seen.has(rel)) return

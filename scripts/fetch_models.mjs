@@ -7,11 +7,14 @@
 //   npm run fetch-models -- WHISPER_SMALL_Q8_0 one or more models.json keys
 // Rules: https only (also for every redirect, at most 5), the start URL must be https://huggingface.co/, the file is
 // written to models/<file>.part and only renamed into place when the size AND the sha256 match the pin; more bytes
-// than the pin aborts at once; an interrupted download resumes (HTTP Range) on the next run.
+// than the pin aborts at once; an interrupted download resumes (HTTP Range) on the next run. The .part file is never
+// reached through a link: anything at that path that is not a plain file with one name (a symlink, even a dangling
+// one, a hard link, a folder) is refused; a fresh download creates it with O_EXCL (and O_NOFOLLOW), a resume appends
+// with O_NOFOLLOW and checks it is still the same file.
 // The two OCR files exist only in QVAC's peer-to-peer registry: their fenced downloader (scripts/fetch_models.sh,
 // via scripts/fetch_registry_model.sh) is Linux-only. The app works without them (no screenshot check).
 import { createHash } from 'node:crypto'
-import { createReadStream, existsSync, mkdirSync, openSync, writeSync, closeSync, statSync, renameSync, rmSync, chmodSync, lstatSync, readFileSync, realpathSync } from 'node:fs'
+import { createReadStream, existsSync, mkdirSync, openSync, writeSync, closeSync, fstatSync, renameSync, rmSync, chmodSync, lstatSync, readFileSync, realpathSync, constants as FS } from 'node:fs'
 import { join, basename } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -19,6 +22,17 @@ const ROOT = fileURLToPath(new URL('..', import.meta.url))
 export const DEFAULT_KEYS = ['QWEN3_1_7B_INST_Q4', 'WHISPER_SMALL_Q8_0', 'WHISPER_SMALL_SW_Q8_0', 'VAD_SILERO_5_1_2']
 const MAX_REDIRECTS = 5
 const IDLE_MS = 60000
+const NOFOLLOW = FS.O_NOFOLLOW || 0 // not defined on Windows
+const CREATE_NEW = FS.O_CREAT | FS.O_EXCL | FS.O_WRONLY | NOFOLLOW
+const APPEND_ONLY = FS.O_APPEND | FS.O_WRONLY | NOFOLLOW
+
+/** lstat, or null when nothing is there (never follows a link) */
+function lstatOrNull (p) {
+  try { return lstatSync(p) } catch (e) { if (e.code === 'ENOENT') return null; throw e }
+}
+/** a plain file with exactly one name (no symlink, no hard link, no folder) */
+const plainFile = (st) => st.isFile() && st.nlink === 1
+const sameFile = (a, b) => a.dev === b.dev && a.ino === b.ino
 
 /** Validate one models.json entry for a plain https download. Throws with the reason. */
 export function entryFor (models, key) {
@@ -75,15 +89,25 @@ export async function fetchOne ({ key, entry, dir, fetchImpl = fetch, log = cons
   const part = `${out}.part`
   const have = await hashFile(out)
   if (have && have.size === entry.bytes && have.sha256 === entry.sha256) return `${key}: already present and verified`
-  if (existsSync(out)) throw new Error(`${key}: ${out} exists but does not match the pin (size ${have?.size}); remove it and run again`)
-  for (const f of [part]) if (existsSync(f) && !lstatSync(f).isFile()) throw new Error(`${key}: ${f} is not a regular file; refusing`)
+  if (lstatOrNull(out)) throw new Error(`${key}: ${out} exists but does not match the pin (size ${have?.size}); remove it and run again`)
+  const refuse = () => new Error(`${key}: ${part} is not a regular file (a link, or a file with a second name); refusing`)
 
   let h = createHash('sha256')
   let done = 0
-  if (existsSync(part)) {
-    const st = statSync(part)
-    if (st.size > entry.bytes) rmSync(part)
-    else { for await (const c of createReadStream(part)) h.update(c); done = st.size }
+  let ours = null // the file we hashed / wrote (dev + inode): the one that must end up at `out`
+  let pst = lstatOrNull(part)
+  if (pst && !plainFile(pst)) throw refuse()
+  if (pst && pst.size > entry.bytes) { rmSync(part); pst = null }
+  if (pst) {
+    // hash what is there through a descriptor that cannot follow a link, and make sure it is the file we checked
+    const rfd = openSync(part, FS.O_RDONLY | NOFOLLOW)
+    try {
+      const st = fstatSync(rfd)
+      if (!plainFile(st) || !sameFile(st, pst)) throw refuse()
+      for await (const c of createReadStream(null, { fd: rfd, autoClose: false })) h.update(c)
+      done = st.size
+      ours = st
+    } finally { closeSync(rfd) }
   }
   log(`${key}: downloading ${entry.bytes} bytes${done ? ` (resuming at ${done})` : ''}`)
   const ctrl = new AbortController()
@@ -95,7 +119,15 @@ export async function fetchOne ({ key, entry, dir, fetchImpl = fetch, log = cons
       const r = await getFollowing(entry.url, headers, fetchImpl, ctrl.signal)
       if (done && r.status === 200) { h = createHash('sha256'); done = 0; log(`${key}: the server ignored the resume request; starting again`) }
       if (!(r.status === 200 || (done && r.status === 206))) throw new Error(`HTTP ${r.status}`)
-      fd = openSync(part, done ? 'a' : 'w', 0o644)
+      if (done) {
+        fd = openSync(part, APPEND_ONLY)
+        const st = fstatSync(fd)
+        if (!plainFile(st) || !sameFile(st, pst) || st.size !== done) throw refuse()
+      } else {
+        rmSync(part, { force: true }) // removes a link itself, never its target
+        try { fd = openSync(part, CREATE_NEW, 0o644) } catch (e) { if (e.code === 'EEXIST' || e.code === 'ELOOP') throw refuse(); throw e }
+      }
+      ours = fstatSync(fd)
       for await (const chunk of r.body) {
         clearTimeout(idle)
         idle = setTimeout(() => ctrl.abort(new Error('no data for 60 s')), IDLE_MS)
@@ -111,10 +143,14 @@ export async function fetchOne ({ key, entry, dir, fetchImpl = fetch, log = cons
     clearTimeout(idle)
     if (fd !== null) closeSync(fd)
   }
+  const fin = lstatOrNull(part)
+  if (!fin || !plainFile(fin) || !ours || !sameFile(fin, ours)) throw refuse()
   if (done !== entry.bytes) throw new Error(`${key}: size ${done} != ${entry.bytes} (run again to resume)`)
   const sha = h.digest('hex')
   if (sha !== entry.sha256) { rmSync(part, { force: true }); throw new Error(`${key}: sha256 mismatch (got ${sha}); the partial file was deleted`) }
   renameSync(part, out)
+  const placed = lstatOrNull(out) // still the very file we wrote (not swapped for a link between the check and the rename)
+  if (!placed || !plainFile(placed) || !sameFile(placed, ours)) { rmSync(out, { force: true }); throw refuse() }
   try { chmodSync(out, 0o444) } catch {}
   return `${key}: ok sha256=${sha}`
 }

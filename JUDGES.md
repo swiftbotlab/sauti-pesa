@@ -54,14 +54,16 @@ the local devnet, which needs no internet either. To see the undo window, pay a 
 ## Any laptop (macOS / Windows / Linux without bubblewrap)
 
 Portable mode has **no sandbox**: you switch the network off, and the app proves it with the same live probe as the
-sandbox path (TCP to 1.1.1.1:443 and to its IPv6 twin, DNS for huggingface.co) at startup, again right before every
-signature, and in the engine before every AI request. While any of them gets through, it refuses:
+sandbox path (TCP to 1.1.1.1:443 and to its IPv6 twin, DNS for huggingface.co and example.com) at startup, again right
+before every signature, and in the engine before every AI request. While any of them gets through, or fails in a way
+that does not mean "no network" (a refused connection means something answered), it refuses:
 `the internet is reachable from this computer (…). Turn Wi-Fi/Ethernet off, then run again.` It never downloads at
 runtime (a missing model stops with the exact download command) and never broadcasts: the signed test payments stay
 in the outbox. Same test wallet, test tokens and labels. On Linux with bubblewrap, the sandbox above stays the default.
 
 Needs Node.js ≥ 22.17, git, about 4 GB of disk and about 3 GB of free RAM. The commands are the same in Terminal,
-PowerShell and cmd (we did not run them there; see below):
+PowerShell and cmd (we did not run them there; see below). Start it with plain `node`: the launcher refuses to run
+when `NODE_OPTIONS` is set or node gets extra flags, and gives the app only a short, rebuilt environment.
 
 ```bash
 # 1. ONLINE, once: code + exact npm pins (install scripts are off in .npmrc), then the models (~1.6 GB, size + sha256 checked)
@@ -87,15 +89,16 @@ the `--` of `npm run`; the `node` form always works). Single commands: `ask "Tum
 | Step | You should see |
 |---|---|
 | 1 | `added … packages`, then one `<MODEL>: ok sha256=…` line per model and `All requested models are on disk and verified.` |
-| 2 | `network: OFF (verified: tcp 1.1.1.1:443 ENETUNREACH, IPv6 ENETUNREACH, dns EAI_AGAIN). Portable mode can run.` (the error codes depend on the system). Still online: `network: ON. the internet is reachable from this computer (tcp 1.1.1.1:443 connected, dns huggingface.co resolved). Turn Wi-Fi/Ethernet off, then run again.` |
+| 2 | `network: OFF (verified: tcp 1.1.1.1:443 ENETUNREACH, IPv6 ENETUNREACH, dns EAI_AGAIN / EAI_AGAIN). Portable mode can run.` (the error codes depend on the system). Still online: `network: ON. the internet is reachable from this computer (tcp 1.1.1.1:443 connected, dns huggingface.co resolved, dns example.com resolved). Turn Wi-Fi/Ethernet off, then run again.` |
 | 3 | `[network: OFF (verified: no route, no DNS) \| sandbox: portable (…)]` before every CLI step; `Ukaguzi (6, plain code): Mpokeaji ok · Anwani ok · Kiasi ok · Vikomo ok · Salio WARN · Utapeli ok` (the balance is unknown offline) and `Imesainiwa kwenye kifaa (bila mtandao) na kuwekwa foleni.`; `Signed on this device (offline) and queued.` (English voice note); `BLOCK DANGER: this address looks like Amina's …`; `HATARI KUBWA: usitume pesa.`; `2 queued signature(s) checked …, 0 bad`; last line **`PORTABLE DEMO PASS`** |
-| 4 | `Open this link (it holds this session's key; it changes at every start): http://127.0.0.1:8787/#k=…`. In the page, the network-proof panel shows `sandbox: portable · no bwrap: network switched off, probed live`; "Go online and send" answers that portable mode never goes online |
+| 4 | `Open this link (it holds this session's key; it changes at every start): http://127.0.0.1:8787/#k=…` (printed once the local server listens). In the page, the network-proof panel shows `sandbox: portable · no bwrap: network switched off, probed live`; "Go online and send" answers that portable mode never goes online |
 
 **Tested, and not tested.** We ran portable mode on **Linux arm64 only** (the box above):
 [`test/e2e_portable.sh`](test/e2e_portable.sh) starts the launcher in a network-less namespace (bubblewrap is used
 there only to remove the network; the app sees `SAUTI_SANDBOX=portable`), and step 3 passes with both signatures
 verified from the outbox; the same commands with the network on all refuse (negative control); when a network answer
-appears mid-run, the CLI and the engine refuse to sign and the engine refuses AI requests. **macOS and Windows were
+appears mid-run, the CLI and the engine refuse to sign and the engine refuses AI requests; the running engine and
+bridge are checked for the launcher's allowlisted environment and QVAC's worker socket in the private `tmp/pt`. **macOS and Windows were
 not tested.** What we checked for them (2026-10-29, `npm view` + `package-lock.json`): at our pinned versions QVAC
 publishes native builds for darwin-arm64, darwin-x64 and win32-x64: inside `@qvac/llm-llamacpp` 0.61.2 and
 `@qvac/ocr-ggml` 0.29.1, as `@qvac/asr-ggml-<platform>` 0.10.0 and `@qvac/fabric-<platform>` 0.22.0, and the Bare
@@ -114,11 +117,11 @@ downloader is Linux-only here, so on other systems typed and pasted messages are
 | Intent and message model: load Qwen3-1.7B | `loadModel(…)` | [`src/llm.js:64`](src/llm.js#L64) |
 | JSON intent, grammar-constrained, KV-cached prompt prefix | `completion({ responseFormat: { type: 'json_schema' }, kvCache, … })` | [`src/llm.js:98`](src/llm.js#L98) |
 | Screenshot text (CRAFT detector + latin_g2) | `loadModel({ modelType: 'ggml-ocr', … })`, `ocr({ modelId, image })` | [`src/ocr.js:28`](src/ocr.js#L28), [`src/ocr.js:48`](src/ocr.js#L48) |
-| Resident engine: speech model, LLM, prompt-cache warm-up | `new LocalASR`, `llm.load()`, `llm.warm()` | [`src/engine.js:488`](src/engine.js#L488), [`src/engine.js:502`](src/engine.js#L502) |
+| Resident engine: speech model, LLM, prompt-cache warm-up | `new LocalASR`, `llm.load()`, `llm.warm()` | [`src/engine.js:484`](src/engine.js#L484), [`src/engine.js:498`](src/engine.js#L498) |
 | Profiler (evidence only) | `profiler.enable`, `onRecord`, `exportJSON` | [`scripts/profile_qvac.mjs`](scripts/profile_qvac.mjs) |
-| WDK wallet: seed, EVM account with **no provider** (offline signer) | `new WDK(seed).registerWallet(…, WalletManagerEvm, { chainId })` | [`src/wallet.js:48`](src/wallet.js#L48) |
-| WDK transaction policy: allow ONE `signTransaction` for this token, recipient, amount, chain, fee cap | `registerPolicy({ … operation: 'signTransaction' … })` | [`src/wallet.js:50`](src/wallet.js#L50) |
-| Sign offline; anything else is refused by WDK (`PolicyViolationError`) | `account.signTransaction(tx)` | [`src/wallet.js:89`](src/wallet.js#L89) |
+| WDK wallet: seed, EVM account with **no provider** (offline signer) | `new WDK(seed).registerWallet(…, WalletManagerEvm, { chainId })` | [`src/wallet.js:76`](src/wallet.js#L76) |
+| WDK transaction policy: allow ONE `signTransaction` for this token, recipient, amount, chain, fee cap | `registerPolicy({ … operation: 'signTransaction' … })` | [`src/wallet.js:78`](src/wallet.js#L78) |
+| Sign offline; anything else is refused by WDK (`PolicyViolationError`) | `account.signTransaction(tx)` | [`src/wallet.js:117`](src/wallet.js#L117) |
 | The person confirmed: sign, then queue in the outbox | `wallet.signTransfer(…)`, `store.add(…)` | [`src/pipeline.js:171`](src/pipeline.js#L171) |
 | Tests of the policy, both directions (signs the confirmed transfer, refuses changes) | `node --test` | [`test/wallet.test.js`](test/wallet.test.js) |
 | Undo window: cancel a queued payment that never left the device; the sender skips held and cancelled payments | `cancelEntry`, `isHeld`, atomic send/cancel claim | [`src/undo.js:71`](src/undo.js#L71), [`src/broadcast.js:61`](src/broadcast.js#L61), [`src/broadcast.js:102`](src/broadcast.js#L102) |
@@ -134,15 +137,15 @@ downloader is Linux-only here, so on other systems typed and pasted messages are
   ([`ops/sandbox.sh:79`](ops/sandbox.sh#L79)), so the process has its own empty network namespace (only `lo`).
   The CLI, the engine and the server refuse to start outside that sandbox or when the internet is reachable
   ([`bin/sauti.mjs:11`](bin/sauti.mjs#L11), [`bin/serve.mjs:11`](bin/serve.mjs#L11),
-  [`src/engine.js:461`](src/engine.js#L461)), by a live probe: TCP to 1.1.1.1:443 and to its IPv6 twin, and a DNS lookup, must all fail
-  ([`src/offline.js:27`](src/offline.js#L27), gate: [`src/gate.js:33`](src/gate.js#L33)). The probe runs again right before every
-  signature ([`src/engine.js:254`](src/engine.js#L254), [`src/cli.mjs:127`](src/cli.mjs#L127)). The only other mode is the explicit
+  [`src/engine.js:457`](src/engine.js#L457)), by a live probe: TCP to 1.1.1.1:443 and to its IPv6 twin, and two DNS lookups, must all fail with a "no network" error
+  ([`src/offline.js:57`](src/offline.js#L57), gate: [`src/gate.js:44`](src/gate.js#L44)). The probe runs again right before every
+  signature ([`src/engine.js:250`](src/engine.js#L250), [`src/cli.mjs:127`](src/cli.mjs#L127)). The only other mode is the explicit
   portable one ([`bin/portable.mjs`](bin/portable.mjs), above): no sandbox, the same probe at start, before every
   signature and before every engine request. Models load from local files only, never by registry name or URL.
 - **Verified:** step 3 (the probe), the UI's status pill (the same live probe), [`test/sandbox.sh`](test/sandbox.sh)
   (22 isolation checks, each with a positive control), [`test/gate.test.js`](test/gate.test.js) (the gate both ways:
   an all-failed probe passes; any reachable leg, a probe error or no mode refuses), [`test/e2e_portable.sh`](test/e2e_portable.sh)
-  (19 checks: portable mode with and without a network, and the network coming back mid-run), and the network state
+  (22 checks: portable mode with and without a network, and the network coming back mid-run), and the network state
   recorded before and after the QVAC profiler run ([`evidence/README.md`](evidence/README.md)).
 
 ## Known limits

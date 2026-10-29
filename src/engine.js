@@ -27,7 +27,7 @@ import { LocalOCR, MAX_IMAGE_BYTES, inspectImage } from './ocr.js'
 import { analyzeRequest, amendAnalysis, confirmAndQueue, analyzeMessage, resignEntry } from './pipeline.js'
 import { analysisView, outboxView, contactView } from './view.js'
 import { cancelEntry, holdMinutesFrom } from './undo.js'
-import { networkProof } from './offline.js'
+import { proofSource } from './netcache.js'
 import { checkGate } from './gate.js'
 import { engineSocket } from './sockpath.js'
 import { missingModelMessage, fetchCommand } from './setup_hint.js'
@@ -73,7 +73,7 @@ const engine = { stage: 'starting', ready: false, startedAt: new Date().toISOStr
 let asr = null
 let llm = null
 let address = null
-let proofCache = null
+const probes = proofSource() // fresh() for the gate, cached() for the status pill (src/netcache.js)
 const sessions = new Map() // sid -> { a, network, created, used }
 
 function modelPath (rel) {
@@ -98,15 +98,11 @@ function asrModelsText () {
   return sw === en ? sw : `${sw} (sw) · ${en} (en)`
 }
 
-async function proof (maxAgeMs = 5000) {
-  if (!proofCache || Date.now() - Date.parse(proofCache.at) > maxAgeMs) proofCache = await networkProof()
-  return proofCache
-}
-
-// The run gate (src/gate.js) with a FRESH probe: right before every signature (both modes), and in portable mode
-// before every AI request too (there is no sandbox there, so the person's switched-off network is re-checked).
+// The run gate (src/gate.js) with a FRESH probe, every time (never a cached answer): right before every signature
+// (both modes), and in portable mode before every AI request too (there is no sandbox there, so the person's
+// switched-off network is re-checked).
 async function gate (action) {
-  const g = await checkGate({ action, launcher: 'node bin/serve.mjs', probe: () => proof(0) })
+  const g = await checkGate({ action, launcher: 'node bin/serve.mjs', probe: probes.fresh })
   if (!g.ok) { log(`${action} refused: ${g.message}`); throw httpError(423, g.message) }
 }
 
@@ -354,7 +350,7 @@ async function onStatus (q) {
       models: { asr: asrModelsText(), vad: 'Silero VAD 5.1.2 (VAD_SILERO_5_1_2)', llm: 'Qwen3-1.7B Q4_0 (QWEN3_1_7B_INST_Q4)', ocr: 'OCR_LATIN + OCR_CRAFT (loaded per screenshot)', sdk: '@qvac/sdk 0.22.0' },
       rssMb: Object.values(rss).reduce((x, y) => x + y, 0)
     },
-    net: await proof(),
+    net: await probes.cached(5000), // the status pill only; never used to decide anything
     wallet: address ? { address, short: shortAddr(address) } : null,
     network: { id: netId, name: net.name, chainId: net.chainId, explorer: net.explorer, testnet: true },
     chain: {
@@ -458,7 +454,7 @@ async function start () {
   process.on('SIGINT', () => shutdown('SIGINT'))
   // Hard guard: this process holds the AI and the keys. It only runs in the offline sandbox (or the explicit portable
   // mode) with the internet unreachable, checked by a live probe (src/gate.js).
-  const g = await checkGate({ launcher: 'node bin/serve.mjs', probe: () => proof(0) })
+  const g = await checkGate({ launcher: 'node bin/serve.mjs', probe: probes.fresh })
   if (!g.ok) { console.error(g.message); process.exit(2) }
   const p = g.proof
   mkdirSync(RUN, { recursive: true, mode: 0o700 })
@@ -474,7 +470,7 @@ async function start () {
   if (!SOCKET.pipe) chmodSync(SOCK, 0o600)
   const where = SOCKET.pipe ? 'a named pipe' : relative(ROOT, SOCK)
   const mode = PORTABLE ? `portable mode: no sandbox, the probe re-runs before every request and signature; interfaces ${p.interfaces.join(',')}` : `${p.interfaces.join(',')} only`
-  log(`listening on ${where} (network: OFF, verified: ${mode}; tcp ${p.tcp_ipv4.error}; dns ${p.dns.error})`)
+  log(`listening on ${where} (network: OFF, verified: ${mode}; tcp ${p.tcp_ipv4.error}; dns ${p.dns.error}, ${p.dns2.error})`)
 
   if (walletExists(WALLET)) {
     const w = await openWallet(WALLET, { chainId: 1 })
