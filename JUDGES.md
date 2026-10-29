@@ -60,8 +60,8 @@ signature, and in the engine before every AI request. While any of them gets thr
 runtime (a missing model stops with the exact download command) and never broadcasts: the signed test payments stay
 in the outbox. Same test wallet, test tokens and labels. On Linux with bubblewrap, the sandbox above stays the default.
 
-Needs Node.js ≥ 22.17, git, about 4 GB of disk and about 3 GB of free RAM. The same commands work in Terminal,
-PowerShell and cmd:
+Needs Node.js ≥ 22.17, git, about 4 GB of disk and about 3 GB of free RAM. The commands are the same in Terminal,
+PowerShell and cmd (we did not run them there; see below):
 
 ```bash
 # 1. ONLINE, once: code + exact npm pins (install scripts are off in .npmrc), then the models (~1.6 GB, size + sha256 checked)
@@ -100,7 +100,7 @@ not tested.** What we checked for them (2026-10-29, `npm view` + `package-lock.j
 publishes native builds for darwin-arm64, darwin-x64 and win32-x64: inside `@qvac/llm-llamacpp` 0.61.2 and
 `@qvac/ocr-ggml` 0.29.1, as `@qvac/asr-ggml-<platform>` 0.10.0 and `@qvac/fabric-<platform>` 0.22.0, and the Bare
 runtime of QVAC's worker as `bare-runtime-<platform>` 1.36.0; all are in our lockfile, so `npm ci` picks the right
-ones. No QVAC builds exist for Windows on ARM. Screenshot OCR needs two files from QVAC's peer-to-peer registry, whose
+ones. At these versions there are no QVAC builds for Windows on ARM. Screenshot OCR needs two files from QVAC's peer-to-peer registry, whose
 downloader is Linux-only here, so on other systems typed and pasted messages are checked, not screenshots.
 
 ## Where QVAC and WDK are called
