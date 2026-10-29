@@ -30,7 +30,9 @@ export async function createWallet (file) {
 
 function readSeed (file) {
   const st = statSync(file)
-  if ((st.mode & 0o077) !== 0) throw new Error(`${file} must not be readable by others (chmod 600)`)
+  // POSIX permission bits. Windows has no such bits (Node reports 0666/0444 there; access is set by the folder's
+  // ACLs), so this check cannot apply on Windows: SECURITY.md, "Portable mode".
+  if (process.platform !== 'win32' && (st.mode & 0o077) !== 0) throw new Error(`${file} must not be readable by others (chmod 600)`)
   // Never let a parse error quote the file: JSON.parse messages include a piece of the input (here: seed words).
   let seed
   try { seed = JSON.parse(readFileSync(file, 'utf8')).seed } catch { throw new Error('wallet file corrupted') }

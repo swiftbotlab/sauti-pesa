@@ -2,6 +2,7 @@
 
 > **Judges: [JUDGES.md](JUDGES.md)** is one page with the offline run (5 commands, expected output), where QVAC and
 > WDK are called, what needs the internet and how "off" is enforced, known limits, and where each form answer is.
+> No bubblewrap (macOS, Windows)? **[Any laptop](JUDGES.md#any-laptop-macos--windows--linux-without-bubblewrap)**: `npm ci` and `npm run fetch-models` online, then network off and `node bin/portable.mjs demo` (portable mode: tested on Linux arm64 only).
 
 **USDT next to M-Pesa, in Swahili, offline, with a second pair of eyes for the fake "send it back" messages.**
 Many people in East Africa keep savings and receive money in USDT next to M-Pesa, and the scams arrive in Swahili:
@@ -355,11 +356,12 @@ can also unplug the whole machine:
 **Tests:**
 
 ```bash
-ops/sandbox.sh offline node --test test/*.test.js   # 92 unit tests, no model (3 need the private test set, else skipped)
+ops/sandbox.sh offline node --test test/*.test.js   # 108 unit tests, no model (3 need the private test set, else skipped)
 test/sandbox.sh          # 22 sandbox checks with positive controls (read-only code, masks, lock, local.env)
 test/e2e_offline.sh      # CLI, internet off: Swahili text + English voice payments, blocks, hold + cancel, devnet broadcast
 test/e2e_ocr.sh          # CLI, internet off: 4 labelled screenshots -> QVAC OCR -> the same message checks
 test/e2e_ui.sh           # engine + bridge API, 108 checks, incl. the UI key, sw/en voice, screenshots, re-sign, undo window
+test/e2e_portable.sh     # portable mode (no sandbox): refuses with the network on, full flow with it off, network back mid-run (19 checks)
 scripts/mem_cap_run.sh 3G test/e2e_ui.sh       # any of these under a hard 3 GB memory cap (see "Runs in 3 GB")
 scripts/fetch_registry_model.sh --probe PORT   # OCR download fence vs host: a local service on PORT, gateway, internet
 scripts/eval_sw_requests.sh  # the commissioned Swahili test set (private: skipped when absent, see below)

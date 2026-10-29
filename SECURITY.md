@@ -47,9 +47,10 @@ Scope: a TEST-NETWORK wallet assistant. There is no mainnet configuration in `sr
   shilling mention is only accepted next to an explicit USDT amount, and then the payment must be that amount.
 
 ## Local UI: resident engine + bridge
-- **Engine** (`src/engine.js`, started by `bin/serve.mjs`): runs inside the `offline` sandbox and refuses to start
-  outside it or when the internet is reachable. `bin/serve.mjs` (and the CLI launcher `bin/sauti.mjs`) checks this
-  with Node built-ins BEFORE any third-party package is loaded. The engine listens only on a Unix socket
+- **Engine** (`src/engine.js`, started by `bin/serve.mjs`): runs inside the `offline` sandbox (or the explicit
+  portable mode, below) and refuses to start outside them or when the internet is reachable. `bin/serve.mjs` (and the
+  CLI launcher `bin/sauti.mjs`) checks this with Node built-ins BEFORE any third-party package is loaded
+  (`src/gate.js`). The same live probe runs again right before every signature (engine and CLI). The engine listens only on a Unix socket
   (`tmp/run/engine.sock`, mode 0600, directory 0700), handles one request at a time, caps bodies (16 KB JSON,
   5 MB audio) and keeps confirmation sessions for 15 min, once only. Before signing it re-runs the code checks on
   the current state (limits and outbox may have changed). Voice notes left over from a killed engine are deleted
@@ -144,6 +145,37 @@ later run on the host (`bin/`, `ops/`, `scripts/`, `src/`, `ui/`, `.git`). Each 
 - Isolation is proven with `ops/sandbox_probe.mjs` (host = positive control) and `test/sandbox.sh` (each guard with
   a positive control: the old read-write binding could write `bin/bridge.mjs`, every mode now cannot).
 
+## Portable mode (bin/portable.mjs, no sandbox)
+For judging on a laptop without bubblewrap (macOS, Windows, Linux without bwrap). An explicit opt-in: the launcher
+sets `SAUTI_SANDBOX=portable` for the CLI, engine and bridge it starts (setting it by hand is equally explicit and
+passes through the same gate). It is a weaker guarantee than the sandbox, and documented as one.
+- **What holds.** The gate (`src/gate.js`, Node built-ins only, before any third-party package loads) accepts only
+  `offline` or `portable`, and in both the live probe (TCP 1.1.1.1:443, TCP [2606:4700:4700::1111]:443, DNS lookup of
+  huggingface.co) must fail. It runs at startup, right before every signature (CLI and engine), and in portable mode
+  before every engine request. A probe error or a malformed or contradictory answer counts as online (fail closed).
+  Tested both ways in `test/gate.test.js`, and end to end in `test/e2e_portable.sh`: refusals with the network on,
+  the full flow with it off, and the network coming back mid-run (CLI and engine then refuse to sign; the engine
+  refuses AI requests). Nothing is downloaded at runtime: models are local files, and a missing one stops with the
+  exact download command. The bridge refuses both network actions (sync, broadcast) in portable mode, so signed
+  payments stay in the outbox. The per-launch UI key, the 127.0.0.1 binding, Host/Origin checks, caps and the
+  test-network-only build are unchanged.
+- **What does not hold.** No network namespace: if the network comes back while one request runs, that request
+  finishes (the next signature or request is refused). The probe has fixed targets: a network that blocks exactly
+  1.1.1.1, its IPv6 twin and DNS for huggingface.co, but lets other traffic through, would pass it. No read-only project and no masked `private/`/`tmp/`; the
+  environment is passed through (with `SAUTI_SANDBOX`, `SAUTI_UI_TOKEN`, `SAUTI_ENGINE_PIPE` and
+  `SAUTI_QUEUE_LOCKED` replaced), HOME is the project's `home/`. Outside the sandbox's PID namespace the memory report
+  reads only this process tree, never other programs.
+- **Windows (untested).** Node has no Unix sockets there, so the engine and the bridge use a named pipe with a random
+  name per launch (`\\.\pipe\sauti-pesa-<32 hex>`, only that exact shape is accepted). Its default ACL may let other
+  local users open it for reading; the random name is the protection, and only the launcher's two processes know it.
+  Windows has no POSIX file modes, so the 0600 check on `private/wallet.json` cannot apply: the file is protected by
+  the folder's ACLs only. Test wallet only, as everywhere.
+- **Downloads on that path** (`scripts/fetch_models.mjs`, `npm run fetch-models`, Node built-ins): the start URL must
+  be https://huggingface.co/, every redirect https without credentials (at most 5); the file is written as
+  `models/<file>.part`, aborted beyond the pinned size, and renamed only after size AND sha256 match (tested with a
+  scripted server: tampered bytes, oversize, http and credential redirects, Range resume). The OCR weights keep their
+  Linux-only fenced downloader. `npm ci` runs with install scripts off (`.npmrc`).
+
 ## Supply chain
 - Exact pins and a committed lockfile. `--ignore-scripts` is set (no package in the tree has install scripts).
 - Tarball sha512 was compared with registry integrity; registry signatures were verified for all 289 lockfile entries
@@ -153,6 +185,8 @@ later run on the host (`bin/`, `ops/`, `scripts/`, `src/`, `ui/`, `.git`). Each 
 
 ## Known gaps
 - `online` mode shares the host network namespace (see above).
+- Portable mode has no sandbox at all: its guarantee is "the network is off, proven by a live probe", not "this
+  process cannot reach a network" (see above). It was tested on Linux arm64 only.
 - The devnet anvil state file and the outbox (signed transactions, public once broadcast) are stored unencrypted.
 - Processes of the same user can still read the engine socket (file permissions only, 0600), the bridge's memory
   and the link in the terminal's scrollback. The UI key protects against other users and against programs that

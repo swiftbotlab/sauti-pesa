@@ -121,6 +121,11 @@ const fmtTime = (iso) => { if (!iso) return '—'; const d = new Date(iso); retu
 const fmtAmt = (a) => { if (a === null || a === undefined) return '—'; const n = Number(a); return isNaN(n) ? String(a) : n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 }) }
 const secs = (ms) => (ms === null || ms === undefined ? '—' : ms < 1000 ? `${ms} ms` : `${(ms / 1000).toFixed(1)} s`)
 const netId = () => S.network || S.status?.network?.id || 'devnet'
+// offline = bubblewrap with its own empty network namespace; portable = no sandbox: the person switched the network
+// off, and the engine re-runs the live probe before every request and signature (JUDGES.md, "Any laptop")
+const sandboxLabel = (m, short) => (m === 'portable'
+  ? 'portable · no bwrap: network switched off, probed live'
+  : short ? `${m} (bwrap --unshare-net)` : `${m} · bwrap --unshare-net`)
 
 function addrNode (a) {
   if (!a || a.length !== 42) return h('span', { class: 'addr', text: a || '' })
@@ -268,7 +273,7 @@ function renderSide () {
     ),
     h('section', { class: 'panel' },
       h('h2', null, icon('wifioff'), t('proofTitle')),
-      h('p', { class: 'sub', text: n ? `sandbox: ${n.sandbox} (bwrap --unshare-net)` : '—' }),
+      h('p', { class: 'sub', text: n ? `sandbox: ${sandboxLabel(n.sandbox, true)}` : '—' }),
       n ? h('dl', { class: 'netproof' },
         h('dt', { text: t('ifaces') }), h('dd', { text: (n.interfaces || []).join(', ') }),
         h('dt', { text: `${t('tcp')} ${n.tcp_ipv4.target}` }), h('dd', null, err(n.tcp_ipv4)),
@@ -953,7 +958,7 @@ function openProof () {
     h('h2', { text: t('proofTitle') }),
     h('p', { class: 'sub', style: 'margin-bottom:10px', text: t('proofSub') }),
     n ? [
-      row('sandbox', `${n.sandbox} · bwrap --unshare-net`),
+      row('sandbox', sandboxLabel(n.sandbox)),
       row(t('ifaces'), (n.interfaces || []).join(', ') === 'lo' ? t('onlyLo') : (n.interfaces || []).join(', '), (n.interfaces || []).join(',') === 'lo'),
       row(`${t('tcp')} ${n.tcp_ipv4.target}`, n.tcp_ipv4.ok ? t('reachable') : `${t('failed')} · ${n.tcp_ipv4.error}`, !n.tcp_ipv4.ok),
       row(`${t('tcp')} IPv6`, n.tcp_ipv6.ok ? t('reachable') : `${t('failed')} · ${n.tcp_ipv6.error}`, !n.tcp_ipv6.ok),

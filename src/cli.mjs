@@ -1,5 +1,6 @@
 // Sauti Pesa CLI - the OFFLINE side (loaded by bin/sauti.mjs after its sandbox check). Run it inside the offline sandbox:
 //   ops/sandbox.sh offline node bin/sauti.mjs <command> ...
+// or, on a laptop without bubblewrap, with the network switched off:  npm run portable -- <command> ...
 // Commands:
 //   wallet init | wallet address
 //   contacts demo | contacts list | contacts add --name N --address 0x.. [--relation brother]
@@ -11,7 +12,7 @@
 //   cancel <outbox-id>         [--network ...] [--yes]   cancel a queued payment that was never sent (undo window)
 import { readFileSync, existsSync, realpathSync } from 'node:fs'
 import { createInterface } from 'node:readline/promises'
-import { join, resolve } from 'node:path'
+import { join, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { close } from '@qvac/sdk'
 import { createWallet, openWallet, walletExists } from './wallet.js'
@@ -24,7 +25,10 @@ import { LocalOCR, readImageFile } from './ocr.js'
 import { analyzeRequest, confirmAndQueue, analyzeMessage, resignEntry } from './pipeline.js'
 import { cancelEntry, holdMinutesFrom, isHeld } from './undo.js'
 import { networkState } from './offline.js'
+import { requireGate } from './gate.js'
+import { missingModelMessage, fetchCommand } from './setup_hint.js'
 import { reasonText } from './i18n.js'
+import { analysisView } from './view.js'
 import { peakRssMb } from './procmem.js'
 import { shortAddr } from './text.js'
 
@@ -40,7 +44,7 @@ function dataRoot () {
   const d = process.env.SAUTI_DATA
   if (!d) return ROOT
   const abs = resolve(ROOT, d)
-  if (!abs.startsWith(join(ROOT, 'tmp') + '/')) throw new Error('SAUTI_DATA must be inside tmp/')
+  if (!abs.startsWith(join(ROOT, 'tmp') + sep)) throw new Error('SAUTI_DATA must be inside tmp/')
   return abs
 }
 
@@ -58,9 +62,12 @@ function opts (argv) {
 }
 
 const say = (o, ...l) => { if (!o.json) console.log(...l) }
+const PORTABLE = process.env.SAUTI_SANDBOX === 'portable'
+// Right before every signature: the same live probe as at startup must still find the internet unreachable.
+const signGate = () => requireGate({ action: 'sign', launcher: 'node bin/sauti.mjs ...' })
 const modelPath = (rel) => {
   const p = join(ROOT, rel)
-  if (!existsSync(p)) throw new Error(`model missing: ${rel} (run scripts/fetch_models.sh in setup mode first)`)
+  if (!existsSync(p)) throw new Error(missingModelMessage(ROOT, rel))
   return realpathSync(p)
 }
 
@@ -72,7 +79,7 @@ function tokenAddressFor (netId, store) {
 async function header (o) {
   const s = await networkState()
   if (o['require-offline'] && s.online) throw new Error('refusing to run: the internet is reachable (use ops/sandbox.sh offline)')
-  say(o, `[network: ${s.online ? 'ON' : 'OFF (verified: no route, no DNS)'} | sandbox: ${s.sandbox}]`)
+  say(o, `[network: ${s.online ? 'ON' : 'OFF (verified: no route, no DNS)'} | sandbox: ${s.sandbox}${PORTABLE ? ' (no bubblewrap: the network is switched off; checked again before every signature)' : ''}]`)
   return s
 }
 
@@ -99,6 +106,9 @@ async function cmdAsk (o, text, extra = {}) {
   say(o, `AI (on device) understood: ${JSON.stringify(a.intent)}`)
   say(o, `\n${a.confirmation[L]}`)
   for (const r of a.reasons) say(o, `  ${r.severity === 'block' ? 'BLOCK' : r.severity === 'warn' ? 'WARN ' : 'info '} ${r[L]}`)
+  // the same check groups as the UI's confirmation card (recipient, address, amount, limits, balance, scam)
+  const groups = analysisView(a, { contacts, limits: { perTx: '100', perDay: '300', newRecipientMax: '20', retypeAbove: '50', ...(CFG.limits || {}) }, balanceUnits: store.state().balance?.units ?? null }).groups || []
+  if (groups.length) say(o, `  ${L === 'sw' ? 'Ukaguzi' : 'Checks'} (${groups.length}, plain code): ${groups.map((g) => `${g.title[L]} ${g.status === 'ok' ? 'ok' : g.status.toUpperCase()}`).join(' · ')}`)
   for (const f of a.flags.filter((x) => x.source !== 'model')) say(o, `  sign: ${f[L]}`)
   const aiOnly = a.flags.filter((x) => x.source === 'model').map((x) => x.id)
   if (aiOnly.length) say(o, `  ${L === 'sw' ? 'AI pia inashuku (haijathibitishwa)' : 'AI also suspects (unconfirmed)'}: ${aiOnly.join(', ')}`)
@@ -114,6 +124,7 @@ async function cmdAsk (o, text, extra = {}) {
       yes = ['y', 'yes', 'ndiyo', 'ndio'].includes(ans)
     }
     if (yes) {
+      await signGate()
       queued = await confirmAndQueue({ analysis: a, wallet, store, networkId: netId, tokenAddress, retypedAmount: o.retype, holdMinutes: holdMinutesFrom(CFG) })
       say(o, `\n${L === 'sw' ? 'Imesainiwa kwenye kifaa (bila mtandao) na kuwekwa foleni.' : 'Signed on this device (offline) and queued.'}`)
       say(o, `  tx ${queued.hash}  nonce ${queued.nonce}  ->  ${queued.recipientName || ''} ${shortAddr(queued.to)}  ${queued.amount} test USDT`)
@@ -123,7 +134,9 @@ async function cmdAsk (o, text, extra = {}) {
           ? `  MUDA WA KUGHAIRI: yanasubiri kwenye kifaa hadi ${at} (${queued.holdReasons.join(', ')}). Ghairi: node bin/sauti.mjs cancel ${queued.id.slice(0, 8)}`
           : `  UNDO WINDOW: held on this device until ${at} (${queued.holdReasons.join(', ')}). Cancel: node bin/sauti.mjs cancel ${queued.id.slice(0, 8)}`)
       }
-      say(o, `  NETWORK NEEDED LATER: broadcast with "node bin/netsync.mjs broadcast --network ${netId}" when online.`)
+      say(o, PORTABLE
+        ? '  NETWORK NEEDED LATER: portable mode never broadcasts. The signed payment stays in the outbox (queue/); broadcasting is the separate online step (Linux: ops/devnet.sh broadcast).'
+        : `  NETWORK NEEDED LATER: broadcast with "node bin/netsync.mjs broadcast --network ${netId}" when online.`)
     } else say(o, L === 'sw' ? 'Hakuna kilichotumwa.' : 'Nothing was sent.')
   }
   timing.peak_rss_mb = peakRssMb()
@@ -144,7 +157,7 @@ async function cmdSay (o) {
   // Swahili: the Swahili fine-tune of Whisper small when it is on disk (config.models.asr_sw); --accurate: turbo
   const swRel = !o.accurate && CFG.models.asr_sw
   const swOk = swRel && existsSync(join(ROOT, swRel))
-  if (swRel && !swOk && (o.lang || 'sw') === 'sw') say(o, `(Swahili speech model ${swRel} is missing: using ${CFG.models.asr}; run scripts/fetch_models.sh WHISPER_SMALL_SW_Q8_0 once, online)`)
+  if (swRel && !swOk && (o.lang || 'sw') === 'sw') say(o, `(Swahili speech model ${swRel} is missing: using ${CFG.models.asr}; download it once, with the internet on: ${fetchCommand(['WHISPER_SMALL_SW_Q8_0'])})`)
   const asr = new LocalASR({
     modelPath: modelPath(o.accurate ? CFG.models.asr_accurate : CFG.models.asr),
     modelPaths: swOk ? { sw: modelPath(swRel) } : {},
@@ -219,6 +232,7 @@ async function cmdResign (o) {
     rl.close()
   }
   if (!yes) { say(o, 'Nothing was signed.'); return }
+  await signGate()
   const wallet = await openWallet(WALLET, { chainId: net.chainId })
   try {
     const r = await resignEntry({ entryId: e.id, wallet, store, networkId: netId, chainId: net.chainId })

@@ -1,17 +1,19 @@
 // Sauti Pesa resident ENGINE. Started by bin/serve.mjs (which first checks, with Node built-ins only, that it
 // runs inside the OFFLINE sandbox with no network) inside bwrap --unshare-net:
 //   ops/sandbox.sh offline node bin/serve.mjs
+// or, on a laptop without bubblewrap, in the explicit portable mode with the network switched off
+// (npm run portable -- ui): then the live probe runs at startup, before every AI request and before every signature.
 // - keeps the QVAC speech model (whisper small + Silero VAD) and language model (Qwen3-1.7B) loaded, with the
 //   fixed prompt prefixes held in QVAC's KV cache, so a request costs ~1-2 s ASR + ~1-1.5 s LLM;
 // - holds the wallet: the seed is read from private/ only here and never leaves this process;
 // - answers a small JSON API over a Unix socket (tmp/run/engine.sock, mode 0600). It has no network at all:
-//   the host-side bridge (bin/bridge.mjs) forwards 127.0.0.1:8787 to this socket;
+//   the host-side bridge (bin/bridge.mjs) forwards 127.0.0.1:8787 to this socket (a random named pipe on Windows);
 // - reads screenshots for "Check a message" with QVAC OCR (loaded per screenshot, then unloaded);
-// - refuses to start when the internet is reachable.
+// - refuses to start, and refuses to sign, when the internet is reachable (src/gate.js).
 // One request is processed at a time; bodies, text and audio are size-capped; sessions expire.
 import http from 'node:http'
 import { readFileSync, writeFileSync, existsSync, realpathSync, mkdirSync, chmodSync, unlinkSync, lstatSync, rmSync } from 'node:fs'
-import { join, resolve, relative } from 'node:path'
+import { join, resolve, relative, sep } from 'node:path'
 import { randomBytes, randomUUID } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { close } from '@qvac/sdk'
@@ -26,6 +28,9 @@ import { analyzeRequest, amendAnalysis, confirmAndQueue, analyzeMessage, resignE
 import { analysisView, outboxView, contactView } from './view.js'
 import { cancelEntry, holdMinutesFrom } from './undo.js'
 import { networkProof } from './offline.js'
+import { checkGate } from './gate.js'
+import { engineSocket } from './sockpath.js'
+import { missingModelMessage, fetchCommand } from './setup_hint.js'
 import { reasonText } from './i18n.js'
 import { fromUnits } from './amount.js'
 import { currentRssMb } from './procmem.js'
@@ -38,20 +43,27 @@ const PRIV = join(DATA, 'private')
 const WALLET = join(PRIV, 'wallet.json')
 const CONTACTS = join(PRIV, 'contacts.json')
 const RUN = join(DATA === ROOT ? join(ROOT, 'tmp') : DATA, 'run')
-const SOCK = join(RUN, 'engine.sock')
+const SOCKET = socketOrExit() // Unix socket in RUN (a named pipe on Windows, portable mode only)
+const SOCK = SOCKET.path
+const PORTABLE = process.env.SAUTI_SANDBOX === 'portable'
 const UPLOADS = join(RUN, 'uploads')
 const MAX_JSON = 16 * 1024
 const SESSION_TTL_MS = 15 * 60 * 1000
 const MAX_SESSIONS = 32
 const LIMITS = { perTx: '100', perDay: '300', newRecipientMax: '20', retypeAbove: '50', ...(CFG.limits || {}) }
 const HOLD_MINUTES = holdMinutesFrom(CFG) // undo window for flagged payments (src/undo.js); 0 = off
+const OCR_MISSING_PORTABLE = 'OCR model missing: the screenshot check needs OCR_LATIN + OCR_CRAFT, which QVAC publishes only in its own peer-to-peer registry; our fenced downloader for them is Linux-only (scripts/fetch_models.sh OCR_LATIN OCR_CRAFT). Typed and pasted messages are checked without it.'
 
 function dataRoot () {
   const d = process.env.SAUTI_DATA
   if (!d) return ROOT
   const abs = resolve(ROOT, d)
-  if (!abs.startsWith(join(ROOT, 'tmp') + '/')) throw new Error('SAUTI_DATA must be inside tmp/')
+  if (!abs.startsWith(join(ROOT, 'tmp') + sep)) throw new Error('SAUTI_DATA must be inside tmp/')
   return abs
+}
+
+function socketOrExit () {
+  try { return engineSocket({ root: ROOT, data: DATA }) } catch (e) { console.error(`engine failed: ${e.message}`); process.exit(2) }
 }
 
 const log = (...a) => console.log(new Date().toISOString(), ...a)
@@ -66,7 +78,7 @@ const sessions = new Map() // sid -> { a, network, created, used }
 
 function modelPath (rel) {
   const p = join(ROOT, rel)
-  if (!existsSync(p)) throw new Error(`model missing: ${rel} (run scripts/fetch_models.sh in setup mode first)`)
+  if (!existsSync(p)) throw new Error(missingModelMessage(ROOT, rel))
   return realpathSync(p)
 }
 
@@ -76,7 +88,7 @@ function modelPath (rel) {
 function asrModelPaths () {
   const rel = CFG.models.asr_sw
   if (!rel) return {}
-  if (!existsSync(join(ROOT, rel))) { log(`Swahili speech model ${rel} is missing: Swahili uses ${CFG.models.asr} (run scripts/fetch_models.sh WHISPER_SMALL_SW_Q8_0 once, online)`); return {} }
+  if (!existsSync(join(ROOT, rel))) { log(`Swahili speech model ${rel} is missing: Swahili uses ${CFG.models.asr} (download it once, with the internet on: ${fetchCommand(['WHISPER_SMALL_SW_Q8_0'])})`); return {} }
   return { sw: modelPath(rel) }
 }
 
@@ -89,6 +101,13 @@ function asrModelsText () {
 async function proof (maxAgeMs = 5000) {
   if (!proofCache || Date.now() - Date.parse(proofCache.at) > maxAgeMs) proofCache = await networkProof()
   return proofCache
+}
+
+// The run gate (src/gate.js) with a FRESH probe: right before every signature (both modes), and in portable mode
+// before every AI request too (there is no sandbox there, so the person's switched-off network is re-checked).
+async function gate (action) {
+  const g = await checkGate({ action, launcher: 'node bin/serve.mjs', probe: () => proof(0) })
+  if (!g.ok) { log(`${action} refused: ${g.message}`); throw httpError(423, g.message) }
 }
 
 // one request at a time (the models, the wallet and the outbox are single-user state)
@@ -192,7 +211,7 @@ async function onReadImage (buf) {
   let info
   try { info = inspectImage(buf) } catch (e) { throw httpError(400, String(e.message).slice(0, 160)) } // by CONTENT: PNG/JPEG, size caps
   const files = [CFG.models.ocr, CFG.models.ocr_detector].map((rel) => join(ROOT, rel || ''))
-  if (!CFG.models.ocr || !files.every((f) => existsSync(f))) throw httpError(503, 'OCR model missing: run scripts/fetch_models.sh OCR_LATIN OCR_CRAFT once (online)')
+  if (!CFG.models.ocr || !files.every((f) => existsSync(f))) throw httpError(503, PORTABLE ? OCR_MISSING_PORTABLE : 'OCR model missing: run scripts/fetch_models.sh OCR_LATIN OCR_CRAFT once (online)')
   const reader = new LocalOCR({ modelPath: realpathSync(files[0]), detectorPath: realpathSync(files[1]), threads: CFG.ocr_threads || 4 })
   let r; let loadMs
   await asr.unload() // LocalASR (single mode) loads itself again on the next transcription
@@ -232,6 +251,7 @@ async function onConfirm (body) {
   // the analysis was made a few minutes ago: re-run the code checks on the CURRENT state (limits, outbox)
   const fresh = amendAnalysis(s.a, {}, ctx)
   if (fresh.decision === 'blocked') throw httpError(409, 'the checks changed since this was shown; please start again')
+  await gate('sign')
   const t0 = Date.now()
   const wallet = await openWallet(WALLET, { chainId: net.chainId })
   try {
@@ -253,6 +273,7 @@ async function onResign (body, q) {
   if (!/^[0-9a-f-]{36}$/.test(id)) throw httpError(400, 'bad id')
   const net = network(netId)
   const store = storeOf(netId)
+  await gate('sign')
   const t0 = Date.now()
   const wallet = await openWallet(WALLET, { chainId: net.chainId })
   try {
@@ -391,8 +412,8 @@ const ROUTES = {
   'POST /v1/ask': { fn: async (r) => onAsk(parseJson(await readBody(r.req, MAX_JSON)), r.q), ai: true },
   'POST /v1/voice': { fn: async (r) => onVoice(await readBody(r.req, MAX_AUDIO_BYTES), r.q), ai: true, audio: true },
   'POST /v1/amend': { fn: async (r) => onAmend(parseJson(await readBody(r.req, MAX_JSON))), ai: false },
-  'POST /v1/confirm': { fn: async (r) => onConfirm(parseJson(await readBody(r.req, MAX_JSON))), ai: false },
-  'POST /v1/resign': { fn: async (r) => onResign(parseJson(await readBody(r.req, MAX_JSON)), r.q), ai: false },
+  'POST /v1/confirm': { fn: async (r) => onConfirm(parseJson(await readBody(r.req, MAX_JSON))), ai: false, signs: true },
+  'POST /v1/resign': { fn: async (r) => onResign(parseJson(await readBody(r.req, MAX_JSON)), r.q), ai: false, signs: true },
   'POST /v1/cancel': { fn: async (r) => onCancel(parseJson(await readBody(r.req, MAX_JSON))), ai: false },
   'POST /v1/check': { fn: async (r) => onCheck(parseJson(await readBody(r.req, MAX_JSON))), ai: true },
   'POST /v1/read-image': { fn: async (r) => onReadImage(await readBody(r.req, MAX_IMAGE_BYTES)), ai: true, image: true }
@@ -415,7 +436,9 @@ const server = http.createServer(async (req, res) => {
   if (route.audio && !/^audio\/(wav|x-wav|wave)$/.test(String(req.headers['content-type'] || '').split(';')[0].trim())) { req.resume(); return send(res, 415, { ok: false, error: 'audio must be sent as audio/wav' }) }
   if (route.image && !/^image\/(png|jpeg)$/.test(String(req.headers['content-type'] || '').split(';')[0].trim())) { req.resume(); return send(res, 415, { ok: false, error: 'image must be sent as image/png or image/jpeg' }) }
   try {
-    const out = route.light ? await route.fn({ req, q: u.searchParams }) : await serial(() => route.fn({ req, q: u.searchParams }))
+    const out = route.light
+      ? await route.fn({ req, q: u.searchParams })
+      : await serial(async () => { if (PORTABLE && !route.signs) await gate('run'); return route.fn({ req, q: u.searchParams }) }) // signing routes: gate('sign') inside
     out.ms = Date.now() - t0
     send(res, 200, out)
     if (!route.light) log(key, 200, `${out.ms}ms`, out.view?.decision || out.view?.risk || (out.queued ? 'queued' : ''))
@@ -433,22 +456,25 @@ server.maxHeadersCount = 30
 async function start () {
   process.on('SIGTERM', () => shutdown('SIGTERM'))
   process.on('SIGINT', () => shutdown('SIGINT'))
-  // Hard guard: this process holds the AI and the keys. It only runs with the internet unreachable.
-  const p = await proof(0)
-  if (p.online) { console.error('refusing to start: the internet is reachable. Run it with: ops/sandbox.sh offline node bin/serve.mjs'); process.exit(2) }
-  if (process.env.SAUTI_SANDBOX !== 'offline') { console.error('refusing to start outside the offline sandbox (ops/sandbox.sh offline ...)'); process.exit(2) }
+  // Hard guard: this process holds the AI and the keys. It only runs in the offline sandbox (or the explicit portable
+  // mode) with the internet unreachable, checked by a live probe (src/gate.js).
+  const g = await checkGate({ launcher: 'node bin/serve.mjs', probe: () => proof(0) })
+  if (!g.ok) { console.error(g.message); process.exit(2) }
+  const p = g.proof
   mkdirSync(RUN, { recursive: true, mode: 0o700 })
   chmodSync(RUN, 0o700)
   // voice notes left over from an engine that was killed mid-request: never kept, never reused
   rmSync(UPLOADS, { recursive: true, force: true })
   mkdirSync(UPLOADS, { mode: 0o700 })
-  if (existsSync(SOCK)) {
+  if (!SOCKET.pipe && existsSync(SOCK)) {
     if (!lstatSync(SOCK).isSocket()) throw new Error(`${SOCK} exists and is not a socket`)
     unlinkSync(SOCK)
   }
   await new Promise((resolve, reject) => { server.once('error', reject); server.listen(SOCK, resolve) })
-  chmodSync(SOCK, 0o600)
-  log(`listening on ${relative(ROOT, SOCK)} (network: OFF, verified: ${p.interfaces.join(',')} only; tcp ${p.tcp_ipv4.error}; dns ${p.dns.error})`)
+  if (!SOCKET.pipe) chmodSync(SOCK, 0o600)
+  const where = SOCKET.pipe ? 'a named pipe' : relative(ROOT, SOCK)
+  const mode = PORTABLE ? `portable mode: no sandbox, the probe re-runs before every request and signature; interfaces ${p.interfaces.join(',')}` : `${p.interfaces.join(',')} only`
+  log(`listening on ${where} (network: OFF, verified: ${mode}; tcp ${p.tcp_ipv4.error}; dns ${p.dns.error})`)
 
   if (walletExists(WALLET)) {
     const w = await openWallet(WALLET, { chainId: 1 })
@@ -488,7 +514,7 @@ async function shutdown (sig) {
   try { await asr?.unload() } catch {}
   try { await llm?.unload() } catch {}
   try { await close() } catch {}
-  try { unlinkSync(SOCK) } catch {}
+  if (!SOCKET.pipe) try { unlinkSync(SOCK) } catch {}
   process.exit(0)
 }
 
@@ -498,7 +524,7 @@ export function runEngine () {
   engine.error = String(e.message).slice(0, 200)
   console.error(`engine failed: ${e.message}`)
   try { await close() } catch {}
-  try { unlinkSync(SOCK) } catch {}
+  if (!SOCKET.pipe) try { unlinkSync(SOCK) } catch {}
   process.exit(1)
   })
 }

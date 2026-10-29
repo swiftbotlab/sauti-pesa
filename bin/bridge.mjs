@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Host-side bridge for the local web UI. Our own code, Node built-ins only, no dependencies.
-//   SAUTI_UI_TOKEN=<key> node bin/bridge.mjs     (normally started by ops/ui.sh, which makes the key)
+//   SAUTI_UI_TOKEN=<key> node bin/bridge.mjs     (normally started by ops/ui.sh, which makes the key, or by the
+//                                                 portable launcher: npm run portable -- ui)
 // What it does, and nothing else:
 // - listens on 127.0.0.1 only (never 0.0.0.0); refuses other Host headers (DNS rebinding) and cross-site
 //   requests (Origin check + a custom header that forces a CORS preflight, which is never answered);
@@ -15,20 +16,25 @@
 //   signed-transaction hashes;
 // - the only network action: POST /api/net/{sync,broadcast} runs the separate, keyless broadcaster
 //   (ops/devnet.sh for the local chain, ops/sandbox.sh online node bin/netsync.mjs for Sepolia) with
-//   fixed arguments.
+//   fixed arguments. In portable mode (SAUTI_SANDBOX=portable, set by bin/portable.mjs) there is no network action
+//   at all: both routes are refused, and signed payments stay in the outbox.
 import http from 'node:http'
 import { readFileSync, lstatSync, existsSync } from 'node:fs'
-import { join, resolve, relative } from 'node:path'
+import { join, resolve, relative, sep } from 'node:path'
 import { spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { createHash, timingSafeEqual } from 'node:crypto'
+import { engineSocket } from '../src/sockpath.js'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
 const KEY = uiKey()
 const HOST = '127.0.0.1'
 const PORT = portFromEnv()
 const DATA = dataRoot()
-const SOCK = join(DATA === ROOT ? join(ROOT, 'tmp') : DATA, 'run', 'engine.sock')
+const SOCKET = socketOrExit()
+const SOCK = SOCKET.path
+const PORTABLE = process.env.SAUTI_SANDBOX === 'portable'
+const PORTABLE_NO_NET = 'portable mode never goes online: the signed payments stay in the outbox on this device. Broadcasting is the separate online step (Linux: ops/devnet.sh broadcast, see JUDGES.md).'
 const MAX_JSON = 16 * 1024
 const MAX_AUDIO = 5 * 1024 * 1024
 const MAX_IMAGE = 4 * 1024 * 1024
@@ -48,7 +54,7 @@ function portFromEnv () {
 function uiKey () {
   const k = process.env.SAUTI_UI_TOKEN || ''
   delete process.env.SAUTI_UI_TOKEN
-  if (!/^[A-Za-z0-9_-]{32,128}$/.test(k)) { console.error('refusing to start: no UI key (start the app with ops/ui.sh)'); process.exit(2) }
+  if (!/^[A-Za-z0-9_-]{32,128}$/.test(k)) { console.error('refusing to start: no UI key (start the app with ops/ui.sh, or npm run portable -- ui)'); process.exit(2) }
   return createHash('sha256').update(k).digest()
 }
 function keyOk (given) {
@@ -60,8 +66,11 @@ function dataRoot () {
   const d = process.env.SAUTI_DATA
   if (!d) return ROOT
   const abs = resolve(ROOT, d)
-  if (!abs.startsWith(join(ROOT, 'tmp') + '/')) throw new Error('SAUTI_DATA must be inside tmp/')
+  if (!abs.startsWith(join(ROOT, 'tmp') + sep)) throw new Error('SAUTI_DATA must be inside tmp/')
   return abs
+}
+function socketOrExit () {
+  try { return engineSocket({ root: ROOT, data: DATA }) } catch (e) { console.error(`refusing to start: ${e.message}`); process.exit(2) }
 }
 
 // Fixed static files. Content types are set here, never guessed from the request.
@@ -143,6 +152,7 @@ function readBody (req, max) {
 }
 
 function socketOk () {
+  if (SOCKET.pipe) return true // Windows named pipe: a random name per launch, known only to the engine and this bridge
   if (!existsSync(SOCK)) return false
   const st = lstatSync(SOCK)
   return st.isSocket() && st.uid === process.getuid() // our own engine's socket, nothing planted
@@ -150,7 +160,7 @@ function socketOk () {
 
 function toEngine (method, path, body, contentType, timeout) {
   return new Promise((resolve, reject) => {
-    if (!socketOk()) { const e = new Error('engine is not running (start it with ops/ui.sh)'); e.status = 503; reject(e); return }
+    if (!socketOk()) { const e = new Error(`engine is not running (start it with ${PORTABLE ? 'npm run portable -- ui' : 'ops/ui.sh'})`); e.status = 503; reject(e); return }
     const req = http.request({ socketPath: SOCK, method, path, headers: { 'content-type': contentType, 'content-length': body ? body.length : 0 }, timeout }, (res) => {
       const chunks = []
       let n = 0
@@ -218,6 +228,7 @@ const server = http.createServer(async (req, res) => {
     let body
     try { body = JSON.parse((await readBody(req, 1024)).toString('utf8')) } catch (e) { return send(res, e.status || 400, { ok: false, error: e.status ? e.message : 'bad json' }) }
     if (!NETWORKS.includes(body?.network)) return send(res, 400, { ok: false, error: 'unknown network' })
+    if (PORTABLE) return send(res, 409, { ok: false, error: PORTABLE_NO_NET })
     if (busy || job.running) return send(res, 429, { ok: false, error: 'busy' })
     startNetJob(body.network, key.endsWith('sync') ? 'sync' : 'broadcast')
     return send(res, 202, { ok: true, job })
@@ -263,5 +274,5 @@ server.maxHeadersCount = 40
 server.listen(PORT, HOST, () => {
   const a = server.address()
   if (a.address !== HOST) { console.error('refusing: not bound to 127.0.0.1'); process.exit(2) }
-  log(`Sauti Pesa UI: http://${HOST}:${PORT}  (engine socket ${relative(ROOT, SOCK)})`)
+  log(`Sauti Pesa UI: http://${HOST}:${PORT}  (engine ${SOCKET.pipe ? 'named pipe' : `socket ${relative(ROOT, SOCK)}`}${PORTABLE ? ', portable mode: no network actions' : ''})`)
 })
